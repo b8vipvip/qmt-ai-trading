@@ -31,3 +31,10 @@ __pycache__/
 .idea/
 .DS_Store
 Thumbs.db
+
+# AI iteration runtime outputs
+runs/
+strategies/ai_strategy_*.py
+optimize-result.json
+optimize-result.csv
+ai-analysis.json
