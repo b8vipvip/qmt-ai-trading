@@ -1,0 +1,33 @@
+# sensitive config
+config.json
+.env
+*.key
+*.pem
+
+# runtime outputs
+logs/
+signals/*.json
+backtest_results/
+
+# QMT installer / client files
+gjzqqmt.rar
+gjzqqmt/
+
+# old / local test scripts that may contain account id
+qmt_query_readonly.py
+qmt_plan_order_dryrun.py
+qmt_plan_order_dryrun_test_buy.py
+
+# local notes
+*.txt
+
+# python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# editor/system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
