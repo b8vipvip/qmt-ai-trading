@@ -2,22 +2,19 @@
   "qmt_python_exe": "D:\\国金证券QMT交易端\\bin.x64\\python.exe",
   "qmt_userdata_path": "D:\\国金证券QMT交易端\\userdata_mini",
   "account_id": "填你的资金账号，不要提交真实账号",
-
   "stock_code": "510300.SH",
   "period": "1d",
   "fast_ma": 10,
   "slow_ma": 15,
   "signal_start_time": "20250101",
-
-  "allowed_stocks": ["510300.SH"],
-
+  "allowed_stocks": [
+    "510300.SH"
+  ],
   "lot_size": 100,
   "max_single_order_value": 50000.0,
   "max_order_amount": 12000.0,
   "min_order_value": 5000.0,
-
   "live_trading_enabled": false,
-
   "paths": {
     "target_signal_file": "D:\\AI\\qmt\\signals\\target_signal.json",
     "order_plan_file": "D:\\AI\\qmt\\signals\\order_plan.json",
@@ -26,11 +23,30 @@
     "backtest_results_dir": "D:\\AI\\qmt\\backtest_results",
     "logs_dir": "D:\\AI\\qmt\\logs"
   },
-
   "daily_scripts": [
     "D:\\AI\\qmt\\qmt_generate_signal_ma.py",
     "D:\\AI\\qmt\\qmt_plan_order_dryrun_v2.py",
     "D:\\AI\\qmt\\qmt_execute_manual_guard.py",
     "D:\\AI\\qmt\\qmt_write_daily_status.py"
-  ]
+  ],
+  "ai_iteration": {
+    "rounds": 1,
+    "runs_dir": "runs",
+    "strategies_dir": "strategies",
+    "backtest_script": "qmt_backtest_ma.py",
+    "validation_periods": [
+      [
+        "20230101",
+        "20231231"
+      ],
+      [
+        "20240101",
+        "20241231"
+      ],
+      [
+        "20250101",
+        "20251231"
+      ]
+    ]
+  }
 }
