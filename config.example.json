@@ -48,5 +48,38 @@
         "20251231"
       ]
     ]
+  },
+  "etf_rotation": {
+    "enabled": true,
+    "top_n": 1,
+    "rebalance_mode": "weekly",
+    "lookback_start_time": "20230101",
+    "market_regime_indexes": [
+      "000300.SH",
+      "000905.SH",
+      "399006.SZ"
+    ],
+    "etf_pool": [
+      "510300.SH",
+      "510500.SH",
+      "512100.SH",
+      "159915.SZ",
+      "588000.SH"
+    ],
+    "score_weights": {
+      "return_5d": 0.15,
+      "return_20d": 0.25,
+      "return_60d": 0.2,
+      "ma20_trend": 0.15,
+      "ma60_trend": 0.15,
+      "liquidity": 0.1,
+      "drawdown_penalty": -0.2,
+      "volatility_penalty": -0.1
+    },
+    "risk_limits": {
+      "min_avg_amount_20d": 50000000,
+      "max_drawdown_60d": 0.15,
+      "min_score_to_buy": 60
+    }
   }
 }
