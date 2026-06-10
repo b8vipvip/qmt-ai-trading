@@ -38,3 +38,4 @@ strategies/ai_strategy_*.py
 optimize-result.json
 optimize-result.csv
 ai-analysis.json
+signals/*.csv
