@@ -7,6 +7,12 @@ from unittest import mock
 import qmt_collect_diagnostics as diagnostic
 
 class DiagnosticTests(unittest.TestCase):
+    def write_json(self, root, relative, value):
+        path = os.path.join(root, relative)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(value, handle)
+
     def test_redacts_api_key_and_account(self):
         text = json.dumps(diagnostic.redact({"api_key": "sk-super-secret", "account_id": "12345678"}))
         self.assertNotIn("sk-super-secret", text)
@@ -49,5 +55,28 @@ class DiagnosticTests(unittest.TestCase):
             self.assertTrue(report["errors"])
             self.assertTrue(os.path.exists(os.path.join(root, "logs", "assistant_diagnostic_latest.md")))
             self.assertTrue(os.path.exists(os.path.join(root, "logs", "assistant_diagnostic_latest.json")))
+
+    def test_etf_shadow_state_takes_priority_over_ma_daily_fields(self):
+        with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
+            self.write_json(root, "signals/daily_status.json", {"stock_code": "600000.SH", "signal": "SELL_SIGNAL"})
+            self.write_json(root, "signals/selected_etf.json", {"selected": [{"stock_code": "159915.SZ"}]})
+            self.write_json(root, "signals/target_signal.json", {"stock_code": "159915.SZ", "signal": "BUY_SIGNAL"})
+            self.write_json(root, "signals/order_plan.json", {"stock_code": "159915.SZ", "action": "PLAN_BUY"})
+            self.write_json(root, "shadow/daily_snapshot.json", {"today_trades": [{"stock_code": "159915.SZ"}]})
+            result = diagnostic.collect_etf()
+            self.assertEqual("etf_rotation", result["strategy_source"])
+            self.assertEqual("159915.SZ", result["selected_etf"])
+            self.assertEqual("BUY_SIGNAL", result["signal_type"])
+            self.assertNotIn("warning", result)
+
+    def test_etf_shadow_mismatch_outputs_warning_and_details(self):
+        with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
+            self.write_json(root, "signals/selected_etf.json", {"selected": [{"stock_code": "510300.SH"}]})
+            self.write_json(root, "signals/target_signal.json", {"stock_code": "510300.SH", "signal": "BUY_SIGNAL"})
+            self.write_json(root, "signals/order_plan.json", {"stock_code": "510300.SH", "action": "PLAN_BUY"})
+            self.write_json(root, "shadow/daily_snapshot.json", {"today_trades": [{"stock_code": "159915.SZ"}]})
+            result = diagnostic.collect_etf()
+            self.assertEqual("order_plan 与 shadow 成交标的不一致", result["warning"])
+            self.assertEqual("159915.SZ", result["mismatch_details"]["shadow_trade_code"])
 
 if __name__ == "__main__": unittest.main()
