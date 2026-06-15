@@ -16,6 +16,10 @@
 ```text
 ai_tools/
   ai_client.py             OpenAI-compatible API 客户端，从本地环境读取密钥
+  ai_provider_pool.py      多供应商、多模型配置池
+  ai_router_client.py      超时、错误分类与自动切换路由
+  ai_api_logger.py         不含密钥和提示词的调用元数据日志
+  ai_api_report.py         供应商与模型稳定性统计
   analyze_backtest.py      汇总收益、回撤、交易次数、稳定性和过拟合风险
   generate_strategy.py     根据分析报告生成并安全检查研究策略
   optimize_strategy.py     多时间段参数优化与稳定性评分
@@ -51,6 +55,31 @@ OPENAI_MODEL=gpt-4.1-mini
 ```
 
 AI 客户端也支持直接读取同名环境变量。仓库不会保存真实 API Key。所有新增脚本使用兼容 QMT Python 3.6 的语法。
+
+### AI API 供应商池
+
+如需多个 OpenAI-compatible API 供应商，将 `ai_providers.example.json` 复制为
+`ai_providers.local.json`，在其中启用供应商、配置模型和引用密钥环境变量名。真实密钥只能写入
+本地 `.env` 或进程环境，例如：
+
+```dotenv
+APIHOST_API_KEY=本地密钥
+OPENROUTER_API_KEY=本地密钥
+```
+
+本地供应商配置和调用产物均已忽略。若 `ai_providers.local.json` 不存在，`AIClient` 会继续使用
+旧的 `OPENAI_API_KEY`、`OPENAI_BASE_URL` 和 `OPENAI_MODEL`。路由器会跳过禁用或缺少密钥的
+供应商，并在 401、403、429、超时或服务端错误时按规则冷却、重试或切换 provider/model。
+
+每次调用的非敏感元数据写入 `logs/ai_api_calls.jsonl`，不记录密钥或提示词。查看供应商和模型
+成功率、平均耗时及分类错误统计：
+
+```bash
+python -m ai_tools.ai_api_report
+```
+
+报告同时保存为 `logs/ai_api_report.json` 和 `logs/ai_api_report.csv`。API 池仅服务于研究分析
+和 ETF 轮动解释，不参与实盘决策，不调用真实下单或撤单接口。
 
 ## Daily dry-run
 
