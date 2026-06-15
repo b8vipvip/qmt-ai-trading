@@ -153,3 +153,20 @@ D:\国金证券QMT交易端\bin.x64\python.exe qmt_backtest_etf_rotation.py
 - 模块只使用 `xtdata` 读取行情，不连接真实交易执行接口；
 - 不会下单或撤单，且仍强制要求 `live_trading_enabled` 保持为 `false`；
 - `signals/etf_scores.json`、`signals/etf_scores.csv`、`signals/selected_etf.json`、`signals/market_regime.json` 和 `backtest_results/` 均为本地运行产物，不应提交。
+
+## 助手诊断日志
+
+每次更新、测试、dry-run 或 AI 研究后，如需让 ChatGPT 协助分析，只需使用 QMT 自带 Python 运行只读诊断收集器：
+
+```powershell
+& "D:\国金证券QMT交易端\bin.x64\python.exe" "D:\AI\qmt\qmt_collect_diagnostics.py"
+```
+
+然后将以下两个已脱敏文件发给 ChatGPT：
+
+```text
+D:\AI\qmt\logs\assistant_diagnostic_latest.md
+D:\AI\qmt\logs\assistant_diagnostic_latest.json
+```
+
+收集器会同时保留带时间戳的报告，汇总 Git、配置安全状态、更新检查、ETF dry-run、AI 研究/API 稳定性与最近产物。它不会读取 `.env` 内容、不会输出完整 API Key 或资金账号、不会修改实盘开关，也不会执行任何交易操作。
