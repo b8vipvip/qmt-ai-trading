@@ -8,7 +8,7 @@ Set-Location $root
 
 $summary = [ordered]@{
     "代码拉取" = "未执行"; "配置检查" = "未执行"; "单元测试" = "未执行"; "安全扫描" = "未执行"
-    "ETF回测" = "未执行"; "ETF dry-run" = "未执行"; "Daily dry-run" = "未执行"; "备份目录" = "未创建"
+    "Python编译检查" = "未执行"; "ETF回测" = "未执行"; "ETF dry-run" = "未执行"; "Daily dry-run" = "未执行"; "备份目录" = "未创建"
 }
 $codeUpdated = $false
 $failureReason = $null
@@ -35,6 +35,24 @@ function Add-LocalExcludes {
 function Invoke-Checked($description, $command, $arguments) {
     & $command @arguments
     if ($LASTEXITCODE -ne 0) { throw "$description 失败（退出码 $LASTEXITCODE）" }
+}
+function Get-QmtPython {
+    $configPath = Join-Path $root "config.json"
+    if (Test-Path $configPath) {
+        try {
+            $configuredPython = (Get-Content -Raw -Path $configPath | ConvertFrom-Json).qmt_python_exe
+            if ($configuredPython -and (Test-Path -LiteralPath $configuredPython -PathType Leaf)) {
+                Write-Ok "使用 config.json 中的 QMT Python: $configuredPython"
+                return $configuredPython
+            }
+            Write-Warn "config.json 中未配置可用的 qmt_python_exe，将使用 py"
+        } catch {
+            Write-Warn "读取 config.json 中的 qmt_python_exe 失败，将使用 py"
+        }
+    } else {
+        Write-Warn "未找到 config.json，将使用 py"
+    }
+    return "py"
 }
 function Invoke-SafetyScan {
     $tracked = @(& git ls-files -- "*.py" "*.ps1" "*.json")
@@ -95,10 +113,13 @@ try {
     Write-Ok "代码已成功更新到最新 $branch"
 
     Write-Section "后置检查"
-    Invoke-Checked "配置检查" "python" @("qmt_check_config.py")
+    $QmtPython = Get-QmtPython
+    Invoke-Checked "配置检查" $QmtPython @("qmt_check_config.py")
     $summary["配置检查"] = "通过"; Write-Ok "配置检查通过"
-    Invoke-Checked "单元测试" "python" @("-m", "unittest", "discover", "-s", "tests", "-v")
+    Invoke-Checked "单元测试" $QmtPython @("-m", "unittest", "discover", "-s", "tests", "-v")
     $summary["单元测试"] = "通过"; Write-Ok "单元测试通过"
+    Invoke-Checked "Python编译检查" $QmtPython @("-m", "compileall", "-q", "ai_tools", "data_tools", "tests")
+    $summary["Python编译检查"] = "通过"; Write-Ok "Python编译检查通过"
     Invoke-SafetyScan
     $summary["安全扫描"] = "通过"; Write-Ok "安全扫描通过"
 } catch {
