@@ -34,7 +34,10 @@ function Add-LocalExcludes {
 }
 function Invoke-Checked($description, $command, $arguments) {
     & $command @arguments
-    if ($LASTEXITCODE -ne 0) { throw "$description 失败（退出码 $LASTEXITCODE）" }
+    if ($LASTEXITCODE -ne 0) {
+        if ($summary.Contains($description)) { $summary[$description] = "失败" }
+        throw "$description 失败（退出码 $LASTEXITCODE）"
+    }
 }
 function Get-QmtPython {
     $configPath = Join-Path $root "config.json"

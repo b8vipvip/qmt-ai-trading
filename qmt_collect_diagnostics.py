@@ -19,7 +19,7 @@ def _now():
 
 def _read_json(path, default=None):
     try:
-        with open(path, "r") as handle:
+        with open(path, "r", encoding="utf-8") as handle:
             return json.load(handle)
     except (IOError, OSError, ValueError, TypeError):
         return {} if default is None else default
@@ -80,7 +80,8 @@ def collect_update_checks():
     result["source_log"] = os.path.relpath(log_path, ROOT) if log_path else None
     if log_path:
         try:
-            text = open(log_path, "r").read().lower()
+            with open(log_path, "r", encoding="utf-8") as handle:
+                text = handle.read().lower()
         except IOError:
             text = ""
         labels = {"code_pull": ["git pull", "代码拉取"], "config_check": ["config", "配置检查"],
@@ -112,31 +113,55 @@ def collect_etf():
 
 
 def collect_ai_api():
-    report = _read_json(os.path.join(ROOT, "logs", "ai_api_report.json"), {})
-    calls_path = os.path.join(ROOT, "logs", "ai_api_calls.jsonl")
-    calls = []
+    report_path = os.path.join(ROOT, "logs", "ai_api_report.json")
     try:
-        for line in open(calls_path, "r"):
-            try: calls.append(json.loads(line))
-            except ValueError: pass
-    except IOError: pass
-    errors = {k: 0 for k in ["401", "403", "429", "5xx", "timeout"]}
-    durations = []
-    success = 0
-    providers = {}
-    for call in calls:
-        text = json.dumps(call).lower()
-        for key in ["401", "403", "429", "timeout"]: errors[key] += int(key in text)
-        errors["5xx"] += int(bool(re.search(r"\b5\d\d\b", text)))
-        success += int(call.get("success") is True or str(call.get("status", "")).lower() == "success")
-        duration = call.get("duration_ms", call.get("latency_ms"))
-        if isinstance(duration, (int, float)): durations.append(duration)
-        name = "%s/%s" % (call.get("provider", "unknown"), call.get("model", "unknown"))
-        providers.setdefault(name, {"calls": 0, "success": 0}); providers[name]["calls"] += 1; providers[name]["success"] += int(call.get("success") is True)
-    for value in providers.values(): value["success_rate"] = round(float(value["success"]) / value["calls"], 4) if value["calls"] else None
-    return redact({"report_exists": bool(report), "total_calls": len(calls), "success_rate": round(float(success) / len(calls), 4) if calls else None,
-                   "provider_model": providers or report.get("provider_model", report.get("providers", {})), "errors": errors,
-                   "average_duration_ms": round(sum(durations) / float(len(durations)), 2) if durations else report.get("average_duration_ms")})
+        report = {}
+        if os.path.exists(report_path):
+            with open(report_path, "r", encoding="utf-8") as handle:
+                report_text = handle.read().strip()
+            report = json.loads(report_text) if report_text else {}
+        if not isinstance(report, (dict, list)):
+            report = {}
+        calls_path = os.path.join(ROOT, "logs", "ai_api_calls.jsonl")
+        calls = []
+        try:
+            with open(calls_path, "r", encoding="utf-8") as handle:
+                for line in handle:
+                    try:
+                        item = json.loads(line)
+                        if isinstance(item, dict): calls.append(item)
+                    except (ValueError, TypeError):
+                        pass
+        except (IOError, OSError):
+            pass
+        errors = {k: 0 for k in ["401", "403", "429", "5xx", "timeout"]}
+        durations, providers = [], {}
+        success = 0
+        for call in calls:
+            text = json.dumps(call).lower()
+            for key in ["401", "403", "429", "timeout"]: errors[key] += int(key in text)
+            errors["5xx"] += int(bool(re.search(r"\b5\d\d\b", text)))
+            success += int(call.get("success") is True or str(call.get("status", "")).lower() == "success")
+            duration = call.get("duration_ms", call.get("latency_ms"))
+            if isinstance(duration, (int, float)): durations.append(duration)
+            name = "%s/%s" % (call.get("provider", "unknown"), call.get("model", "unknown"))
+            providers.setdefault(name, {"calls": 0, "success": 0}); providers[name]["calls"] += 1; providers[name]["success"] += int(call.get("success") is True)
+        for value in providers.values(): value["success_rate"] = round(float(value["success"]) / value["calls"], 4) if value["calls"] else None
+        if isinstance(report, list):
+            report_providers = [{"provider": item.get("provider", "未知"), "model": item.get("model", "未知"),
+                "calls": item.get("calls"), "success_rate": item.get("success_rate"),
+                "average_duration_ms": item.get("average_duration_ms", item.get("avg_duration_ms", item.get("avg_duration")))}
+                for item in report if isinstance(item, dict)]
+            report_average = None
+        else:
+            report_providers = report.get("provider_model", report.get("providers", {}))
+            report_average = report.get("average_duration_ms")
+        return redact({"status": "ok", "report_exists": os.path.exists(report_path), "total_calls": len(calls),
+            "success_rate": round(float(success) / len(calls), 4) if calls else None,
+            "provider_model": providers or report_providers, "errors": errors,
+            "average_duration_ms": round(sum(durations) / float(len(durations)), 2) if durations else report_average})
+    except Exception as exc:
+        return {"status": "error", "error": str(exc)}
 
 
 def collect_ai_research():
@@ -173,14 +198,28 @@ def determine_stage(config, updates, etf, ai):
 
 
 def build_report():
-    config, updates, etf, ai = collect_config(), collect_update_checks(), collect_etf(), collect_ai_research()
-    stage, can_continue, recommendation = determine_stage(config, updates, etf, ai)
+    errors = []
+    defaults = {"config": {}, "update_checks": {k: "未知" for k in ["code_pull", "unit_tests", "safety_scan"]},
+                "etf_rotation": {"dry_run_passed": False}, "ai_research": {"pipeline_success": False}}
+    collectors = [("config", collect_config), ("update_checks", collect_update_checks), ("etf_rotation", collect_etf),
+                  ("ai_research", collect_ai_research), ("git", collect_git), ("ai_api", collect_ai_api), ("recent_files", collect_recent_files)]
+    values = {}
+    for name, collector in collectors:
+        try:
+            values[name] = collector()
+            if isinstance(values[name], dict) and values[name].get("status") == "error":
+                errors.append({"collector": name, "error": values[name].get("error", "未知错误")})
+        except Exception as exc:
+            errors.append({"collector": name, "error": str(exc)})
+            values[name] = defaults.get(name, {"status": "error", "error": str(exc)})
+    config, updates, etf, ai = values["config"], values["update_checks"], values["etf_rotation"], values["ai_research"]
+    try: stage, can_continue, recommendation = determine_stage(config, updates, etf, ai)
+    except Exception as exc:
+        errors.append({"collector": "determine_stage", "error": str(exc)}); stage, can_continue, recommendation = "诊断收集失败", False, "查看 errors 字段"
     live = config.get("live_trading_enabled") is True
-    return redact({"generated_at": _now(), "stage": stage, "can_continue": can_continue, "next_recommendation": recommendation,
-        "git": collect_git(), "config": config, "update_checks": updates, "etf_rotation": etf, "ai_research": ai,
-        "ai_api": collect_ai_api(), "recent_files": collect_recent_files(),
+    return redact(dict({"generated_at": _now(), "stage": stage, "can_continue": can_continue, "next_recommendation": recommendation,
         "risks": (["live_trading_enabled=true：存在实盘风险"] if live else ["live_trading_enabled=false：不会实盘下单"]),
-        "redactions_applied": ["API keys/tokens/secrets", "account_id/account identifiers"]})
+        "redactions_applied": ["API keys/tokens/secrets", "account_id/account identifiers"], "errors": errors}, **values))
 
 
 def render_markdown(r):
@@ -223,9 +262,11 @@ def main():
     if not os.path.isdir(logs): os.makedirs(logs)
     stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     for name in ["assistant_diagnostic_latest", "assistant_diagnostic_" + stamp]:
-        with open(os.path.join(logs, name + ".json"), "w") as handle: json.dump(report, handle, ensure_ascii=False, indent=2)
-        with open(os.path.join(logs, name + ".md"), "w") as handle: handle.write(render_markdown(report))
-    print("Diagnostic reports written to logs/assistant_diagnostic_latest.md and .json")
+        with open(os.path.join(logs, name + ".json"), "w", encoding="utf-8") as handle: json.dump(report, handle, ensure_ascii=False, indent=2)
+        with open(os.path.join(logs, name + ".md"), "w", encoding="utf-8") as handle: handle.write(render_markdown(report))
+    print("[OK] 诊断报告已生成")
+    print("logs/assistant_diagnostic_latest.md")
+    print("logs/assistant_diagnostic_latest.json")
     return report
 
 if __name__ == "__main__": main()
