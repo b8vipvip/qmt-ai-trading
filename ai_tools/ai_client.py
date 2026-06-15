@@ -1,15 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Minimal OpenAI-compatible client for QMT Python 3.6.
-
-Credentials are read only from process environment or a local .env file.
-"""
+"""Backward-compatible entry point for the AI provider/model router."""
 from __future__ import print_function
 
-import json
 import os
-import urllib.error
-import urllib.request
-
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -24,8 +17,7 @@ def load_dotenv(path=None):
             if not line or line.startswith("#") or "=" not in line:
                 continue
             key, value = line.split("=", 1)
-            key = key.strip()
-            value = value.strip().strip('"').strip("'")
+            key, value = key.strip(), value.strip().strip('"').strip("'")
             if key and key not in os.environ:
                 os.environ[key] = value
 
@@ -33,35 +25,16 @@ def load_dotenv(path=None):
 class AIClient(object):
     def __init__(self, api_key=None, base_url=None, model=None, timeout=120):
         load_dotenv()
-        self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
-        self.base_url = (base_url or os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")).rstrip("/")
-        self.model = model or os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
-        self.timeout = timeout
-        if not self.api_key:
-            raise RuntimeError("缺少 OPENAI_API_KEY，请在本地 .env 或环境变量中配置")
+        from ai_tools.ai_provider_pool import AIProviderPool
+        from ai_tools.ai_router_client import AIRouterClient
+        environ = dict(os.environ)
+        if api_key is not None: environ["OPENAI_API_KEY"] = api_key
+        if base_url is not None: environ["OPENAI_BASE_URL"] = base_url
+        if model is not None: environ["OPENAI_MODEL"] = model
+        pool = AIProviderPool(environ=environ)
+        if pool.providers and timeout is not None:
+            pool.providers[0]["timeout_seconds"] = timeout
+        self.router = AIRouterClient(pool=pool)
 
-    def chat(self, system_prompt, user_prompt, temperature=0.2):
-        payload = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            "temperature": temperature
-        }
-        request = urllib.request.Request(
-            self.base_url + "/chat/completions",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Authorization": "Bearer " + self.api_key, "Content-Type": "application/json"},
-            method="POST"
-        )
-        try:
-            response = urllib.request.urlopen(request, timeout=self.timeout)
-            body = response.read().decode("utf-8")
-            data = json.loads(body)
-            return data["choices"][0]["message"]["content"]
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", "replace")
-            raise RuntimeError("AI API 请求失败 HTTP {0}: {1}".format(exc.code, detail[:500]))
-        except (urllib.error.URLError, KeyError, ValueError) as exc:
-            raise RuntimeError("AI API 请求失败: {0}".format(exc))
+    def chat(self, system_prompt, user_prompt, temperature=0.2, task="default"):
+        return self.router.chat(system_prompt, user_prompt, temperature=temperature, task=task)

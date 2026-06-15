@@ -1,11 +1,15 @@
 # sensitive config
 config.json
 .env
+ai_providers.local.json
 *.key
 *.pem
 
 # runtime outputs
 logs/
+logs/ai_api_calls.jsonl
+logs/ai_api_report.json
+logs/ai_api_report.csv
 signals/*.json
 backtest_results/
 
