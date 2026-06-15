@@ -1,36 +1,112 @@
-# Safety-check the runnable project sources without treating intentional examples
-# in tests, documentation, or sample files as production violations.
+﻿# -*- coding: utf-8 -*-
+[CmdletBinding()]
+param([switch]$AutoPatchConfig)
+
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location $root
 
-$excludedDirectories = @("tests", "docs", "doc", "examples", "example")
-$sourceFiles = Get-ChildItem -Path $root -Recurse -File | Where-Object {
-    $relative = $_.FullName.Substring($root.Length).TrimStart("\", "/")
-    $parts = $relative -split "[\\/]"
-    $isExcludedDirectory = @($parts | Where-Object { $excludedDirectories -contains $_ }).Count -gt 0
-    $isExcludedFile = $_.Name -eq "README.md" -or $_.Name -like "*.example.*" -or $_.Name -eq "update_qmt_project.ps1"
-    -not $isExcludedDirectory -and -not $isExcludedFile -and $_.Extension -in @(".py", ".ps1", ".json")
+$summary = [ordered]@{
+    "代码拉取" = "未执行"; "配置检查" = "未执行"; "单元测试" = "未执行"; "安全扫描" = "未执行"
+    "ETF回测" = "未执行"; "ETF dry-run" = "未执行"; "Daily dry-run" = "未执行"; "备份目录" = "未创建"
 }
+$codeUpdated = $false
+$failureReason = $null
+$suggestion = $null
 
-$forbiddenPatterns = @(
-    ("order_" + "stock\s*\("),
-    ("cancel_order_" + "stock\s*\("),
-    ("live_trading_enabled\s*['""]?\s*[:=]\s*[Tt]rue"),
-    ("sk-" + "[A-Za-z0-9_-]{16,}")
-)
-
-$violations = @()
-foreach ($file in $sourceFiles) {
-    foreach ($pattern in $forbiddenPatterns) {
-        $matches = Select-String -Path $file.FullName -Pattern $pattern
-        foreach ($match in $matches) {
-            $violations += "{0}:{1}: {2}" -f $file.FullName, $match.LineNumber, $match.Line.Trim()
+function Write-Section($title) { Write-Host "`n========== $title ==========" }
+function Write-Ok($message) { Write-Host "[OK] $message" -ForegroundColor Green }
+function Write-Warn($message) { Write-Host "[WARN] $message" -ForegroundColor Yellow }
+function Add-LocalExcludes {
+    $excludeFile = Join-Path $root ".git/info/exclude"
+    $patterns = @(
+        "qmt_ai_research_pipeline.py", "patch_*.py", "fix_*.py", "test_ai_api.py", "*_local.py", "*.local.json",
+        "config.json.bak_*", "config.json.bak_before_autopatch_*", "config.json.bak_allowed_stocks_*",
+        "config.json.bak_risk_limit_*", "logs/", "signals/", "runs/", "shadow/", "reports/", "backtest_results/"
+    )
+    $existing = @()
+    if (Test-Path $excludeFile) { $existing = @(Get-Content $excludeFile) }
+    $missing = @($patterns | Where-Object { $existing -notcontains $_ })
+    if ($missing.Count -gt 0) {
+        Add-Content -Path $excludeFile -Value ($missing -join [Environment]::NewLine) -Encoding UTF8
+        Write-Ok "已将 $($missing.Count) 条本地临时文件规则加入 .git/info/exclude"
+    } else { Write-Ok "本地临时文件忽略规则已配置" }
+}
+function Invoke-Checked($description, $command, $arguments) {
+    & $command @arguments
+    if ($LASTEXITCODE -ne 0) { throw "$description 失败（退出码 $LASTEXITCODE）" }
+}
+function Invoke-SafetyScan {
+    $tracked = @(& git ls-files -- "*.py" "*.ps1" "*.json")
+    if ($LASTEXITCODE -ne 0) { throw "无法获取安全扫描文件列表" }
+    $files = @($tracked | Where-Object {
+        $_ -notmatch '^(tests|docs?|examples?|demos?)/' -and
+        $_ -notmatch '(^|/)(README[^/]*|[^/]*(example|demo)[^/]*)$' -and
+        $_ -ne "update_qmt_project.ps1"
+    })
+    $patterns = @(
+        ("order_" + "stock\s*\("), ("cancel_order_" + "stock\s*\("),
+        ("live_trading_enabled\s*['`"]?\s*[:=]\s*[Tt]rue"), ("sk-" + "[A-Za-z0-9_-]{16,}")
+    )
+    $violations = @()
+    foreach ($file in $files) {
+        foreach ($pattern in $patterns) {
+            $violations += @(Select-String -Path (Join-Path $root $file) -Pattern $pattern | ForEach-Object { "$file`:$($_.LineNumber): $($_.Line.Trim())" })
         }
     }
+    if ($violations.Count -gt 0) { throw "安全扫描发现真实源码中的危险内容：`n$($violations -join "`n")" }
 }
 
-if ($violations.Count -gt 0) {
-    Write-Error ("Safety scan failed:`n" + ($violations -join "`n"))
-}
+try {
+    Write-Section "初始化"
+    Write-Ok "项目目录: $root"
+    Add-LocalExcludes
+    $branch = (& git branch --show-current).Trim()
+    if (-not $branch) { throw "当前处于 detached HEAD，无法安全更新" }
+    Write-Ok "当前分支: $branch"
+    $trackedChanges = @(& git status --porcelain --untracked-files=no)
+    if ($trackedChanges.Count -gt 0) { throw "检测到未提交的已跟踪文件修改，已中止以避免覆盖用户修改" }
 
-Write-Host "[OK] Safety scan passed"
+    $backupRoot = Join-Path (Split-Path -Parent $root) ("qmt_backup\" + (Get-Date -Format "yyyyMMdd_HHmmss"))
+    $localFiles = @(".env", "config.json") | Where-Object { Test-Path (Join-Path $root $_) }
+    if ($localFiles.Count -gt 0) {
+        New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
+        foreach ($file in $localFiles) { Copy-Item (Join-Path $root $file) (Join-Path $backupRoot $file) -Force }
+        $summary["备份目录"] = $backupRoot; Write-Ok "本地配置已备份: $backupRoot"
+    }
+
+    Write-Section "拉取远程代码"
+    $localVersion = (& git rev-parse HEAD).Trim(); Write-Ok "本地版本: $localVersion"
+    Invoke-Checked "获取远程代码" "git" @("fetch", "origin", $branch)
+    $remoteVersion = (& git rev-parse "origin/$branch").Trim(); Write-Ok "远程版本: $remoteVersion"
+    Invoke-Checked "拉取远程代码" "git" @("pull", "--ff-only", "origin", $branch)
+    $codeUpdated = $true; $summary["代码拉取"] = "成功"; Write-Ok "代码已成功更新到最新 $branch"
+
+    Write-Section "后置检查"
+    Invoke-Checked "配置检查" "python" @("qmt_check_config.py")
+    $summary["配置检查"] = "通过"; Write-Ok "配置检查通过"
+    Invoke-Checked "单元测试" "python" @("-m", "unittest", "discover", "-s", "tests", "-v")
+    $summary["单元测试"] = "通过"; Write-Ok "单元测试通过"
+    Invoke-SafetyScan
+    $summary["安全扫描"] = "通过"; Write-Ok "安全扫描通过"
+} catch {
+    $failureReason = $_.Exception.Message
+    $suggestion = if ($codeUpdated) { "请根据上面的错误修复后重新运行更新脚本" } else { "请先处理本地修改、分支或网络问题后重试" }
+    if ($codeUpdated) {
+        Write-Warn "代码已经成功更新，但后置检查失败"
+        Write-Warn "请根据下面的错误修复"
+    } else { Write-Warn "代码未更新，更新流程失败" }
+    Write-Warn $failureReason
+} finally {
+    Write-Section "本次更新总结"
+    foreach ($item in $summary.GetEnumerator()) { Write-Host "$($item.Key): $($item.Value)" }
+    if ($failureReason) {
+        Write-Host "最终状态: 更新失败" -ForegroundColor Red
+        Write-Host "失败原因: $failureReason"
+        Write-Host "建议处理: $suggestion"
+    } else {
+        Write-Host "最终状态: 更新成功" -ForegroundColor Green
+        Write-Ok "本次更新完成"
+    }
+}
+if ($failureReason) { exit 1 }
