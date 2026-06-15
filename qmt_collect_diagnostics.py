@@ -93,25 +93,21 @@ def _stock_code(payload):
 
 
 def collect_update_checks():
-    result = {k: "未知" for k in ["code_pull", "config_check", "unit_tests", "python_compile", "safety_scan"]}
-    log_path = _latest("logs/*update*.log") or _latest("logs/*update*.txt")
-    result["source_log"] = os.path.relpath(log_path, ROOT) if log_path else None
-    if log_path:
-        try:
-            with open(log_path, "r", encoding="utf-8") as handle:
-                text = handle.read().lower()
-        except IOError:
-            text = ""
-        labels = {"code_pull": ["git pull", "代码拉取"], "config_check": ["config", "配置检查"],
-                  "unit_tests": ["unittest", "单元测试"], "python_compile": ["compile", "python 编译"],
-                  "safety_scan": ["safety", "安全扫描"]}
-        for key, terms in labels.items():
-            lines = [line for line in text.splitlines() if any(term in line for term in terms)]
-            if any(re.search(r"fail|error|失败", line) for line in lines): result[key] = "失败"
-            elif any(re.search(r"pass|success|ok|通过", line) for line in lines): result[key] = "通过"
-    backup = _latest("*backup*") or _latest("backups/*")
-    result["latest_backup"] = os.path.relpath(backup, ROOT) if backup else None
-    return result
+    keys = ["code_pull", "config_check", "unit_tests", "python_compile", "safety_scan"]
+    result = {key: "未知" for key in keys}
+    result.update({"final_status": "未知", "failure_reason": None, "suggestion": None})
+    summary_path = os.path.join(ROOT, "logs", "update_latest_summary.json")
+    log_path = os.path.join(ROOT, "logs", "update_latest.log")
+    summary = _read_json(summary_path, {}) if os.path.exists(summary_path) else {}
+    if isinstance(summary, dict):
+        for key in keys + ["final_status", "failure_reason", "suggestion"]:
+            if key in summary: result[key] = summary.get(key)
+        result["latest_backup"] = summary.get("backup_dir")
+    else:
+        result["latest_backup"] = None
+    result["source_summary"] = "logs/update_latest_summary.json" if os.path.exists(summary_path) else None
+    result["source_log"] = "logs/update_latest.log" if os.path.exists(log_path) else None
+    return redact(result)
 
 
 def collect_etf():
@@ -141,8 +137,9 @@ def collect_etf():
         "strategy_source": "etf_rotation" if shadow_exists else ("ma_daily" if data["target_signal"] or data["order_plan"] else "unknown"),
         "market_regime": data["market_regime"].get("market_regime", data["market_regime"].get("regime")),
         "selected_etf": selected_code, "signal_type": signal, "planned_action": action,
-        "planned_value": data["order_plan"].get("planned_value", data["order_plan"].get("order_value")),
-        "planned_amount": data["order_plan"].get("planned_amount", data["order_plan"].get("order_amount", data["order_plan"].get("plan_volume"))),
+        "planned_volume": data["order_plan"].get("plan_volume"),
+        "planned_amount": data["order_plan"].get("plan_amount"),
+        "planned_price_ref": data["order_plan"].get("plan_price_ref"),
         "no_action": signal == "NO_ACTION" or action == "NO_ACTION",
         "risk_warnings": data["order_plan"].get("risk_warnings", data["order_plan"].get("warnings", [])),
         "signal_file_updated_at": _modified_at(paths["target_signal"]),
@@ -248,7 +245,7 @@ def collect_shadow():
 
 
 def determine_stage(config, updates, etf, ai, shadow=None):
-    if any(updates[k] == "失败" for k in ["code_pull", "unit_tests", "safety_scan"]): return "基础修复", False, "先修复更新、测试或安全扫描失败项"
+    if updates.get("final_status") == "代码已更新但后置检查失败" or any(updates.get(k) == "失败" for k in ["code_pull", "config_check", "unit_tests", "python_compile", "safety_scan"]): return "基础修复", False, "先修复更新脚本后置检查失败项，再继续影子盘"
     if not etf["dry_run_passed"]: return "ETF dry-run 修复", False, "运行并修复 ETF dry-run"
     if not ai["pipeline_success"]: return "AI 研究链路修复", False, "运行并修复 AI research pipeline"
     shadow = shadow or collect_shadow()
@@ -294,12 +291,22 @@ def render_markdown(r):
 
 ## 2. Git / 更新状态
 {git}
-{updates}
+- 更新最终状态：{update_final}
+- 代码拉取：{code_pull}
+- 配置检查：{config_check}
+- 单元测试：{unit_tests}
+- Python 编译：{python_compile}
+- 安全扫描：{safety_scan}
+- 失败原因：{failure_reason}
+- 建议处理：{suggestion}
 
 ## 3. 配置与安全状态
 {config}
 
 ## 4. ETF 轮动 / Dry-run 状态
+- 计划数量：{planned_volume}
+- 计划金额：{planned_amount}
+- 计划参考价：{planned_price_ref}
 {etf}
 
 ## 5. AI 研究流水线状态
@@ -314,7 +321,7 @@ def render_markdown(r):
 ## 8. 需要发给 ChatGPT 的重点
 - 请优先分析当前阶段、失败检查、风险警告和下一步建议。
 - 报告已脱敏；诊断器只读，不执行交易。
-""".format(stage=r["stage"], go="是" if r["can_continue"] else "否", next=r["next_recommendation"], risk="；".join(r["risks"]), git=block(r["git"]), updates=block(r["update_checks"]), config=block(r["config"]), etf=block(r["etf_rotation"]), ai=block(r["ai_research"]), api=block(r["ai_api"]), files=block(r["recent_files"]))
+""".format(stage=r["stage"], go="是" if r["can_continue"] else "否", next=r["next_recommendation"], risk="；".join(r["risks"]), git=block(r["git"]), update_final=r["update_checks"].get("final_status"), code_pull=r["update_checks"].get("code_pull"), config_check=r["update_checks"].get("config_check"), unit_tests=r["update_checks"].get("unit_tests"), python_compile=r["update_checks"].get("python_compile"), safety_scan=r["update_checks"].get("safety_scan"), failure_reason=r["update_checks"].get("failure_reason"), suggestion=r["update_checks"].get("suggestion"), config=block(r["config"]), planned_volume=r["etf_rotation"].get("planned_volume"), planned_amount=r["etf_rotation"].get("planned_amount"), planned_price_ref=r["etf_rotation"].get("planned_price_ref"), etf=block(r["etf_rotation"]), ai=block(r["ai_research"]), api=block(r["ai_api"]), files=block(r["recent_files"]))
 
 
 def main():

@@ -6,10 +6,22 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $root
 
+$logsDir = Join-Path $root "logs"
+New-Item -ItemType Directory -Path $logsDir -Force | Out-Null
+$stamp = Get-Date -Format "yyyyMMdd_HHmmss"
+$timestampLog = Join-Path $logsDir ("update_{0}.log" -f $stamp)
+$latestLog = Join-Path $logsDir "update_latest.log"
+$timestampSummary = Join-Path $logsDir ("update_{0}_summary.json" -f $stamp)
+$latestSummary = Join-Path $logsDir "update_latest_summary.json"
+Start-Transcript -Path $timestampLog -Force | Out-Null
+
 $summary = [ordered]@{
-    "代码拉取" = "未执行"; "配置检查" = "未执行"; "单元测试" = "未执行"; "安全扫描" = "未执行"
-    "Python编译检查" = "未执行"; "ETF回测" = "未执行"; "ETF dry-run" = "未执行"; "Daily dry-run" = "未执行"; "备份目录" = "未创建"
+    generated_at = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ss")
+    final_status = "更新失败"; code_pull = "未执行"; config_check = "未执行"; unit_tests = "未执行"
+    python_compile = "未执行"; safety_scan = "未执行"; etf_backtest = "未执行"; etf_dry_run = "未执行"; daily_dry_run = "未执行"
+    backup_dir = $null; failure_reason = $null; suggestion = $null; local_head = $null; remote_head = $null; branch = $null
 }
+$displayNames = [ordered]@{ code_pull="代码拉取"; config_check="配置检查"; unit_tests="单元测试"; python_compile="Python编译检查"; safety_scan="安全扫描"; etf_backtest="ETF回测"; etf_dry_run="ETF dry-run"; daily_dry_run="Daily dry-run"; backup_dir="备份目录" }
 $codeUpdated = $false
 $failureReason = $null
 $suggestion = $null
@@ -92,7 +104,7 @@ try {
     Write-Section "初始化"
     Write-Ok "项目目录: $root"
     Add-LocalExcludes
-    $branch = (& git branch --show-current).Trim()
+    $branch = (& git branch --show-current).Trim(); $summary["branch"] = $branch
     if (-not $branch) { throw "当前处于 detached HEAD，无法安全更新" }
     Write-Ok "当前分支: $branch"
     $trackedChanges = @(& git status --porcelain --untracked-files=no)
@@ -103,28 +115,30 @@ try {
     if ($localFiles.Count -gt 0) {
         New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
         foreach ($file in $localFiles) { Copy-Item (Join-Path $root $file) (Join-Path $backupRoot $file) -Force }
-        $summary["备份目录"] = $backupRoot; Write-Ok "本地配置已备份: $backupRoot"
+        $summary["backup_dir"] = $backupRoot; Write-Ok "本地配置已备份: $backupRoot"
     }
 
     Write-Section "拉取远程代码"
-    $localVersion = (& git rev-parse HEAD).Trim(); Write-Ok "本地版本: $localVersion"
+    $localVersion = (& git rev-parse HEAD).Trim(); $summary["local_head"] = $localVersion; Write-Ok "本地版本: $localVersion"
+    $summary["code_pull"] = "失败"
     Invoke-Checked "获取远程代码" "git" @("fetch", "origin", $branch)
-    $remoteVersion = (& git rev-parse "origin/$branch").Trim(); Write-Ok "远程版本: $remoteVersion"
+    $remoteVersion = (& git rev-parse "origin/$branch").Trim(); $summary["remote_head"] = $remoteVersion; Write-Ok "远程版本: $remoteVersion"
     Invoke-Checked "拉取远程代码" "git" @("pull", "--ff-only", "origin", $branch)
     $codeUpdated = $localVersion -ne $remoteVersion
-    $summary["代码拉取"] = if ($codeUpdated) { "成功" } else { "无需更新" }
+    $summary["local_head"] = (& git rev-parse HEAD).Trim()
+    $summary["code_pull"] = if ($codeUpdated) { "成功" } else { "无需更新" }
     Write-Ok "代码已成功更新到最新 $branch"
 
     Write-Section "后置检查"
     $QmtPython = Get-QmtPython
-    Invoke-Checked "配置检查" $QmtPython @("qmt_check_config.py")
-    $summary["配置检查"] = "通过"; Write-Ok "配置检查通过"
-    Invoke-Checked "单元测试" $QmtPython @("-m", "unittest", "discover", "-s", "tests", "-v")
-    $summary["单元测试"] = "通过"; Write-Ok "单元测试通过"
-    Invoke-Checked "Python编译检查" $QmtPython @("-m", "compileall", "-q", "ai_tools", "data_tools", "tests")
-    $summary["Python编译检查"] = "通过"; Write-Ok "Python编译检查通过"
+    Invoke-Checked "config_check" $QmtPython @("qmt_check_config.py")
+    $summary["config_check"] = "通过"; Write-Ok "配置检查通过"
+    Invoke-Checked "unit_tests" $QmtPython @("-m", "unittest", "discover", "-s", "tests", "-v")
+    $summary["unit_tests"] = "通过"; Write-Ok "单元测试通过"
+    Invoke-Checked "python_compile" $QmtPython @("-m", "compileall", "-q", "ai_tools", "data_tools", "tests")
+    $summary["python_compile"] = "通过"; Write-Ok "Python编译检查通过"
     Invoke-SafetyScan
-    $summary["安全扫描"] = "通过"; Write-Ok "安全扫描通过"
+    $summary["safety_scan"] = "通过"; Write-Ok "安全扫描通过"
 } catch {
     $failureReason = $_.Exception.Message
     $suggestion = if ($codeUpdated) { "请根据上面的错误修复后重新运行更新脚本" } else { "请先处理本地修改、分支或网络问题后重试" }
@@ -134,16 +148,17 @@ try {
     } else { Write-Warn "代码未更新，更新流程失败" }
     Write-Warn $failureReason
 } finally {
+    $summary["failure_reason"] = $failureReason
+    $summary["suggestion"] = $suggestion
+    $summary["final_status"] = if ($failureReason) { if ($codeUpdated) { "代码已更新但后置检查失败" } else { "更新失败" } } else { "更新成功" }
     Write-Section "本次更新总结"
-    foreach ($item in $summary.GetEnumerator()) { Write-Host "$($item.Key): $($item.Value)" }
-    if ($failureReason) {
-        $finalStatus = if ($codeUpdated) { "代码已更新但后置检查失败" } else { "更新失败" }
-        Write-Host "最终状态: $finalStatus" -ForegroundColor Red
-        Write-Host "失败原因: $failureReason"
-        Write-Host "建议处理: $suggestion"
-    } else {
-        Write-Host "最终状态: 更新成功" -ForegroundColor Green
-        Write-Ok "本次更新完成"
-    }
+    foreach ($key in $displayNames.Keys) { Write-Host "$($displayNames[$key]): $($summary[$key])" }
+    Write-Host "最终状态: $($summary.final_status)" -ForegroundColor $(if ($failureReason) { "Red" } else { "Green" })
+    if ($failureReason) { Write-Host "失败原因: $failureReason"; Write-Host "建议处理: $suggestion" } else { Write-Ok "本次更新完成" }
+    $json = $summary | ConvertTo-Json -Depth 4
+    [System.IO.File]::WriteAllText($timestampSummary, $json, (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText($latestSummary, $json, (New-Object System.Text.UTF8Encoding($false)))
+    Stop-Transcript | Out-Null
+    Copy-Item -LiteralPath $timestampLog -Destination $latestLog -Force
 }
 if ($failureReason) { exit 1 }
