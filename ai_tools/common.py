@@ -9,7 +9,7 @@ import os
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FORBIDDEN_CALLS = set(["order_stock", "cancel_order_stock", "order_target_volume", "order_target_value"])
 FORBIDDEN_IMPORT_PREFIXES = ("xtquant", "requests", "urllib", "subprocess", "socket")
-ALLOWED_IMPORTS = set(["math", "statistics"])
+ALLOWED_IMPORTS = set(["collections", "math", "statistics"])
 ALLOWED_FUTURE_IMPORTS = set(["print_function"])
 DANGEROUS_CALLS = FORBIDDEN_CALLS | set(["open", "exec", "eval", "compile", "__import__", "system", "popen", "remove", "unlink", "rmtree", "urlopen"])
 SAFE_CALLS = set(["len", "range", "sum", "min", "max", "abs", "float", "int", "round", "enumerate", "zip", "list", "dict", "set", "append", "get", "items", "values", "sqrt", "mean", "pstdev"])
