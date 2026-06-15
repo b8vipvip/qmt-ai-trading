@@ -74,6 +74,24 @@ def _latest(pattern):
     return max(paths, key=os.path.getmtime) if paths else None
 
 
+def _modified_at(path):
+    if not os.path.exists(path):
+        return None
+    return datetime.datetime.fromtimestamp(os.path.getmtime(path)).strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def _stock_code(payload):
+    if not isinstance(payload, dict):
+        return None
+    value = payload.get("selected_etf") or payload.get("stock_code") or payload.get("code")
+    if value:
+        return value
+    selected = payload.get("selected") or []
+    if isinstance(selected, list) and selected and isinstance(selected[0], dict):
+        return selected[0].get("stock_code") or selected[0].get("code")
+    return None
+
+
 def collect_update_checks():
     result = {k: "未知" for k in ["code_pull", "config_check", "unit_tests", "python_compile", "safety_scan"]}
     log_path = _latest("logs/*update*.log") or _latest("logs/*update*.txt")
@@ -97,19 +115,45 @@ def collect_update_checks():
 
 
 def collect_etf():
-    names = ["market_regime", "etf_scores", "selected_etf", "target_signal", "order_plan", "daily_status"]
-    data = {n: _read_json(os.path.join(ROOT, "signals", n + ".json"), {}) for n in names}
-    merged = {}
-    for item in data.values():
-        if isinstance(item, dict): merged.update(item)
-    signal = merged.get("signal_type", merged.get("signal"))
-    action = merged.get("action", merged.get("planned_action"))
+    names = ["market_regime", "etf_scores", "selected_etf", "target_signal", "order_plan"]
+    paths = {n: os.path.join(ROOT, "signals", n + ".json") for n in names}
+    data = {n: _read_json(paths[n], {}) for n in names}
+    shadow_paths = {"snapshot": os.path.join(ROOT, "shadow", "daily_snapshot.json"),
+                    "portfolio": os.path.join(ROOT, "shadow", "portfolio.json")}
+    snapshot = _read_json(shadow_paths["snapshot"], {})
+    portfolio = _read_json(shadow_paths["portfolio"], {})
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    trades = snapshot.get("today_trades", []) if isinstance(snapshot, dict) else []
+    if not trades and isinstance(portfolio, dict):
+        trades = [trade for trade in portfolio.get("trades", []) if trade.get("trade_date") == today]
+    shadow_trade = trades[-1] if trades else {}
+    selected_code = _stock_code(data["selected_etf"])
+    target_code = _stock_code(data["target_signal"])
+    plan_code = _stock_code(data["order_plan"])
+    trade_code = _stock_code(shadow_trade)
+    codes = [code for code in [selected_code, target_code, plan_code, trade_code] if code]
+    mismatch = len(set(codes)) > 1
+    shadow_exists = bool(snapshot or portfolio)
+    signal = data["target_signal"].get("signal_type", data["target_signal"].get("signal"))
+    action = data["order_plan"].get("action", data["order_plan"].get("planned_action"))
     exists = any(bool(v) for v in data.values())
-    return redact({"files_found": [n + ".json" for n, v in data.items() if v], "dry_run_passed": exists and not bool(merged.get("error")),
-        "market_regime": merged.get("market_regime", merged.get("regime")), "selected_etf": merged.get("selected_etf", merged.get("stock_code", merged.get("code"))),
-        "signal_type": signal, "planned_action": action, "planned_value": merged.get("planned_value", merged.get("order_value")),
-        "planned_amount": merged.get("planned_amount", merged.get("order_amount", merged.get("volume"))),
-        "no_action": signal == "NO_ACTION" or action == "NO_ACTION", "risk_warnings": merged.get("risk_warnings", merged.get("warnings", []))})
+    result = {"files_found": [n + ".json" for n, v in data.items() if v], "dry_run_passed": exists and not any(bool(v.get("error")) for v in data.values()),
+        "strategy_source": "etf_rotation" if shadow_exists else ("ma_daily" if data["target_signal"] or data["order_plan"] else "unknown"),
+        "market_regime": data["market_regime"].get("market_regime", data["market_regime"].get("regime")),
+        "selected_etf": selected_code, "signal_type": signal, "planned_action": action,
+        "planned_value": data["order_plan"].get("planned_value", data["order_plan"].get("order_value")),
+        "planned_amount": data["order_plan"].get("planned_amount", data["order_plan"].get("order_amount", data["order_plan"].get("plan_volume"))),
+        "no_action": signal == "NO_ACTION" or action == "NO_ACTION",
+        "risk_warnings": data["order_plan"].get("risk_warnings", data["order_plan"].get("warnings", [])),
+        "signal_file_updated_at": _modified_at(paths["target_signal"]),
+        "order_plan_updated_at": _modified_at(paths["order_plan"]),
+        "shadow_updated_at": max([value for value in [_modified_at(shadow_paths["snapshot"]), _modified_at(shadow_paths["portfolio"])] if value] or [None])}
+    if mismatch:
+        result["mismatch_details"] = {"selected_etf_code": selected_code, "target_signal_code": target_code,
+                                      "order_plan_code": plan_code, "shadow_trade_code": trade_code}
+    if plan_code and trade_code and plan_code != trade_code:
+        result["warning"] = "order_plan 与 shadow 成交标的不一致"
+    return redact(result)
 
 
 def collect_ai_api():
