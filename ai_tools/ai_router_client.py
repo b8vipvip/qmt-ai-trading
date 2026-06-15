@@ -44,7 +44,7 @@ class AIRouterClient(object):
         for provider, model in self.pool.candidates():
             if provider["name"] in skipped_providers:
                 continue
-            attempts = 2
+            attempts = self.pool.max_retries + 1
             for attempt in range(attempts):
                 started = time.time()
                 try:
@@ -65,7 +65,7 @@ class AIRouterClient(object):
                     if error_type == "http_429":
                         self.pool.cooldown_candidate(provider, model)
                         break
-                    if error_type not in ("timeout", "http_5xx") or attempt == 1:
+                    if error_type not in ("timeout", "http_5xx") or attempt == attempts - 1:
                         break
         raise RuntimeError("所有 AI API provider/model 调用均失败: " + "; ".join(failures))
 

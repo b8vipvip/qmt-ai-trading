@@ -7,7 +7,7 @@ import sys
 
 from ai_tools.ai_router_client import AIRouterClient
 
-SYSTEM_PROMPT = "你是 ETF 轮动研究分析助手。只解释输入的候选、评分和风险，不给出实盘下单或撤单指令。"
+SYSTEM_PROMPT = "你是 ETF 轮动研究分析助手。只分析 ETF 轮动结果、市场环境和风险提示；不得输出实盘下单建议，不得绕过 dry-run 或 safety guard。"
 
 
 def explain_rotation(rotation_data, client=None):
