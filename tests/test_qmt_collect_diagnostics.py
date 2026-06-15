@@ -50,6 +50,34 @@ class DiagnosticTests(unittest.TestCase):
             stage = diagnostic.determine_stage({}, checks, {"dry_run_passed": True}, {"pipeline_success": True})
             self.assertEqual(("基础修复", False, "先修复更新脚本后置检查失败项，再继续影子盘"), stage)
 
+    def test_falls_back_to_newest_historical_update_summary(self):
+        with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
+            self.write_json(root, "logs/update_20260101_010101_summary.json", {"final_status": "旧"})
+            newest = os.path.join(root, "logs", "update_20260102_010101_summary.json")
+            self.write_json(root, "logs/update_20260102_010101_summary.json", {"final_status": "更新成功", "unit_tests": "通过"})
+            old = os.path.join(root, "logs", "update_20260101_010101_summary.json")
+            os.utime(old, (100, 100))
+            os.utime(newest, (200, 200))
+            checks = diagnostic.collect_update_checks()
+            self.assertEqual("更新成功", checks["final_status"])
+            self.assertEqual("logs/update_20260102_010101_summary.json", checks["source_summary"])
+
+    def test_successful_update_does_not_override_shadow_observation_stage(self):
+        updates = {key: "通过" for key in ["config_check", "unit_tests", "python_compile", "safety_scan"]}
+        updates.update({"final_status": "更新成功", "code_pull": "无需更新"})
+        stage = diagnostic.determine_stage({}, updates, {"dry_run_passed": True}, {"pipeline_success": True},
+                                           {"started": True, "running_days": 3})
+        self.assertEqual("ETF 影子盘观察期", stage[0])
+
+    def test_broken_update_summary_adds_error_and_report_still_generates(self):
+        with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
+            os.makedirs(os.path.join(root, "logs"))
+            with open(os.path.join(root, "logs", "update_latest_summary.json"), "w", encoding="utf-8") as handle:
+                handle.write("{broken")
+            report = diagnostic.main()
+            self.assertTrue(any(item["collector"] == "update_checks" for item in report["errors"]))
+            self.assertTrue(os.path.exists(os.path.join(root, "logs", "assistant_diagnostic_latest.md")))
+
     def test_order_plan_uses_volume_amount_and_price_fields(self):
         with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
             self.write_json(root, "signals/order_plan.json", {

@@ -135,7 +135,7 @@ try {
     $summary["config_check"] = "通过"; Write-Ok "配置检查通过"
     Invoke-Checked "unit_tests" $QmtPython @("-m", "unittest", "discover", "-s", "tests", "-v")
     $summary["unit_tests"] = "通过"; Write-Ok "单元测试通过"
-    Invoke-Checked "python_compile" $QmtPython @("-m", "compileall", "-q", "ai_tools", "data_tools", "tests")
+    Invoke-Checked "python_compile" $QmtPython @("-m", "compileall", "-q", "ai_tools", "data_tools", "shadow_trading", "tests")
     $summary["python_compile"] = "通过"; Write-Ok "Python编译检查通过"
     Invoke-SafetyScan
     $summary["safety_scan"] = "通过"; Write-Ok "安全扫描通过"
@@ -158,7 +158,7 @@ try {
     $json = $summary | ConvertTo-Json -Depth 4
     [System.IO.File]::WriteAllText($timestampSummary, $json, (New-Object System.Text.UTF8Encoding($false)))
     [System.IO.File]::WriteAllText($latestSummary, $json, (New-Object System.Text.UTF8Encoding($false)))
-    Stop-Transcript | Out-Null
-    Copy-Item -LiteralPath $timestampLog -Destination $latestLog -Force
+    try { Stop-Transcript | Out-Null } catch { Write-Warn "停止 transcript 失败: $($_.Exception.Message)" }
+    try { Copy-Item -LiteralPath $timestampLog -Destination $latestLog -Force } catch { Write-Warn "写入 update_latest.log 失败: $($_.Exception.Message)" }
 }
 if ($failureReason) { exit 1 }
