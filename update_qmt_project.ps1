@@ -20,7 +20,7 @@ function Write-Warn($message) { Write-Host "[WARN] $message" -ForegroundColor Ye
 function Add-LocalExcludes {
     $excludeFile = Join-Path $root ".git/info/exclude"
     $patterns = @(
-        "qmt_ai_research_pipeline.py", "patch_*.py", "fix_*.py", "test_ai_api.py", "*_local.py", "*.local.json",
+        "qmt_ai_research_pipeline.py", "update_qmt_project_old_broken.ps1", "patch_*.py", "fix_*.py", "test_ai_api.py", "*_local.py", "*.local.json",
         "config.json.bak_*", "config.json.bak_before_autopatch_*", "config.json.bak_allowed_stocks_*",
         "config.json.bak_risk_limit_*", "logs/", "signals/", "runs/", "shadow/", "reports/", "backtest_results/"
     )
@@ -40,18 +40,28 @@ function Invoke-SafetyScan {
     $tracked = @(& git ls-files -- "*.py" "*.ps1" "*.json")
     if ($LASTEXITCODE -ne 0) { throw "无法获取安全扫描文件列表" }
     $files = @($tracked | Where-Object {
-        $_ -notmatch '^(tests|docs?|examples?|demos?)/' -and
-        $_ -notmatch '(^|/)(README[^/]*|[^/]*(example|demo)[^/]*)$' -and
+        $_ -notmatch '^(tests|docs|logs|signals|runs|shadow|reports|backtest_results|\.git|__pycache__)/' -and
+        $_ -notmatch '(^|/)__pycache__/' -and
+        $_ -notmatch '(^|/)(README\.md|\.env\.example|[^/]*\.example\.json|ai_providers[^/]*\.example\.json)$' -and
+        $_ -notmatch '(^|/)(qmt_ai_research_pipeline\.py|update_qmt_project_old_broken\.ps1|patch_[^/]*\.py|fix_[^/]*\.py|test_[^/]*\.py)$' -and
         $_ -ne "update_qmt_project.ps1"
     })
-    $patterns = @(
-        ("order_" + "stock\s*\("), ("cancel_order_" + "stock\s*\("),
-        ("live_trading_enabled\s*['`"]?\s*[:=]\s*[Tt]rue"), ("sk-" + "[A-Za-z0-9_-]{16,}")
-    )
     $violations = @()
     foreach ($file in $files) {
-        foreach ($pattern in $patterns) {
-            $violations += @(Select-String -Path (Join-Path $root $file) -Pattern $pattern | ForEach-Object { "$file`:$($_.LineNumber): $($_.Line.Trim())" })
+        $lineNumber = 0
+        foreach ($line in Get-Content (Join-Path $root $file)) {
+            $lineNumber++
+            # 配置开关只允许按行首的真实赋值；说明文字和禁止词列表不会命中。
+            $liveEnabled = $line -match '^\s*["'']?live_trading_enabled["'']?\s*[:=]\s*[Tt]rue\b'
+            $apiKey = $line -match ('sk-' + '[A-Za-z0-9_-]{16,}')
+            # 删除注释和引号字符串后再找函数调用，避免禁止词列表/诊断文字误报。
+            $codeOnly = $line -replace '#.*$', ''
+            $codeOnly = $codeOnly -replace '"(?:\\.|[^"\\])*"', '""'
+            $codeOnly = $codeOnly -replace "'(?:\\.|[^'\\])*'", "''"
+            $dangerousCall = $codeOnly -match '\b(order_stock|cancel_order_stock)\s*\('
+            if ($liveEnabled -or $apiKey -or $dangerousCall) {
+                $violations += "$file`:$lineNumber`: $($line.Trim())"
+            }
         }
     }
     if ($violations.Count -gt 0) { throw "安全扫描发现真实源码中的危险内容：`n$($violations -join "`n")" }
@@ -80,7 +90,9 @@ try {
     Invoke-Checked "获取远程代码" "git" @("fetch", "origin", $branch)
     $remoteVersion = (& git rev-parse "origin/$branch").Trim(); Write-Ok "远程版本: $remoteVersion"
     Invoke-Checked "拉取远程代码" "git" @("pull", "--ff-only", "origin", $branch)
-    $codeUpdated = $true; $summary["代码拉取"] = "成功"; Write-Ok "代码已成功更新到最新 $branch"
+    $codeUpdated = $localVersion -ne $remoteVersion
+    $summary["代码拉取"] = if ($codeUpdated) { "成功" } else { "无需更新" }
+    Write-Ok "代码已成功更新到最新 $branch"
 
     Write-Section "后置检查"
     Invoke-Checked "配置检查" "python" @("qmt_check_config.py")
@@ -101,7 +113,8 @@ try {
     Write-Section "本次更新总结"
     foreach ($item in $summary.GetEnumerator()) { Write-Host "$($item.Key): $($item.Value)" }
     if ($failureReason) {
-        Write-Host "最终状态: 更新失败" -ForegroundColor Red
+        $finalStatus = if ($codeUpdated) { "代码已更新但后置检查失败" } else { "更新失败" }
+        Write-Host "最终状态: $finalStatus" -ForegroundColor Red
         Write-Host "失败原因: $failureReason"
         Write-Host "建议处理: $suggestion"
     } else {
