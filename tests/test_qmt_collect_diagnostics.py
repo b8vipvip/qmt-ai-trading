@@ -26,11 +26,39 @@ class DiagnosticTests(unittest.TestCase):
 
     def test_live_trading_false_is_safe(self):
         config = {"live_trading_enabled": False}
-        stage = diagnostic.determine_stage(config, {"code_pull": "未知", "unit_tests": "未知", "safety_scan": "未知"}, {"dry_run_passed": True}, {"pipeline_success": True})
-        self.assertTrue(stage[1])
         with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
             with open(os.path.join(root, "config.json"), "w", encoding="utf-8") as handle: json.dump(config, handle)
-            self.assertFalse(diagnostic.collect_config()["live_trading_enabled"])
+            self.write_json(root, "shadow/portfolio.json", {"cash": 100000})
+            stage = diagnostic.determine_stage(config, {}, {"dry_run_passed": True}, {"pipeline_success": True})
+            self.assertEqual("ETF 影子盘观察期", stage[0])
+            self.assertFalse(stage[1])
+            report = diagnostic.build_report()
+            self.assertIn("live_trading_enabled=false：不会实盘下单", report["risks"])
+
+    def test_update_summary_drives_checks_and_stage(self):
+        with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
+            self.write_json(root, "logs/update_latest_summary.json", {
+                "final_status": "代码已更新但后置检查失败", "code_pull": "成功",
+                "config_check": "通过", "unit_tests": "失败", "python_compile": "未执行",
+                "safety_scan": "未执行", "failure_reason": "单元测试失败", "suggestion": "修复测试",
+                "backup_dir": "D:/backup"
+            })
+            open(os.path.join(root, "logs", "update_latest.log"), "w").close()
+            checks = diagnostic.collect_update_checks()
+            self.assertEqual("失败", checks["unit_tests"])
+            self.assertEqual("logs/update_latest_summary.json", checks["source_summary"])
+            stage = diagnostic.determine_stage({}, checks, {"dry_run_passed": True}, {"pipeline_success": True})
+            self.assertEqual(("基础修复", False, "先修复更新脚本后置检查失败项，再继续影子盘"), stage)
+
+    def test_order_plan_uses_volume_amount_and_price_fields(self):
+        with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
+            self.write_json(root, "signals/order_plan.json", {
+                "plan_volume": 2400, "plan_amount": 12345.6, "plan_price_ref": 5.144
+            })
+            result = diagnostic.collect_etf()
+            self.assertEqual(2400, result["planned_volume"])
+            self.assertEqual(12345.6, result["planned_amount"])
+            self.assertEqual(5.144, result["planned_price_ref"])
 
     def test_does_not_call_real_trading_functions(self):
         with open(diagnostic.__file__, "r", encoding="utf-8") as handle:
