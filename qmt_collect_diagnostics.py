@@ -183,17 +183,33 @@ def _file_list(pattern, limit=10):
 
 def collect_recent_files():
     return {"logs": _file_list("logs/*.log"), "summaries": _file_list("logs/*summary*.json"),
-            "backtest_results": _file_list("backtest_results/*.json"), "runs": _file_list("runs/**/*")}
+            "backtest_results": _file_list("backtest_results/*.json"), "runs": _file_list("runs/**/*"),
+            "reports": _file_list("reports/daily_report_*")}
 
 
-def determine_stage(config, updates, etf, ai):
+def collect_shadow():
+    portfolio = _read_json(os.path.join(ROOT, "shadow", "portfolio.json"), {})
+    snapshot = _read_json(os.path.join(ROOT, "shadow", "daily_snapshot.json"), {})
+    curve = os.path.join(ROOT, "shadow", "equity_curve.csv")
+    days = 0
+    if os.path.exists(curve):
+        try:
+            with open(curve, "r", encoding="utf-8") as handle:
+                days = max(0, len([line for line in handle if line.strip()]) - 1)
+        except IOError:
+            pass
+    return redact({"started": bool(portfolio or snapshot or days), "running_days": days,
+                   "portfolio": portfolio, "daily_snapshot": snapshot,
+                   "equity_curve_exists": os.path.exists(curve), "latest_reports": _file_list("reports/daily_report_*", 2)})
+
+
+def determine_stage(config, updates, etf, ai, shadow=None):
     if any(updates[k] == "失败" for k in ["code_pull", "unit_tests", "safety_scan"]): return "基础修复", False, "先修复更新、测试或安全扫描失败项"
     if not etf["dry_run_passed"]: return "ETF dry-run 修复", False, "运行并修复 ETF dry-run"
     if not ai["pipeline_success"]: return "AI 研究链路修复", False, "运行并修复 AI research pipeline"
-    shadow = glob.glob(os.path.join(ROOT, "shadow", "*"))
-    if not shadow: return "准备进入 ETF 影子盘", True, "开始 ETF 影子盘并持续观察至少 2 周"
-    oldest = min(os.path.getmtime(p) for p in shadow)
-    if (datetime.datetime.now() - datetime.datetime.fromtimestamp(oldest)).days < 14: return "ETF 影子盘观察期", False, "继续影子盘观察至连续运行满 2 周"
+    shadow = shadow or collect_shadow()
+    if not shadow.get("started"): return "准备进入 ETF 影子盘", True, "开始 ETF 影子盘并持续观察至少 2 周"
+    if shadow.get("running_days", 0) < 14: return "ETF 影子盘观察期", False, "继续影子盘观察至连续运行满 2 周"
     return "ETF 影子盘观察完成", True, "复核风险后决定下一步；诊断器不会执行交易"
 
 
@@ -202,7 +218,7 @@ def build_report():
     defaults = {"config": {}, "update_checks": {k: "未知" for k in ["code_pull", "unit_tests", "safety_scan"]},
                 "etf_rotation": {"dry_run_passed": False}, "ai_research": {"pipeline_success": False}}
     collectors = [("config", collect_config), ("update_checks", collect_update_checks), ("etf_rotation", collect_etf),
-                  ("ai_research", collect_ai_research), ("git", collect_git), ("ai_api", collect_ai_api), ("recent_files", collect_recent_files)]
+                  ("ai_research", collect_ai_research), ("git", collect_git), ("ai_api", collect_ai_api), ("shadow", collect_shadow), ("recent_files", collect_recent_files)]
     values = {}
     for name, collector in collectors:
         try:
@@ -213,7 +229,7 @@ def build_report():
             errors.append({"collector": name, "error": str(exc)})
             values[name] = defaults.get(name, {"status": "error", "error": str(exc)})
     config, updates, etf, ai = values["config"], values["update_checks"], values["etf_rotation"], values["ai_research"]
-    try: stage, can_continue, recommendation = determine_stage(config, updates, etf, ai)
+    try: stage, can_continue, recommendation = determine_stage(config, updates, etf, ai, values["shadow"])
     except Exception as exc:
         errors.append({"collector": "determine_stage", "error": str(exc)}); stage, can_continue, recommendation = "诊断收集失败", False, "查看 errors 字段"
     live = config.get("live_trading_enabled") is True
