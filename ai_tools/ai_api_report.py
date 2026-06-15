@@ -8,7 +8,7 @@ import os
 
 from ai_tools.ai_api_logger import DEFAULT_LOG_PATH, ROOT_DIR
 
-FIELDS = ["provider", "model", "calls", "successes", "success_rate", "average_latency_seconds", "http_429", "http_401", "http_403", "http_5xx", "timeout", "last_success_time", "last_failure_time"]
+FIELDS = ["provider", "model", "calls", "successes", "success_rate", "average_latency_seconds", "http_429", "http_401", "http_403", "http_5xx", "timeout", "http_error", "url_error", "response_error", "last_success_time", "last_failure_time"]
 
 
 def build_report(path=DEFAULT_LOG_PATH):
@@ -19,7 +19,7 @@ def build_report(path=DEFAULT_LOG_PATH):
                 try: row = json.loads(line)
                 except ValueError: continue
                 key = (row.get("provider", ""), row.get("model", ""))
-                item = groups.setdefault(key, {name: 0 for name in ["calls", "successes", "http_429", "http_401", "http_403", "http_5xx", "timeout"]})
+                item = groups.setdefault(key, {name: 0 for name in ["calls", "successes", "http_429", "http_401", "http_403", "http_5xx", "timeout", "http_error", "url_error", "response_error"]})
                 item["provider"], item["model"] = key
                 item["calls"] += 1; item["latency_total"] = item.get("latency_total", 0) + float(row.get("latency_seconds", 0))
                 if row.get("success"):
@@ -49,6 +49,6 @@ def write_report(rows, output_dir=None):
 def main():
     rows = build_report(); write_report(rows)
     if not rows: print("[WARN] 暂无 AI API 调用日志")
-    for row in rows: print("[OK] {0}/{1}: calls={2}, success_rate={3}%, avg={4}s".format(row["provider"], row["model"], row["calls"], row["success_rate"], row["average_latency_seconds"]))
+    for row in rows: print("[OK] {0}/{1}: calls={2}, success_rate={3}%, avg={4}s, errors=401:{5}/403:{6}/429:{7}/5xx:{8}/timeout:{9}".format(row["provider"], row["model"], row["calls"], row["success_rate"], row["average_latency_seconds"], row["http_401"], row["http_403"], row["http_429"], row["http_5xx"], row["timeout"]))
 
 if __name__ == "__main__": main()

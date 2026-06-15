@@ -46,40 +46,28 @@ config.example.json        非敏感配置示例
 "live_trading_enabled": false
 ```
 
-4. 如需 AI 分析与策略生成，复制 `.env.example` 为 `.env`，只在本机填写：
+4. 如需 AI 分析与策略生成，复制 `.env.example` 为 `.env`。一个 `.env` 即可管理多个 OpenAI-compatible AI API；每个供应商只需填写 API 地址、API Key 和英文逗号分隔的模型 ID 列表：
 
 ```dotenv
-OPENAI_API_KEY=本地密钥
-OPENAI_BASE_URL=https://api.openai.com/v1
-OPENAI_MODEL=gpt-4.1-mini
+AI_PROVIDER_1_NAME=apihost
+AI_PROVIDER_1_BASE_URL=https://apihost.cn/v1
+AI_PROVIDER_1_API_KEY=your_api_key_here
+AI_PROVIDER_1_MODELS=gpt-5.4-mini,gpt-5.4
 ```
 
-AI 客户端也支持直接读取同名环境变量。仓库不会保存真实 API Key。所有新增脚本使用兼容 QMT Python 3.6 的语法。
+继续按 `AI_PROVIDER_2_*`、`AI_PROVIDER_3_*` 添加供应商，编号必须从 1 连续递增。可用 `AI_TIMEOUT_SECONDS`、`AI_COOLDOWN_SECONDS` 和 `AI_MAX_RETRIES` 设置全局超时、冷却及重试次数。`.env` 已被 Git 忽略，禁止填写或提交真实 Key 到其他仓库文件。
 
 ### AI API 供应商池
 
-如需多个 OpenAI-compatible API 供应商，将 `ai_providers.example.json` 复制为
-`ai_providers.local.json`，在其中启用供应商、配置模型和引用密钥环境变量名。真实密钥只能写入
-本地 `.env` 或进程环境，例如：
+路由器优先读取 `.env` 的 `AI_PROVIDER_N_*` 配置，并自动按 provider/model 轮询；遇到 401、403、429、超时或 5xx 时会冷却、重试或切换。旧版 `OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_MODEL` 以及 `ai_providers.local.json` 仅作为兼容备用，不再推荐维护 JSON 配置。
 
-```dotenv
-APIHOST_API_KEY=本地密钥
-OPENROUTER_API_KEY=本地密钥
-```
-
-本地供应商配置和调用产物均已忽略。若 `ai_providers.local.json` 不存在，`AIClient` 会继续使用
-旧的 `OPENAI_API_KEY`、`OPENAI_BASE_URL` 和 `OPENAI_MODEL`。路由器会跳过禁用或缺少密钥的
-供应商，并在 401、403、429、超时或服务端错误时按规则冷却、重试或切换 provider/model。
-
-每次调用的非敏感元数据写入 `logs/ai_api_calls.jsonl`，不记录密钥或提示词。查看供应商和模型
-成功率、平均耗时及分类错误统计：
+每次成功或失败调用的非敏感元数据写入 `logs/ai_api_calls.jsonl`，不记录完整密钥或提示词。查看 provider/model 成功率、平均耗时及错误原因统计：
 
 ```bash
 python -m ai_tools.ai_api_report
 ```
 
-报告同时保存为 `logs/ai_api_report.json` 和 `logs/ai_api_report.csv`。API 池仅服务于研究分析
-和 ETF 轮动解释，不参与实盘决策，不调用真实下单或撤单接口。
+报告同时保存为 `logs/ai_api_report.json` 和 `logs/ai_api_report.csv`。API 池仅服务于研究分析和 ETF 轮动解释，不参与实盘决策，不调用真实下单或撤单接口。
 
 ## Daily dry-run
 

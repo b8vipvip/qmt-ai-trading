@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Load OpenAI-compatible providers without persisting or displaying secrets."""
+"""Load OpenAI-compatible providers from one local .env without exposing secrets."""
 from __future__ import print_function
 
 import json
@@ -18,41 +18,74 @@ class AIProviderPool(object):
         self.config_path = config_path or os.path.join(ROOT_DIR, "ai_providers.local.json")
         self.now_func = now_func or time.time
         self._cooldowns = {}
+        self.timeout_seconds = self._number("AI_TIMEOUT_SECONDS", 60)
+        self.cooldown_seconds = self._number("AI_COOLDOWN_SECONDS", 300)
+        self.max_retries = max(0, int(self._number("AI_MAX_RETRIES", 1)))
         self.providers = self._load()
 
+    def _number(self, name, default):
+        try:
+            return float(self.environ.get(name, default))
+        except (TypeError, ValueError):
+            return float(default)
+
     def _load(self):
-        if os.path.exists(self.config_path):
-            with open(self.config_path, "r", encoding="utf-8") as handle:
-                raw = json.load(handle).get("providers", [])
-        else:
-            raw = [{
-                "name": "legacy-openai", "enabled": True,
-                "base_url": self.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
-                "api_key_env": "OPENAI_API_KEY",
-                "models": [self.environ.get("OPENAI_MODEL", "gpt-4.1-mini")],
-                "timeout_seconds": 120, "cooldown_seconds": 300
-            }]
+        if self.environ.get("AI_PROVIDER_1_BASE_URL", "").strip():
+            return self._load_env_providers()
+        legacy = self._load_legacy_provider()
+        if legacy:
+            return legacy
+        return self._load_json_providers()
+
+    def _load_env_providers(self):
+        providers = []
+        index = 1
+        while True:
+            prefix = "AI_PROVIDER_{0}_".format(index)
+            base_url = self.environ.get(prefix + "BASE_URL", "").strip()
+            if not base_url:
+                break
+            api_key = self.environ.get(prefix + "API_KEY", "").strip()
+            models = [item.strip() for item in self.environ.get(prefix + "MODELS", "").split(",") if item.strip()]
+            if api_key and models:
+                providers.append(self._provider(
+                    self.environ.get(prefix + "NAME", "").strip() or "provider_{0}".format(index),
+                    base_url, api_key, models, prefix + "API_KEY"))
+            index += 1
+        return providers
+
+    def _load_legacy_provider(self):
+        api_key = self.environ.get("OPENAI_API_KEY", "").strip()
+        if not api_key:
+            return []
+        base_url = self.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").strip()
+        model = self.environ.get("OPENAI_MODEL", "gpt-4.1-mini").strip()
+        if not base_url or not model:
+            return []
+        return [self._provider("legacy-openai", base_url, api_key, [model], "OPENAI_API_KEY")]
+
+    def _load_json_providers(self):
+        if not os.path.exists(self.config_path):
+            return []
+        with open(self.config_path, "r", encoding="utf-8") as handle:
+            raw = json.load(handle).get("providers", [])
         providers = []
         for item in raw:
             if not item.get("enabled", True):
                 continue
             key_env = item.get("api_key_env", "")
-            api_key = self.environ.get(key_env, "")
-            if not api_key:
-                continue
-            models = [model for model in item.get("models", []) if model]
-            if not models:
-                continue
-            providers.append({
-                "name": item.get("name", "unnamed"),
-                "base_url": item.get("base_url", "").rstrip("/"),
-                "api_key_env": key_env,
-                "api_key": api_key,
-                "models": models,
-                "timeout_seconds": float(item.get("timeout_seconds", 60)),
-                "cooldown_seconds": float(item.get("cooldown_seconds", 300))
-            })
+            api_key = self.environ.get(key_env, "").strip()
+            models = [model.strip() for model in item.get("models", []) if model and model.strip()]
+            if api_key and item.get("base_url", "").strip() and models:
+                providers.append(self._provider(item.get("name", "unnamed"), item["base_url"], api_key, models, key_env,
+                                                item.get("timeout_seconds"), item.get("cooldown_seconds")))
         return providers
+
+    def _provider(self, name, base_url, api_key, models, key_env, timeout=None, cooldown=None):
+        return {"name": name, "base_url": base_url.rstrip("/"), "api_key_env": key_env,
+                "api_key": api_key, "models": models,
+                "timeout_seconds": float(timeout if timeout is not None else self.timeout_seconds),
+                "cooldown_seconds": float(cooldown if cooldown is not None else self.cooldown_seconds)}
 
     def candidates(self):
         now = self.now_func()
