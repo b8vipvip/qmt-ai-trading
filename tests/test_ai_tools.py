@@ -37,6 +37,10 @@ class AIToolsTest(unittest.TestCase):
     def test_strategy_safety_accepts_research_contract(self):
         self.assertTrue(validate_strategy_source(SAFE_STRATEGY))
 
+    def test_strategy_safety_accepts_future_print_function(self):
+        source = "from __future__ import print_function\n" + SAFE_STRATEGY
+        self.assertTrue(validate_strategy_source(source))
+
     def test_strategy_safety_rejects_order_call(self):
         unsafe = SAFE_STRATEGY.replace('return {"signal": "HOLD"}', 'return ' + 'order_' + 'stock("x")')
         with self.assertRaises(ValueError):
@@ -44,6 +48,21 @@ class AIToolsTest(unittest.TestCase):
 
     def test_strategy_safety_rejects_file_access(self):
         unsafe = SAFE_STRATEGY.replace('return {"signal": "HOLD"}', 'return open("secret")')
+        with self.assertRaises(ValueError):
+            validate_strategy_source(unsafe)
+
+    def test_strategy_safety_rejects_network_access(self):
+        unsafe = "import socket\n" + SAFE_STRATEGY
+        with self.assertRaises(ValueError):
+            validate_strategy_source(unsafe)
+
+    def test_strategy_safety_rejects_process_call(self):
+        unsafe = SAFE_STRATEGY.replace('return {"signal": "HOLD"}', 'return system("echo unsafe")')
+        with self.assertRaises(ValueError):
+            validate_strategy_source(unsafe)
+
+    def test_strategy_safety_rejects_live_trading_enablement(self):
+        unsafe = "live_trading_enabled = True\n" + SAFE_STRATEGY
         with self.assertRaises(ValueError):
             validate_strategy_source(unsafe)
 
