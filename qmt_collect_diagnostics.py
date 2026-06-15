@@ -95,18 +95,38 @@ def _stock_code(payload):
 def collect_update_checks():
     keys = ["code_pull", "config_check", "unit_tests", "python_compile", "safety_scan"]
     result = {key: "未知" for key in keys}
-    result.update({"final_status": "未知", "failure_reason": None, "suggestion": None})
-    summary_path = os.path.join(ROOT, "logs", "update_latest_summary.json")
-    log_path = os.path.join(ROOT, "logs", "update_latest.log")
-    summary = _read_json(summary_path, {}) if os.path.exists(summary_path) else {}
-    if isinstance(summary, dict):
+    result.update({"final_status": "未知", "failure_reason": None, "suggestion": None,
+                   "latest_backup": None, "source_summary": None, "source_log": None})
+    logs = os.path.join(ROOT, "logs")
+    latest = os.path.join(logs, "update_latest_summary.json")
+    histories = [path for path in glob.glob(os.path.join(logs, "update_*_summary.json"))
+                 if os.path.basename(path) != "update_latest_summary.json"]
+    histories.sort(key=os.path.getmtime, reverse=True)
+    candidates = ([latest] if os.path.isfile(latest) else []) + histories
+    read_errors = []
+    for summary_path in candidates:
+        try:
+            with open(summary_path, "r", encoding="utf-8") as handle:
+                summary = json.load(handle)
+            if not isinstance(summary, dict):
+                raise ValueError("summary JSON 顶层必须是对象")
+        except (IOError, OSError, ValueError, TypeError) as exc:
+            read_errors.append("读取 %s 失败: %s" % (os.path.relpath(summary_path, ROOT), exc))
+            continue
         for key in keys + ["final_status", "failure_reason", "suggestion"]:
-            if key in summary: result[key] = summary.get(key)
+            if key in summary:
+                result[key] = summary.get(key)
         result["latest_backup"] = summary.get("backup_dir")
-    else:
-        result["latest_backup"] = None
-    result["source_summary"] = "logs/update_latest_summary.json" if os.path.exists(summary_path) else None
-    result["source_log"] = "logs/update_latest.log" if os.path.exists(log_path) else None
+        result["source_summary"] = os.path.relpath(summary_path, ROOT).replace(os.sep, "/")
+        stem = os.path.basename(summary_path)[:-len("_summary.json")]
+        matching_log = os.path.join(logs, stem + ".log")
+        if os.path.isfile(matching_log):
+            result["source_log"] = os.path.relpath(matching_log, ROOT).replace(os.sep, "/")
+        break
+    if not candidates:
+        read_errors.append("未找到 logs/update_latest_summary.json 或历史 logs/update_*_summary.json")
+    if read_errors:
+        result["_errors"] = read_errors
     return redact(result)
 
 
@@ -264,6 +284,9 @@ def build_report():
     for name, collector in collectors:
         try:
             values[name] = collector()
+            if isinstance(values[name], dict):
+                for error in values[name].get("_errors", []):
+                    errors.append({"collector": name, "error": error})
             if isinstance(values[name], dict) and values[name].get("status") == "error":
                 errors.append({"collector": name, "error": values[name].get("error", "未知错误")})
         except Exception as exc:
@@ -299,6 +322,7 @@ def render_markdown(r):
 - 安全扫描：{safety_scan}
 - 失败原因：{failure_reason}
 - 建议处理：{suggestion}
+- 来源 summary 文件：{source_summary}
 
 ## 3. 配置与安全状态
 {config}
@@ -321,7 +345,7 @@ def render_markdown(r):
 ## 8. 需要发给 ChatGPT 的重点
 - 请优先分析当前阶段、失败检查、风险警告和下一步建议。
 - 报告已脱敏；诊断器只读，不执行交易。
-""".format(stage=r["stage"], go="是" if r["can_continue"] else "否", next=r["next_recommendation"], risk="；".join(r["risks"]), git=block(r["git"]), update_final=r["update_checks"].get("final_status"), code_pull=r["update_checks"].get("code_pull"), config_check=r["update_checks"].get("config_check"), unit_tests=r["update_checks"].get("unit_tests"), python_compile=r["update_checks"].get("python_compile"), safety_scan=r["update_checks"].get("safety_scan"), failure_reason=r["update_checks"].get("failure_reason"), suggestion=r["update_checks"].get("suggestion"), config=block(r["config"]), planned_volume=r["etf_rotation"].get("planned_volume"), planned_amount=r["etf_rotation"].get("planned_amount"), planned_price_ref=r["etf_rotation"].get("planned_price_ref"), etf=block(r["etf_rotation"]), ai=block(r["ai_research"]), api=block(r["ai_api"]), files=block(r["recent_files"]))
+""".format(stage=r["stage"], go="是" if r["can_continue"] else "否", next=r["next_recommendation"], risk="；".join(r["risks"]), git=block(r["git"]), update_final=r["update_checks"].get("final_status"), code_pull=r["update_checks"].get("code_pull"), config_check=r["update_checks"].get("config_check"), unit_tests=r["update_checks"].get("unit_tests"), python_compile=r["update_checks"].get("python_compile"), safety_scan=r["update_checks"].get("safety_scan"), failure_reason=r["update_checks"].get("failure_reason"), suggestion=r["update_checks"].get("suggestion"), source_summary=r["update_checks"].get("source_summary"), config=block(r["config"]), planned_volume=r["etf_rotation"].get("planned_volume"), planned_amount=r["etf_rotation"].get("planned_amount"), planned_price_ref=r["etf_rotation"].get("planned_price_ref"), etf=block(r["etf_rotation"]), ai=block(r["ai_research"]), api=block(r["ai_api"]), files=block(r["recent_files"]))
 
 
 def main():
