@@ -10,6 +10,7 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FORBIDDEN_CALLS = set(["order_stock", "cancel_order_stock", "order_target_volume", "order_target_value"])
 FORBIDDEN_IMPORT_PREFIXES = ("xtquant", "requests", "urllib", "subprocess", "socket")
 ALLOWED_IMPORTS = set(["math", "statistics"])
+ALLOWED_FUTURE_IMPORTS = set(["print_function"])
 DANGEROUS_CALLS = FORBIDDEN_CALLS | set(["open", "exec", "eval", "compile", "__import__", "system", "popen", "remove", "unlink", "rmtree", "urlopen"])
 SAFE_CALLS = set(["len", "range", "sum", "min", "max", "abs", "float", "int", "round", "enumerate", "zip", "list", "dict", "set", "append", "get", "items", "values", "sqrt", "mean", "pstdev"])
 
@@ -64,6 +65,10 @@ def validate_strategy_source(source):
                     raise ValueError("生成策略禁止导入模块: {0}".format(alias.name))
         elif isinstance(node, ast.ImportFrom):
             module = node.module or ""
+            if module == "__future__":
+                if node.level != 0 or any(alias.name not in ALLOWED_FUTURE_IMPORTS for alias in node.names):
+                    raise ValueError("生成策略禁止导入模块: {0}".format(module))
+                continue
             if module not in ALLOWED_IMPORTS or module.startswith(FORBIDDEN_IMPORT_PREFIXES):
                 raise ValueError("生成策略禁止导入模块: {0}".format(module))
         elif isinstance(node, ast.Call):
@@ -76,6 +81,10 @@ def validate_strategy_source(source):
                 raise ValueError("生成策略包含禁止调用: {0}".format(name))
             if name not in SAFE_CALLS and name not in local_functions:
                 raise ValueError("生成策略包含非白名单调用: {0}".format(name))
+        elif isinstance(node, ast.Assign):
+            if any(isinstance(target, ast.Name) and target.id == "live_trading_enabled" for target in node.targets):
+                if getattr(node.value, "value", None) is not False:
+                    raise ValueError("生成策略禁止启用实盘交易")
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             if node.name == "backtest":
                 has_backtest = True
