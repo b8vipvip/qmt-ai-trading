@@ -51,3 +51,6 @@ logs/assistant_diagnostic_latest.md
 logs/assistant_diagnostic_latest.json
 shadow_replay/
 shadow_replay_batch/
+
+# research artifacts
+research/

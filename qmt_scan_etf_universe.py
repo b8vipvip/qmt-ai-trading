@@ -22,6 +22,10 @@ OUTPUT_DIR = os.path.join(ROOT, "research", "etf_universe_scan")
 LOG_DIR = os.path.join(ROOT, "logs")
 STATUS_PATH = os.path.join(OUTPUT_DIR, "latest_status.json")
 DEFAULT_FIXED_POOL = ["510300.SH", "510500.SH", "512100.SH", "159915.SZ", "588000.SH"]
+DEFAULT_MIN_SCORE = 0.0
+DEFAULT_MAX_EXPANDED_ETFS = 30
+DEFAULT_MAX_PER_TRACKING_INDEX = 1
+DEFAULT_MAX_PER_CATEGORY = 3
 EXCLUDE_KEYWORDS = [
     ("货币", "货币ETF"), ("现金", "货币ETF"), ("债", "债券ETF"), ("国债", "债券ETF"),
     ("黄金", "商品ETF"), ("商品", "商品ETF"), ("豆粕", "商品ETF"), ("有色", "商品ETF"),
@@ -216,7 +220,35 @@ def evaluate_etf(row, closes, amounts, settings):
     return record
 
 
+def build_expanded_records(records, min_score=DEFAULT_MIN_SCORE, max_expanded_etfs=DEFAULT_MAX_EXPANDED_ETFS,
+                           max_per_category=DEFAULT_MAX_PER_CATEGORY,
+                           max_per_tracking_index=DEFAULT_MAX_PER_TRACKING_INDEX):
+    """Filter eligible ETF records into a bounded expanded research pool."""
+    min_score = _safe_float(min_score, DEFAULT_MIN_SCORE)
+    max_expanded_etfs = int(max_expanded_etfs if max_expanded_etfs is not None else DEFAULT_MAX_EXPANDED_ETFS)
+    max_per_category = int(max_per_category if max_per_category is not None else DEFAULT_MAX_PER_CATEGORY)
+    max_per_tracking_index = int(max_per_tracking_index if max_per_tracking_index is not None else DEFAULT_MAX_PER_TRACKING_INDEX)
+    eligible = sorted([r for r in records if r.get("eligible")], key=lambda x: x.get("score", 0), reverse=True)
+    score_filtered = [r for r in eligible if _safe_float(r.get("score")) > min_score]
+    filtered_out_by_score = len(eligible) - len(score_filtered)
+    category_counts, index_counts, result, group_filtered = {}, {}, [], 0
+    for row in score_filtered:
+        category = row.get("category") or "未知"
+        tracking_index = row.get("tracking_index") or row.get("stock_code")
+        if max_per_category > 0 and category_counts.get(category, 0) >= max_per_category:
+            group_filtered += 1; continue
+        if max_per_tracking_index > 0 and index_counts.get(tracking_index, 0) >= max_per_tracking_index:
+            group_filtered += 1; continue
+        if max_expanded_etfs > 0 and len(result) >= max_expanded_etfs:
+            group_filtered += 1; continue
+        result.append(row)
+        category_counts[category] = category_counts.get(category, 0) + 1
+        index_counts[tracking_index] = index_counts.get(tracking_index, 0) + 1
+    return result, {"filtered_out_by_score": filtered_out_by_score, "filtered_out_by_group_limit": group_filtered}
+
+
 def dedupe_records(records, mode="tracking_index", max_per_group=1):
+    # Backward-compatible helper retained for older callers/tests.
     eligible = sorted([r for r in records if r.get("eligible")], key=lambda x: x.get("score", 0), reverse=True)
     counts, result = {}, []
     for row in eligible:
@@ -227,11 +259,17 @@ def dedupe_records(records, mode="tracking_index", max_per_group=1):
     return result
 
 
-def run_scan(cfg=None, xtdata=None, output_dir=OUTPUT_DIR, max_etfs=None, sectors=None, local_only=False, status_interval=1, verbose=True, quiet=False):
+def run_scan(cfg=None, xtdata=None, output_dir=OUTPUT_DIR, max_etfs=None, sectors=None, local_only=False, status_interval=1, verbose=True, quiet=False, min_score=None, max_expanded_etfs=None, min_avg_amount_20d=None, max_per_category=None, max_per_tracking_index=None):
     cfg = cfg or load_raw_config()
     if bool(cfg.get("live_trading_enabled", False)):
         raise RuntimeError("ETF 候选池扫描要求 live_trading_enabled=false，且不会修改该配置。")
-    settings = cfg.get("etf_universe_scan", {}) if isinstance(cfg.get("etf_universe_scan"), dict) else {}
+    settings = dict(cfg.get("etf_universe_scan", {}) if isinstance(cfg.get("etf_universe_scan"), dict) else {})
+    if min_avg_amount_20d is not None:
+        settings["min_avg_amount_20d"] = float(min_avg_amount_20d)
+    settings["min_score"] = DEFAULT_MIN_SCORE if min_score is None else float(min_score)
+    settings["max_expanded_etfs"] = DEFAULT_MAX_EXPANDED_ETFS if max_expanded_etfs is None else int(max_expanded_etfs)
+    settings["max_per_category"] = DEFAULT_MAX_PER_CATEGORY if max_per_category is None else int(max_per_category)
+    settings["max_per_tracking_index"] = DEFAULT_MAX_PER_TRACKING_INDEX if max_per_tracking_index is None else int(max_per_tracking_index)
     reporter = ProgressReporter("etf_universe_scan", os.path.join(output_dir, "latest_status.json"), quiet=(quiet or not verbose))
     try:
         reporter.emit("[START] 全市场 ETF 候选池扫描开始")
@@ -270,11 +308,12 @@ def run_scan(cfg=None, xtdata=None, output_dir=OUTPUT_DIR, max_etfs=None, sector
             reporter.emit("[{0}/{1}] 完成: eligible={2} score={3}".format(idx, len(codes), record.get("eligible"), record.get("score")))
             if idx % status_interval == 0 or idx == len(codes):
                 reporter.update(completed_etfs=idx, eligible_count=len([r for r in records if r.get("eligible")]), latest_message="ETF 评分进度更新")
-        expanded = dedupe_records(records, settings.get("dedupe_by", "tracking_index"), settings.get("max_per_group", 1))
+        expanded, filter_stats = build_expanded_records(records, settings.get("min_score"), settings.get("max_expanded_etfs"), settings.get("max_per_category"), settings.get("max_per_tracking_index"))
         payload = {"generated_at": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"), "mode": "READ_ONLY_RESEARCH",
         "safety": {"trading_functions_called": False, "config_modified": False, "live_trading_enabled_modified": False},
         "settings": settings, "total_count": len(records), "eligible_count": len([r for r in records if r.get("eligible")]),
-        "expanded_count": len(expanded), "records": records}
+        "expanded_count": len(expanded), "filtered_out_by_score": filter_stats.get("filtered_out_by_score"),
+        "filtered_out_by_group_limit": filter_stats.get("filtered_out_by_group_limit"), "records": records}
         expanded_payload = {"generated_at": payload["generated_at"], "mode": "READ_ONLY_RESEARCH", "expanded_etf_pool": [r["stock_code"] for r in expanded], "records": expanded}
         _mkdir(output_dir)
         _json(os.path.join(output_dir, "etf_universe_scan_latest.json"), payload)
@@ -296,7 +335,8 @@ def run_scan(cfg=None, xtdata=None, output_dir=OUTPUT_DIR, max_etfs=None, sector
 def write_markdown(path, payload, expanded):
     lines = ["# 全市场 ETF 候选池扫描（只读研究）", "", "- 模式：{0}".format(payload.get("mode")),
              "- 扫描数量：{0}".format(payload.get("total_count")), "- 合格数量：{0}".format(payload.get("eligible_count")),
-             "- 扩展池数量：{0}".format(payload.get("expanded_count")), "- 不修改 config.json / allowed_stocks / live_trading_enabled。", "",
+             "- 扩展池数量：{0}".format(payload.get("expanded_count")), "- 因分数过滤数量：{0}".format(payload.get("filtered_out_by_score")),
+             "- 因分组/数量限制过滤数量：{0}".format(payload.get("filtered_out_by_group_limit")), "- 不修改 config.json / allowed_stocks / live_trading_enabled。", "",
              "## Expanded ETF Pool", "```", "\n".join(expanded.get("expanded_etf_pool") or []), "```", "",
              "## 明细", "| 代码 | 名称 | 合格 | 20日成交额 | 60日回撤 | 60日波动 | 分数 | 跳过原因 |",
              "| --- | --- | --- | ---: | ---: | ---: | ---: | --- |"]
@@ -315,13 +355,18 @@ def main(argv=None):
     parser.add_argument("--status-interval", type=int, default=1)
     parser.add_argument("--verbose", dest="verbose", action="store_true", default=True)
     parser.add_argument("--quiet", action="store_true")
+    parser.add_argument("--min-score", type=float, default=DEFAULT_MIN_SCORE)
+    parser.add_argument("--max-expanded-etfs", type=int, default=DEFAULT_MAX_EXPANDED_ETFS)
+    parser.add_argument("--min-avg-amount-20d", type=float, default=None)
+    parser.add_argument("--max-per-category", type=int, default=DEFAULT_MAX_PER_CATEGORY)
+    parser.add_argument("--max-per-tracking-index", type=int, default=DEFAULT_MAX_PER_TRACKING_INDEX)
     args = parser.parse_args(argv)
     xtdata = None
     if not args.local_only:
         from xtquant import xtdata as _xtdata
         xtdata = _xtdata
     sectors = [x.strip() for x in args.sectors.split(",") if x.strip()] if args.sectors else None
-    run_scan(xtdata=xtdata, output_dir=args.output_dir, max_etfs=args.max_etfs, sectors=sectors, local_only=args.local_only, status_interval=args.status_interval, verbose=args.verbose, quiet=args.quiet)
+    run_scan(xtdata=xtdata, output_dir=args.output_dir, max_etfs=args.max_etfs, sectors=sectors, local_only=args.local_only, status_interval=args.status_interval, verbose=args.verbose, quiet=args.quiet, min_score=args.min_score, max_expanded_etfs=args.max_expanded_etfs, min_avg_amount_20d=args.min_avg_amount_20d, max_per_category=args.max_per_category, max_per_tracking_index=args.max_per_tracking_index)
 
 
 if __name__ == "__main__":
