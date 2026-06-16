@@ -170,3 +170,26 @@ D:\AI\qmt\logs\assistant_diagnostic_latest.json
 ```
 
 收集器会同时保留带时间戳的报告，汇总 Git、配置安全状态、更新检查、ETF dry-run、AI 研究/API 稳定性与最近产物。它不会读取 `.env` 内容、不会输出完整 API Key 或资金账号、不会修改实盘开关，也不会执行任何交易操作。
+
+## 历史多时段批量回放进度查看
+
+运行 `qmt_shadow_replay_batch.py` 时，程序会实时输出进度，并同步写入 `logs/shadow_replay_batch_latest.log`、带时间戳的批量日志，以及 `shadow_replay_batch/latest_status.json` 状态文件。即使使用 `--quiet` 关闭控制台输出，日志和状态文件仍会持续更新。
+
+Windows / QMT 本地运行批量回放期间，可以另开 PowerShell 查看最新日志：
+
+```powershell
+Get-Content "D:\AI\qmt\logs\shadow_replay_batch_latest.log" -Tail 30 -Wait
+```
+
+也可以直接查看当前状态 JSON：
+
+```powershell
+Get-Content "D:\AI\qmt\shadow_replay_batch\latest_status.json"
+```
+
+常用进度参数：
+
+```powershell
+& "D:\国金证券QMT交易端\bin.x64\python.exe" "D:\AI\qmt\qmt_shadow_replay_batch.py" --status-interval 10
+& "D:\国金证券QMT交易端\bin.x64\python.exe" "D:\AI\qmt\qmt_shadow_replay_batch.py" --quiet
+```

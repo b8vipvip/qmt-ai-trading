@@ -176,6 +176,25 @@ class DiagnosticTests(unittest.TestCase):
             self.assertEqual(1.5, result["display"]["average_return_pct"])
             self.assertTrue(result["display"]["continue_shadow_replay_recommended"])
 
+
+    def test_collects_shadow_replay_batch_runtime_status(self):
+        with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
+            self.write_json(root, "shadow_replay_batch/latest_status.json", {
+                "status": "running", "current_period": {"name": "2024", "start_date": "2024-01-01", "end_date": "2024-12-31"},
+                "completed_periods": 1, "failed_periods": 0, "updated_at": "2026-06-16T12:00:00", "latest_message": "正在下载历史行情"
+            })
+            os.makedirs(os.path.join(root, "logs"))
+            with open(os.path.join(root, "logs", "shadow_replay_batch_latest.log"), "w", encoding="utf-8") as handle:
+                handle.write("正在下载历史行情\n")
+            result = diagnostic.collect_shadow_replay_batch()
+            self.assertTrue(result["status_exists"])
+            self.assertEqual("running", result["display"]["runtime_status"])
+            self.assertEqual(1, result["display"]["completed_periods"])
+            self.assertIn("仍在运行中", result["display"]["running_hint"])
+            rendered = diagnostic._render_shadow_replay_batch_markdown(result)
+            self.assertIn("历史多时段回放运行状态", rendered)
+            self.assertIn("日志文件路径", rendered)
+
     def test_etf_shadow_state_takes_priority_over_ma_daily_fields(self):
         with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
             self.write_json(root, "signals/daily_status.json", {"stock_code": "600000.SH", "signal": "SELL_SIGNAL"})

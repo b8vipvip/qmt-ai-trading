@@ -8,12 +8,88 @@ import datetime
 import json
 import math
 import os
+import time
+import traceback
 
 import qmt_shadow_replay as single
 from data_tools.etf_universe import load_raw_config
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATE_FMT = "%Y-%m-%d"
+
+
+def _now_text():
+    return datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def _safe_message(value):
+    text = str(value)
+    # Avoid accidentally leaking common secret/account key-value pairs in logs/status.
+    import re
+    text = re.sub(r"(?i)(api[_-]?key|token|secret|authorization)\s*[:=]\s*([^\s,;}]+)", r"\1=***", text)
+    text = re.sub(r"(?i)(account[_-]?id|account)\s*[:=]\s*([A-Za-z0-9_-]{4,})", r"\1=***", text)
+    return text
+
+
+class BatchProgress(object):
+    def __init__(self, periods, output_dir, verbose=True, quiet=False, status_interval=10):
+        self.periods = periods
+        self.output_dir = output_dir
+        self.verbose = bool(verbose) and not bool(quiet)
+        self.quiet = bool(quiet)
+        self.status_interval = max(1, int(status_interval or 10))
+        self.started_at = _now_text()
+        self.start_time = time.time()
+        self.completed_periods = 0
+        self.failed_periods = 0
+        self.errors = []
+        self.warnings = []
+        self.current_index = 0
+        self.current_period = None
+        self.latest_message = ""
+        self.last_status_write = 0
+        self.logs_dir = os.path.join(ROOT, "logs")
+        _mkdir(self.logs_dir)
+        stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.log_path = os.path.join(self.logs_dir, "shadow_replay_batch_{0}.log".format(stamp))
+        self.latest_log_path = os.path.join(self.logs_dir, "shadow_replay_batch_latest.log")
+        self.log_handles = [open(self.log_path, "w", encoding="utf-8"), open(self.latest_log_path, "w", encoding="utf-8")]
+        self.status_path = os.path.join(ROOT, "shadow_replay_batch", "latest_status.json")
+        _mkdir(os.path.dirname(self.status_path))
+
+    def close(self):
+        for handle in self.log_handles:
+            try:
+                handle.close()
+            except Exception:
+                pass
+
+    def emit(self, message, force_status=False):
+        message = _safe_message(message)
+        self.latest_message = message
+        if self.verbose:
+            print(message, flush=True)
+        for handle in self.log_handles:
+            handle.write(message + "\n")
+            handle.flush()
+        now = time.time()
+        if force_status or now - self.last_status_write >= self.status_interval:
+            self.write_status("running")
+
+    def period_payload(self, period):
+        if not period:
+            return None
+        return {"name": period.get("period_name"), "start_date": period.get("start_date"), "end_date": period.get("end_date")}
+
+    def write_status(self, status):
+        self.last_status_write = time.time()
+        payload = {"status": status, "generated_at": _now_text(), "started_at": self.started_at, "updated_at": _now_text(),
+                   "elapsed_seconds": round(time.time() - self.start_time, 3), "total_periods": len(self.periods),
+                   "current_index": self.current_index, "current_period": self.period_payload(self.current_period),
+                   "completed_periods": self.completed_periods, "failed_periods": self.failed_periods,
+                   "latest_message": self.latest_message, "output_dir": _rel_output(self.output_dir),
+                   "errors": self.errors, "warnings": self.warnings}
+        _json(self.status_path, payload)
 
 
 def _today():
@@ -38,6 +114,15 @@ def _mkdir(path):
 def _json(path, value):
     with open(path, "w", encoding="utf-8") as handle:
         json.dump(value, handle, ensure_ascii=False, indent=2)
+        handle.write("\n")
+        handle.flush()
+
+
+def _rel_output(path):
+    try:
+        return os.path.relpath(path, ROOT).replace(os.sep, "/")
+    except Exception:
+        return path
 
 
 def _safe_float(value, default=0.0):
@@ -169,7 +254,7 @@ def write_summary_csv(path, results):
         writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore"); writer.writeheader(); writer.writerows(results)
 
 
-def run_batch(periods, output_dir, cfg=None, rotation=None, xtdata=None):
+def run_batch(periods, output_dir, cfg=None, rotation=None, xtdata=None, progress=None):
     cfg = cfg or load_raw_config(); rotation = rotation or cfg.get("etf_rotation", {})
     if bool(cfg.get("live_trading_enabled", False)):
         raise RuntimeError("批量历史回放要求 live_trading_enabled=false，且不会修改该配置。")
@@ -177,16 +262,35 @@ def run_batch(periods, output_dir, cfg=None, rotation=None, xtdata=None):
     benchmarks = single._unique_symbols(rotation.get("market_regime_indexes") or [])
     symbols = single._unique_symbols(tradable + benchmarks)
     min_start, max_end = min(p["start_date"] for p in periods), max(p["end_date"] for p in periods)
+    if progress:
+        progress.emit("[INFO] 本次共 {0} 个区间".format(len(periods)), force_status=True)
+        progress.emit("[INFO] 下载/读取历史行情: {0} 至 {1}".format(min_start, max_end), force_status=True)
     data, dates = single.load_history(symbols, min_start, max_end, xtdata=xtdata)
+    if progress:
+        progress.emit("[INFO] 历史行情准备完成", force_status=True)
     results = []
     for idx, period in enumerate(periods):
+        if progress:
+            progress.current_index = idx + 1
+            progress.current_period = period
+            progress.emit("\n[{0}/{1}] 开始: {2} 至 {3}".format(idx + 1, len(periods), period.get("start_date"), period.get("end_date")), force_status=True)
+            progress.emit("[{0}/{1}] 下载/读取历史行情...".format(idx + 1, len(periods)), force_status=True)
+        period_start = time.time()
         out = os.path.join(output_dir, "period_{0:03d}".format(idx + 1)); _mkdir(out)
         try:
             single.replay(cfg, rotation, tradable, benchmarks, data, dates, period["start_date"], period["end_date"], out)
             with open(os.path.join(out, "replay_summary.json"), "r", encoding="utf-8") as handle: summary = json.load(handle)
-            results.append(normalize_period_result(period, summary))
+            result = normalize_period_result(period, summary)
+            results.append(result)
+            if progress:
+                progress.completed_periods += 1
+                progress.emit("[{0}/{1}] 回放完成: 收益 {2}%, 最大回撤 {3}%, 交易 {4} 次, 用时 {5:.1f} 秒".format(idx + 1, len(periods), result.get("total_return_pct"), result.get("max_drawdown_pct"), result.get("total_trades"), time.time() - period_start), force_status=True)
         except Exception as exc:
-            warning = "区间回放失败: {0}".format(exc)
+            warning = "区间回放失败: {0}".format(_safe_message(exc))
+            if progress:
+                progress.failed_periods += 1
+                progress.errors.append({"period": progress.period_payload(period), "error": warning})
+                progress.emit("[{0}/{1}] 回放失败: {2}; 继续下一个区间".format(idx + 1, len(periods), warning), force_status=True)
             failed = {"trading_days": 0, "initial_cash": cfg.get("shadow_trading", {}).get("initial_cash"), "final_asset": None, "total_return_pct": None, "annualized_return_pct": None, "max_drawdown_pct": None, "total_trades": 0, "closed_trades": 0, "win_rate": None, "average_holding_days": None, "turnover": 0, "open_positions": False, "realized_pnl": 0, "unrealized_pnl": 0, "tradable_selected_etf_counts": {}, "benchmark_counts": {}, "candidate_pool_valid": False, "warnings": [warning]}
             _json(os.path.join(out, "replay_summary.json"), failed)
             with open(os.path.join(out, "trades.csv"), "w", encoding="utf-8") as handle:
@@ -197,6 +301,9 @@ def run_batch(periods, output_dir, cfg=None, rotation=None, xtdata=None):
                 handle.write("# 区间回放失败\n\n- {0}\n".format(warning))
             results.append(normalize_period_result(period, failed, warning))
     summary = build_batch_summary(periods, results)
+    failed_count = len([r for r in results if r.get("candidate_pool_valid") is False and any("区间回放失败" in str(w) for w in r.get("metric_warnings", []))])
+    if failed_count:
+        summary.setdefault("warnings", []).append("{0} 个区间回放失败，已跳过并继续".format(failed_count))
     _json(os.path.join(output_dir, "batch_summary.json"), summary)
     write_report(os.path.join(output_dir, "batch_report.md"), summary)
     write_summary_csv(os.path.join(output_dir, "batch_summary.csv"), results)
@@ -207,6 +314,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="历史多时段区间验证（只模拟，不交易）")
     parser.add_argument("--start"); parser.add_argument("--end"); parser.add_argument("--initial-cash", type=float)
     parser.add_argument("--periods-file"); parser.add_argument("--output-dir", default=os.path.join(ROOT, "shadow_replay_batch"))
+    parser.add_argument("--verbose", action="store_true", default=True)
+    parser.add_argument("--quiet", action="store_true", default=False)
+    parser.add_argument("--status-interval", type=int, default=10)
     args = parser.parse_args(argv)
     cfg = load_raw_config()
     if args.initial_cash is not None:
@@ -218,8 +328,22 @@ def main(argv=None):
     stamp = datetime.datetime.now().strftime("run_%Y%m%d_%H%M%S")
     out = args.output_dir if os.path.basename(args.output_dir).startswith("run_") else os.path.join(args.output_dir, stamp)
     _mkdir(out)
-    run_batch(periods, out, cfg=cfg)
-    print("[OK] 历史多时段区间验证完成: {0}".format(out))
+    progress = BatchProgress(periods, out, verbose=args.verbose, quiet=args.quiet, status_interval=args.status_interval)
+    try:
+        progress.emit("[START] 历史多时段回放开始", force_status=True)
+        progress.emit("[INFO] 输出目录: {0}".format(_rel_output(out)), force_status=True)
+        run_batch(periods, out, cfg=cfg, progress=progress)
+        progress.emit("[DONE] 历史多时段回放完成，总用时 {0:.1f} 秒".format(time.time() - progress.start_time), force_status=True)
+        progress.write_status("done")
+    except Exception as exc:
+        message = "批量回放失败: {0}".format(_safe_message(exc))
+        progress.errors.append({"error": message})
+        progress.emit("[ERROR] " + message, force_status=True)
+        progress.emit(traceback.format_exc(), force_status=True)
+        progress.write_status("failed")
+        raise
+    finally:
+        progress.close()
 
 
 if __name__ == "__main__":

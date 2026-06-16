@@ -292,6 +292,9 @@ def collect_shadow_replay():
 def collect_shadow_replay_batch():
     path = _latest("shadow_replay_batch/run_*/batch_summary.json")
     summary = _read_json(path, {}) if path else {}
+    status_path = os.path.join(ROOT, "shadow_replay_batch", "latest_status.json")
+    log_path = os.path.join(ROOT, "logs", "shadow_replay_batch_latest.log")
+    status = _read_json(status_path, {}) if os.path.exists(status_path) else {}
     worst_dd = summary.get("max_drawdown_worst_period")
     display = {
         "period_count": len(summary.get("period_results") or summary.get("periods") or []),
@@ -304,8 +307,19 @@ def collect_shadow_replay_batch():
         "overfit_warning": summary.get("overfit_warning"),
         "continue_shadow_replay_recommended": summary.get("continue_shadow_replay_recommended"),
         "live_trading_not_recommended": summary.get("live_trading_not_recommended"),
+        "runtime_status": status.get("status"),
+        "current_period": status.get("current_period"),
+        "completed_periods": status.get("completed_periods"),
+        "failed_periods": status.get("failed_periods"),
+        "updated_at": status.get("updated_at"),
+        "latest_message": status.get("latest_message"),
+        "log_path": safe_relpath(log_path, ROOT) if os.path.exists(log_path) else None,
+        "running_hint": "历史多时段回放仍在运行中，请等待完成后再分析最终结果。" if status.get("status") == "running" else None,
     }
-    return redact({"exists": bool(path), "summary_path": safe_relpath(path, ROOT) if path else None, "summary": summary, "display": display})
+    return redact({"exists": bool(path), "summary_path": safe_relpath(path, ROOT) if path else None, "summary": summary,
+                   "status_exists": os.path.exists(status_path), "status_path": safe_relpath(status_path, ROOT) if os.path.exists(status_path) else None,
+                   "log_exists": os.path.exists(log_path), "log_path": safe_relpath(log_path, ROOT) if os.path.exists(log_path) else None,
+                   "runtime_status": status, "display": display})
 
 def collect_shadow():
     portfolio = _read_json(os.path.join(ROOT, "shadow", "portfolio.json"), {})
@@ -397,7 +411,18 @@ def _render_shadow_replay_batch_markdown(value):
         "- 过拟合警告：{0}".format(display.get("overfit_warning")),
         "- 是否建议继续影子盘：{0}".format("是" if display.get("continue_shadow_replay_recommended") else "否"),
         "- 是否不建议实盘：{0}".format("是" if display.get("live_trading_not_recommended") else "否"),
+        "",
+        "### 历史多时段回放运行状态",
+        "- 当前状态：{0}".format(display.get("runtime_status")),
+        "- 当前区间：{0}".format(json.dumps(display.get("current_period"), ensure_ascii=False)),
+        "- 已完成区间数：{0}".format(display.get("completed_periods")),
+        "- 失败区间数：{0}".format(display.get("failed_periods")),
+        "- 最后更新时间：{0}".format(display.get("updated_at")),
+        "- 最后一条消息：{0}".format(display.get("latest_message")),
+        "- 日志文件路径：{0}".format(display.get("log_path")),
     ]
+    if display.get("running_hint"):
+        lines.append("- {0}".format(display.get("running_hint")))
     lines.append("\n```json\n" + json.dumps(value, ensure_ascii=False, indent=2) + "\n```")
     return "\n".join(lines)
 
