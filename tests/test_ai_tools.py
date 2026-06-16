@@ -85,5 +85,27 @@ class AIToolsTest(unittest.TestCase):
         self.assertEqual(len(rows[0]["period_results"]), 2)
 
 
-if __name__ == "__main__":
-    unittest.main()
+class DailyReviewerTest(unittest.TestCase):
+    def test_template_review_records_no_ai_call(self):
+        from ai_tools.ai_daily_reviewer import generate_daily_review
+        with tempfile.TemporaryDirectory() as root:
+            report = generate_daily_review(root=root)
+            self.assertEqual("template", report["review_mode"])
+            self.assertFalse(report["ai_called"])
+            self.assertEqual(0, report["duration_ms"])
+            self.assertTrue(os.path.exists(os.path.join(root, "reports", "daily_report_" + report["date"] + ".json")))
+
+    def test_failed_ai_review_records_redacted_fallback(self):
+        from ai_tools.ai_daily_reviewer import generate_daily_review
+        class FailedClient(object):
+            def chat(self, *args, **kwargs):
+                raise RuntimeError("api_key=super-secret failed")
+        with tempfile.TemporaryDirectory() as root:
+            report = generate_daily_review(root=root, ai_client=FailedClient(), provider="example", model="model")
+            self.assertEqual("ai_failed_fallback", report["review_mode"])
+            self.assertTrue(report["ai_called"])
+            self.assertEqual("RuntimeError", report["error_type"])
+            self.assertNotIn("super-secret", report["error_message"])
+
+
+if __name__ == "__main__": unittest.main()
