@@ -130,6 +130,17 @@ class DiagnosticTests(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(root, "logs", "assistant_diagnostic_latest.md")))
             self.assertTrue(os.path.exists(os.path.join(root, "logs", "assistant_diagnostic_latest.json")))
 
+
+    def test_collects_latest_shadow_replay_summary_without_stage_effect(self):
+        with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
+            self.write_json(root, "shadow_replay/run_20260615_120000/replay_summary.json", {"final_asset": 123456, "total_trades": 3})
+            self.write_json(root, "signals/order_plan.json", {"action": "PLAN_BUY"})
+            self.write_json(root, "logs/ai_research_pipeline_20260615_summary.json", {"success": True})
+            result = diagnostic.build_report()
+            self.assertTrue(result["shadow_replay"]["exists"])
+            self.assertEqual(123456, result["shadow_replay"]["summary"]["final_asset"])
+            self.assertEqual("准备进入 ETF 影子盘", result["stage"])
+
     def test_etf_shadow_state_takes_priority_over_ma_daily_fields(self):
         with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
             self.write_json(root, "signals/daily_status.json", {"stock_code": "600000.SH", "signal": "SELL_SIGNAL"})
