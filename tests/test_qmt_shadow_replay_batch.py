@@ -52,6 +52,60 @@ class BatchReplayTests(unittest.TestCase):
         self.assertFalse(summary["period_results"][1]["candidate_pool_valid"])
         self.assertTrue(any("区间回放失败" in w for w in summary["period_results"][1]["metric_warnings"]))
 
+
+    def test_progress_writes_console_log_and_running_done_status(self):
+        data, dates = make_data()
+        progress = batch.BatchProgress(self.periods, self.tmp, verbose=True, quiet=False, status_interval=1)
+        try:
+            with mock.patch.object(batch.single, "load_history", return_value=(data, dates)), mock.patch("qmt_shadow_replay_batch.print") as mocked_print:
+                summary = batch.run_batch(self.periods, self.tmp, cfg=self.cfg, rotation=self.rotation, progress=progress)
+                progress.write_status("done")
+            self.assertEqual(2, len(summary["period_results"]))
+            self.assertTrue(mocked_print.called)
+            printed = "\n".join([str(call.args[0]) for call in mocked_print.call_args_list])
+            self.assertIn("[INFO] 本次共 2 个区间", printed)
+            self.assertIn("[1/2]", printed)
+            latest_log = os.path.join(batch.ROOT, "logs", "shadow_replay_batch_latest.log")
+            self.assertTrue(os.path.exists(latest_log))
+            with open(latest_log, "r", encoding="utf-8") as handle:
+                log_text = handle.read()
+            self.assertIn("历史行情准备完成", log_text)
+            status_path = os.path.join(batch.ROOT, "shadow_replay_batch", "latest_status.json")
+            self.assertTrue(os.path.exists(status_path))
+            with open(status_path, "r", encoding="utf-8") as handle:
+                status = json.load(handle)
+            self.assertEqual("done", status["status"])
+            self.assertEqual(2, status["completed_periods"])
+        finally:
+            progress.close()
+
+    def test_progress_running_status_and_failure_continues_without_secret_leak(self):
+        data, dates = make_data()
+        real_replay = batch.single.replay
+        calls = {"count": 0}
+        def flaky(*args, **kwargs):
+            calls["count"] += 1
+            if calls["count"] == 1:
+                raise RuntimeError("boom api_key=SECRET123 account_id=123456789")
+            return real_replay(*args, **kwargs)
+        progress = batch.BatchProgress(self.periods, self.tmp, verbose=False, quiet=True, status_interval=1)
+        try:
+            progress.write_status("running")
+            with open(progress.status_path, "r", encoding="utf-8") as handle:
+                running = json.load(handle)
+            self.assertEqual("running", running["status"])
+            with mock.patch.object(batch.single, "load_history", return_value=(data, dates)), mock.patch.object(batch.single, "replay", side_effect=flaky):
+                summary = batch.run_batch(self.periods, self.tmp, cfg=self.cfg, rotation=self.rotation, progress=progress)
+            self.assertEqual(2, len(summary["period_results"]))
+            self.assertEqual(1, progress.failed_periods)
+            self.assertTrue(any("回放失败" in str(item) for item in progress.errors))
+            with open(progress.latest_log_path, "r", encoding="utf-8") as handle:
+                log_text = handle.read()
+            self.assertNotIn("SECRET123", log_text)
+            self.assertNotIn("123456789", log_text)
+        finally:
+            progress.close()
+
     def test_batch_directory_is_gitignored(self):
         with open(os.path.join(os.path.dirname(__file__), "..", ".gitignore"), "r", encoding="utf-8") as handle:
             self.assertIn("shadow_replay_batch/", handle.read())
