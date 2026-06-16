@@ -149,6 +149,37 @@ class BatchReplayTests(unittest.TestCase):
         summary = batch.build_batch_summary(periods, results)
         self.assertIn("过拟合", summary["overfit_warning"])
 
+    def test_overlapping_periods_do_not_pollute_core_average(self):
+        periods = batch.default_periods(today=batch.datetime.date(2026, 6, 16))
+        results = []
+        returns = {"2023全年": 1, "2024全年": 2, "2025全年": 3, "2026年至今": 4,
+                   "2023年至今": 100, "最近3个月": 50, "最近6个月": 60, "最近12个月": 70,
+                   "最近18个月": 80, "最近24个月": 90}
+        for period in periods:
+            results.append(dict(period, total_return_pct=returns[period["period_name"]], annualized_return_pct=returns[period["period_name"]],
+                                max_drawdown_pct=1, win_rate=0.5, turnover=1, candidate_pool_valid=True))
+        summary = batch.build_batch_summary(periods, results)
+        self.assertEqual(4, summary["non_overlapping_summary"]["period_count"])
+        self.assertEqual(5, summary["rolling_summary"]["period_count"])
+        self.assertEqual(1, summary["full_period_summary"]["period_count"])
+        self.assertEqual(2.5, summary["average_return_pct"])
+        self.assertEqual(100, summary["full_period_summary"]["average_return_pct"])
+        self.assertIn("overfitting_score", summary)
+        self.assertIn("underfitting_score", summary)
+        self.assertIn("robustness_score", summary)
+
+    def test_risk_and_underfit_diagnostics_are_reported(self):
+        periods = [{"period_name": "2023全年", "start_date": "2023-01-01", "end_date": "2023-12-31"},
+                   {"period_name": "2024全年", "start_date": "2024-01-01", "end_date": "2024-12-31"},
+                   {"period_name": "2023年至今", "start_date": "2023-01-01", "end_date": "2026-06-16"}]
+        results = [dict(periods[0], total_return_pct=-1, annualized_return_pct=-1, max_drawdown_pct=16, win_rate=0.2, turnover=6, candidate_pool_valid=True),
+                   dict(periods[1], total_return_pct=-2, annualized_return_pct=-2, max_drawdown_pct=12, win_rate=0.3, turnover=1, candidate_pool_valid=True),
+                   dict(periods[2], total_return_pct=1, annualized_return_pct=1, max_drawdown_pct=21, win_rate=0.4, turnover=1, candidate_pool_valid=True)]
+        summary = batch.build_batch_summary(periods, results)
+        self.assertIn("长期胜率很低", summary["underfit_warning"])
+        self.assertIn("不适合实盘", summary["risk_warning"])
+        self.assertFalse(summary["continue_shadow_replay_recommended"])
+
 
 if __name__ == "__main__":
     unittest.main()

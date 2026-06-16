@@ -168,13 +168,21 @@ class DiagnosticTests(unittest.TestCase):
                 "average_return_pct": 1.5, "worst_period": "p2", "max_drawdown_worst_period": "p2",
                 "positive_period_count": 1, "negative_period_count": 1, "stability_score": 70,
                 "overfit_warning": "无明显过拟合警告", "continue_shadow_replay_recommended": True,
-                "live_trading_not_recommended": True
+                "live_trading_not_recommended": True, "overfitting_score": 75, "underfitting_score": 100,
+                "regime_fit_score": 80, "robustness_score": 70,
+                "non_overlapping_summary": {"period_count": 2}, "rolling_summary": {"period_count": 5},
+                "full_period_summary": {"period_count": 1}, "underfit_warning": "无明显欠拟合警告",
+                "risk_warning": "无明显风控警告", "optimization_recommendation": "继续观察"
             })
             result = diagnostic.collect_shadow_replay_batch()
             self.assertTrue(result["exists"])
             self.assertEqual(2, result["display"]["period_count"])
             self.assertEqual(1.5, result["display"]["average_return_pct"])
             self.assertTrue(result["display"]["continue_shadow_replay_recommended"])
+            self.assertEqual(75, result["display"]["overfitting_score"])
+            rendered = diagnostic._render_shadow_replay_batch_markdown(result)
+            self.assertIn("年度非重叠摘要", rendered)
+            self.assertIn("优化建议", rendered)
 
 
     def test_collects_shadow_replay_batch_runtime_status(self):
