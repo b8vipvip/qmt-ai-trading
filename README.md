@@ -193,3 +193,31 @@ Get-Content "D:\AI\qmt\shadow_replay_batch\latest_status.json"
 & "D:\国金证券QMT交易端\bin.x64\python.exe" "D:\AI\qmt\qmt_shadow_replay_batch.py" --status-interval 10
 & "D:\国金证券QMT交易端\bin.x64\python.exe" "D:\AI\qmt\qmt_shadow_replay_batch.py" --quiet
 ```
+
+## 全市场 ETF 扫描与 ETF 池对比进度排查
+
+`qmt_scan_etf_universe.py` 和 `qmt_compare_etf_pools.py` 均为只读研究脚本：只读取 QMT 行情/本地配置并写入 `research/` 与 `logs/` 产物，不会修改 `config.json` 的 `allowed_stocks`，不会打开 `live_trading_enabled`，也不会调用下单或撤单接口。
+
+首次验证建议先限制规模，避免一次扫描过重：
+
+```powershell
+& "D:\国金证券QMT交易端\bin.x64\python.exe" "D:\AI\qmt\qmt_scan_etf_universe.py" --max-etfs 50
+& "D:\国金证券QMT交易端\bin.x64\python.exe" "D:\AI\qmt\qmt_compare_etf_pools.py" --max-expanded-etfs 20
+```
+
+如果长时间运行没有结束，可以另开 PowerShell 实时查看日志和状态：
+
+```powershell
+Get-Content "D:\AI\qmt\logs\etf_universe_scan_latest.log" -Tail 30 -Wait
+Get-Content "D:\AI\qmt\research\etf_universe_scan\latest_status.json"
+Get-Content "D:\AI\qmt\logs\etf_pool_compare_latest.log" -Tail 30 -Wait
+Get-Content "D:\AI\qmt\research\etf_pool_compare\latest_status.json"
+```
+
+常用参数：
+
+- `qmt_scan_etf_universe.py --max-etfs 50`：只扫描前 50 只 ETF；
+- `qmt_scan_etf_universe.py --local-only`：只使用 `config.json` 中的本地 ETF 列表，不调用 QMT 全市场板块；
+- `qmt_scan_etf_universe.py --sectors "沪深ETF,ETF,全部ETF"`：指定读取的 QMT 板块名；
+- `qmt_scan_etf_universe.py --quiet`：关闭控制台进度输出，但仍写日志和状态文件；
+- `qmt_compare_etf_pools.py --max-expanded-etfs 20`：限制扩展 ETF 池回放规模。

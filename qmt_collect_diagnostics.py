@@ -334,27 +334,41 @@ def collect_shadow_replay_batch():
 
 def collect_etf_universe_scan():
     path = os.path.join(ROOT, "research", "etf_universe_scan", "etf_universe_scan_latest.json")
+    status_path = os.path.join(ROOT, "research", "etf_universe_scan", "latest_status.json")
+    log_path = os.path.join(ROOT, "logs", "etf_universe_scan_latest.log")
     data = _read_json(path, {}) if os.path.exists(path) else {}
+    status = _read_json(status_path, {}) if os.path.exists(status_path) else {}
     display = {"exists": bool(data), "total_count": data.get("total_count"), "eligible_count": data.get("eligible_count"),
                "expanded_count": data.get("expanded_count"), "generated_at": data.get("generated_at"),
                "safety": data.get("safety"),
-               "top_candidates": [r.get("stock_code") for r in sorted([x for x in data.get("records", []) if x.get("eligible")], key=lambda x: x.get("score", 0), reverse=True)[:10]]}
+               "top_candidates": [r.get("stock_code") for r in sorted([x for x in data.get("records", []) if x.get("eligible")], key=lambda x: x.get("score", 0), reverse=True)[:10]],
+               "runtime_status": status.get("status"), "updated_at": status.get("updated_at"), "latest_message": status.get("latest_message"),
+               "running_hint": "全市场 ETF 扫描仍在运行中，请等待完成后再分析最终结果。" if status.get("status") == "running" else None}
     return redact({"exists": os.path.exists(path), "summary_path": safe_relpath(path, ROOT) if os.path.exists(path) else None,
-                   "summary": data, "display": display})
+                   "summary": data, "status_exists": os.path.exists(status_path), "status_path": safe_relpath(status_path, ROOT) if os.path.exists(status_path) else None,
+                   "log_exists": os.path.exists(log_path), "log_path": safe_relpath(log_path, ROOT) if os.path.exists(log_path) else None,
+                   "runtime_status": status, "display": display})
 
 
 def collect_etf_pool_compare():
     path = os.path.join(ROOT, "research", "etf_pool_compare", "pool_compare_latest.json")
+    status_path = os.path.join(ROOT, "research", "etf_pool_compare", "latest_status.json")
+    log_path = os.path.join(ROOT, "logs", "etf_pool_compare_latest.log")
     data = _read_json(path, {}) if os.path.exists(path) else {}
+    status = _read_json(status_path, {}) if os.path.exists(status_path) else {}
     comp = data.get("comparison") or {}
     display = {"exists": bool(data), "generated_at": data.get("generated_at"),
                "fixed_metrics": (data.get("fixed_pool") or {}).get("metrics"),
                "expanded_metrics": (data.get("expanded_pool") or {}).get("metrics"),
                "suitable_for_continued_shadow": comp.get("suitable_for_continued_shadow"),
                "live_trading_not_recommended": comp.get("live_trading_not_recommended"),
-               "conclusion": comp.get("conclusion"), "safety": data.get("safety")}
+               "conclusion": comp.get("conclusion"), "safety": data.get("safety"),
+               "runtime_status": status.get("status"), "updated_at": status.get("updated_at"), "latest_message": status.get("latest_message"),
+               "running_hint": "ETF 池对比仍在运行中，请等待完成后再分析最终结果。" if status.get("status") == "running" else None}
     return redact({"exists": os.path.exists(path), "summary_path": safe_relpath(path, ROOT) if os.path.exists(path) else None,
-                   "summary": data, "display": display})
+                   "summary": data, "status_exists": os.path.exists(status_path), "status_path": safe_relpath(status_path, ROOT) if os.path.exists(status_path) else None,
+                   "log_exists": os.path.exists(log_path), "log_path": safe_relpath(log_path, ROOT) if os.path.exists(log_path) else None,
+                   "runtime_status": status, "display": display})
 
 def collect_shadow():
     portfolio = _read_json(os.path.join(ROOT, "shadow", "portfolio.json"), {})
@@ -482,6 +496,13 @@ def _render_etf_universe_scan_markdown(value):
         "- 扩展池数量：{0}".format(display.get("expanded_count")),
         "- 前十候选：{0}".format(json.dumps(display.get("top_candidates") or [], ensure_ascii=False)),
         "- 安全状态：{0}".format(json.dumps(display.get("safety") or {}, ensure_ascii=False)),
+        "",
+        "### 全市场 ETF 扫描运行状态",
+        "- 当前状态：{0}".format(display.get("runtime_status")),
+        "- 最后更新时间：{0}".format(display.get("updated_at")),
+        "- 最后一条消息：{0}".format(display.get("latest_message")),
+        "- 日志文件路径：{0}".format(value.get("log_path")),
+        "- {0}".format(display.get("running_hint")) if display.get("running_hint") else "",
     ])
 
 
@@ -496,6 +517,13 @@ def _render_etf_pool_compare_markdown(value):
         "- 固定池指标：{0}".format(json.dumps(display.get("fixed_metrics") or {}, ensure_ascii=False)),
         "- 扩展池指标：{0}".format(json.dumps(display.get("expanded_metrics") or {}, ensure_ascii=False)),
         "- 安全状态：{0}".format(json.dumps(display.get("safety") or {}, ensure_ascii=False)),
+        "",
+        "### ETF 池对比运行状态",
+        "- 当前状态：{0}".format(display.get("runtime_status")),
+        "- 最后更新时间：{0}".format(display.get("updated_at")),
+        "- 最后一条消息：{0}".format(display.get("latest_message")),
+        "- 日志文件路径：{0}".format(value.get("log_path")),
+        "- {0}".format(display.get("running_hint")) if display.get("running_hint") else "",
     ])
 
 def render_markdown(r):

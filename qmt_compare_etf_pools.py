@@ -13,6 +13,7 @@ import qmt_shadow_replay_batch as batch
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(ROOT, "research", "etf_pool_compare")
+LOG_DIR = os.path.join(ROOT, "logs")
 SCAN_POOL_PATH = os.path.join(ROOT, "research", "etf_universe_scan", "expanded_etf_pool_latest.json")
 FIXED_POOL = ["510300.SH", "510500.SH", "512100.SH", "159915.SZ", "588000.SH"]
 
@@ -23,9 +24,55 @@ def _mkdir(path):
 
 
 def _json(path, value):
+    parent = os.path.dirname(path)
+    if parent:
+        _mkdir(parent)
     with open(path, "w", encoding="utf-8") as handle:
         json.dump(value, handle, ensure_ascii=False, indent=2)
         handle.write("\n")
+        handle.flush()
+
+
+class ProgressReporter(object):
+    def __init__(self, log_prefix, status_path, quiet=False):
+        self.quiet = quiet
+        self.started_at = datetime.datetime.now()
+        self.status_path = status_path
+        _mkdir(LOG_DIR)
+        stamp = self.started_at.strftime("%Y%m%d_%H%M%S")
+        self.handles = [open(os.path.join(LOG_DIR, log_prefix + "_latest.log"), "w", encoding="utf-8"),
+                        open(os.path.join(LOG_DIR, log_prefix + "_" + stamp + ".log"), "w", encoding="utf-8")]
+        self.status = {"status": "running", "started_at": self.started_at.strftime("%Y-%m-%dT%H:%M:%S"), "updated_at": None,
+                       "elapsed_seconds": 0, "current_step": 0, "total_steps": 2, "fixed_pool_size": 0, "expanded_pool_size": 0,
+                       "latest_message": "", "errors": [], "warnings": []}
+
+    def emit(self, message):
+        if not self.quiet:
+            print(message, flush=True)
+        for handle in self.handles:
+            handle.write(message + "\n"); handle.flush()
+
+    def update(self, latest_message=None, **kwargs):
+        if latest_message is not None:
+            self.status["latest_message"] = latest_message
+        self.status.update(kwargs)
+        now = datetime.datetime.now()
+        self.status["updated_at"] = now.strftime("%Y-%m-%dT%H:%M:%S")
+        self.status["elapsed_seconds"] = int((now - self.started_at).total_seconds())
+        _json(self.status_path, self.status)
+
+    def fail(self, error):
+        errors = list(self.status.get("errors") or []); errors.append(str(error))
+        self.update(status="failed", errors=errors, latest_message="运行失败")
+        self.emit("[FAILED] {0}".format(error))
+
+    def done(self):
+        self.update(status="done", current_step=2, latest_message="对比完成")
+
+    def close(self):
+        for handle in self.handles:
+            try: handle.close()
+            except Exception: pass
 
 
 def _read_json(path, default=None):
@@ -127,32 +174,53 @@ def write_markdown(path, payload):
         handle.write("\n".join(lines) + "\n")
 
 
-def run_compare(cfg=None, expanded_pool=None, output_dir=OUTPUT_DIR, periods=None, xtdata=None):
+def run_compare(cfg=None, expanded_pool=None, output_dir=OUTPUT_DIR, periods=None, xtdata=None, max_expanded_etfs=None, quiet=False):
     cfg = cfg or load_raw_config()
     if bool(cfg.get("live_trading_enabled", False)):
         raise RuntimeError("ETF 池对比要求 live_trading_enabled=false，且不会修改该配置。")
     fixed_pool = cfg.get("allowed_stocks") or FIXED_POOL
     expanded_pool = expanded_pool or load_expanded_pool()
+    if max_expanded_etfs is not None:
+        expanded_pool = expanded_pool[:int(max_expanded_etfs)]
     if not expanded_pool:
         raise RuntimeError("未找到 expanded ETF pool，请先运行 qmt_scan_etf_universe.py")
     periods = periods or batch.default_periods()
     _mkdir(output_dir)
-    fixed_result = run_one_pool("fixed_pool", cfg, fixed_pool, periods, output_dir, xtdata=xtdata)
-    expanded_result = run_one_pool("expanded_pool", cfg, expanded_pool, periods, output_dir, xtdata=xtdata)
-    payload = build_compare(fixed_result, expanded_result)
-    _json(os.path.join(output_dir, "pool_compare_latest.json"), payload)
-    write_markdown(os.path.join(output_dir, "pool_compare_latest.md"), payload)
-    return payload
+    reporter = ProgressReporter("etf_pool_compare", os.path.join(output_dir, "latest_status.json"), quiet=quiet)
+    try:
+        reporter.emit("[START] ETF 池对比开始")
+        reporter.update(fixed_pool_size=len(fixed_pool), expanded_pool_size=len(expanded_pool), latest_message="ETF 池对比开始")
+        reporter.emit("[1/2] 开始固定 5 ETF 池多时段回放")
+        reporter.update(current_step=1, latest_message="开始固定 5 ETF 池多时段回放")
+        fixed_result = run_one_pool("fixed_pool", cfg, fixed_pool, periods, output_dir, xtdata=xtdata)
+        reporter.emit("[1/2] 固定池完成")
+        reporter.update(latest_message="固定池完成")
+        reporter.emit("[2/2] 开始扩展 ETF 池多时段回放")
+        reporter.update(current_step=2, latest_message="开始扩展 ETF 池多时段回放")
+        expanded_result = run_one_pool("expanded_pool", cfg, expanded_pool, periods, output_dir, xtdata=xtdata)
+        reporter.emit("[2/2] 扩展池完成")
+        payload = build_compare(fixed_result, expanded_result)
+        _json(os.path.join(output_dir, "pool_compare_latest.json"), payload)
+        write_markdown(os.path.join(output_dir, "pool_compare_latest.md"), payload)
+        reporter.done()
+        reporter.emit("[DONE] ETF 池对比完成")
+        return payload
+    except Exception as exc:
+        reporter.fail(exc)
+        raise
+    finally:
+        reporter.close()
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="只读 ETF 候选池对比研究")
     parser.add_argument("--output-dir", default=OUTPUT_DIR)
     parser.add_argument("--expanded-pool-file", default=SCAN_POOL_PATH)
+    parser.add_argument("--max-expanded-etfs", type=int, default=None)
+    parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args(argv)
     from xtquant import xtdata
-    result = run_compare(expanded_pool=load_expanded_pool(args.expanded_pool_file), output_dir=args.output_dir, xtdata=xtdata)
-    print("[OK] ETF 池对比完成: {0}".format(result.get("comparison", {}).get("conclusion")))
+    run_compare(expanded_pool=load_expanded_pool(args.expanded_pool_file), output_dir=args.output_dir, xtdata=xtdata, max_expanded_etfs=args.max_expanded_etfs, quiet=args.quiet)
 
 
 if __name__ == "__main__":

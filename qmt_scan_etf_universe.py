@@ -19,6 +19,8 @@ import qmt_shadow_replay as replay_data
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(ROOT, "research", "etf_universe_scan")
+LOG_DIR = os.path.join(ROOT, "logs")
+STATUS_PATH = os.path.join(OUTPUT_DIR, "latest_status.json")
 DEFAULT_FIXED_POOL = ["510300.SH", "510500.SH", "512100.SH", "159915.SZ", "588000.SH"]
 EXCLUDE_KEYWORDS = [
     ("货币", "货币ETF"), ("现金", "货币ETF"), ("债", "债券ETF"), ("国债", "债券ETF"),
@@ -35,9 +37,58 @@ def _mkdir(path):
 
 
 def _json(path, value):
+    parent = os.path.dirname(path)
+    if parent:
+        _mkdir(parent)
     with open(path, "w", encoding="utf-8") as handle:
         json.dump(value, handle, ensure_ascii=False, indent=2)
         handle.write("\n")
+        handle.flush()
+
+
+class ProgressReporter(object):
+    def __init__(self, log_prefix, status_path, quiet=False):
+        self.quiet = quiet
+        self.started_at = datetime.datetime.now()
+        self.status_path = status_path
+        _mkdir(LOG_DIR)
+        stamp = self.started_at.strftime("%Y%m%d_%H%M%S")
+        self.latest_log = os.path.join(LOG_DIR, log_prefix + "_latest.log")
+        self.stamped_log = os.path.join(LOG_DIR, log_prefix + "_" + stamp + ".log")
+        self.handles = [open(self.latest_log, "w", encoding="utf-8"), open(self.stamped_log, "w", encoding="utf-8")]
+        self.status = {"status": "running", "started_at": self.started_at.strftime("%Y-%m-%dT%H:%M:%S"), "updated_at": None,
+                       "elapsed_seconds": 0, "total_etfs": 0, "current_index": 0, "current_code": "", "completed_etfs": 0,
+                       "eligible_count": 0, "expanded_count": 0, "latest_message": "", "errors": [], "warnings": []}
+
+    def close(self):
+        for handle in self.handles:
+            try: handle.close()
+            except Exception: pass
+
+    def emit(self, message):
+        if not self.quiet:
+            print(message, flush=True)
+        for handle in self.handles:
+            handle.write(message + "\n")
+            handle.flush()
+
+    def update(self, latest_message=None, **kwargs):
+        if latest_message is not None:
+            self.status["latest_message"] = latest_message
+        self.status.update(kwargs)
+        now = datetime.datetime.now()
+        self.status["updated_at"] = now.strftime("%Y-%m-%dT%H:%M:%S")
+        self.status["elapsed_seconds"] = int((now - self.started_at).total_seconds())
+        _json(self.status_path, self.status)
+
+    def fail(self, error):
+        errors = list(self.status.get("errors") or [])
+        errors.append(str(error))
+        self.update(status="failed", errors=errors, latest_message="运行失败")
+        self.emit("[FAILED] {0}".format(error))
+
+    def done(self, total_etfs=0, eligible_count=0, expanded_count=0):
+        self.update(status="done", total_etfs=total_etfs, completed_etfs=total_etfs, eligible_count=eligible_count, expanded_count=expanded_count, latest_message="扫描完成")
 
 
 def _safe_float(value, default=0.0):
@@ -83,13 +134,13 @@ def _instrument_name(xtdata, code):
         return code
 
 
-def discover_etfs(cfg, xtdata=None):
+def discover_etfs(cfg, xtdata=None, sectors=None, local_only=False):
     """Return metadata rows from QMT when available, otherwise local config rows."""
     configured = cfg.get("etf_universe_scan", {}) if isinstance(cfg.get("etf_universe_scan"), dict) else {}
     local = configured.get("local_etfs") or configured.get("etf_pool") or cfg.get("allowed_stocks") or DEFAULT_FIXED_POOL
     rows = []
-    if xtdata is not None:
-        for sector in ["沪深ETF", "ETF", "全部ETF"]:
+    if xtdata is not None and not local_only:
+        for sector in (sectors or ["沪深ETF", "ETF", "全部ETF"]):
             try:
                 for code in xtdata.get_stock_list_in_sector(sector) or []:
                     code = _normalize_code(code)
@@ -176,41 +227,70 @@ def dedupe_records(records, mode="tracking_index", max_per_group=1):
     return result
 
 
-def run_scan(cfg=None, xtdata=None, output_dir=OUTPUT_DIR):
+def run_scan(cfg=None, xtdata=None, output_dir=OUTPUT_DIR, max_etfs=None, sectors=None, local_only=False, status_interval=1, verbose=True, quiet=False):
     cfg = cfg or load_raw_config()
     if bool(cfg.get("live_trading_enabled", False)):
         raise RuntimeError("ETF 候选池扫描要求 live_trading_enabled=false，且不会修改该配置。")
     settings = cfg.get("etf_universe_scan", {}) if isinstance(cfg.get("etf_universe_scan"), dict) else {}
-    rows = discover_etfs(cfg, xtdata)
-    codes = [r["stock_code"] for r in rows]
-    start = settings.get("lookback_start_date") or _default_start()
-    end = settings.get("lookback_end_date") or datetime.date.today().strftime("%Y-%m-%d")
-    data, unused_dates = replay_data.load_history(codes, start, end, xtdata=xtdata) if codes else ({"close": {}, "amount": {}}, [])
-    records = []
-    by_code = dict((r["stock_code"], r) for r in rows)
-    for code in codes:
-        try:
-            records.append(evaluate_etf(by_code[code], _series(data["close"], code), _series(data["amount"], code), settings))
-        except Exception as exc:
-            row = by_code[code]
-            records.append({"stock_code": code, "stock_name": row.get("stock_name") or code, "category": row.get("category") or "未知",
-                            "tracking_index": row.get("tracking_index") or "", "listed_days": 0, "avg_amount_20d": 0.0,
-                            "return_20d": 0.0, "return_60d": 0.0, "max_drawdown_60d": 0.0,
-                            "annualized_volatility_60d": 0.0, "score": 0.0, "eligible": False,
-                            "skip_reason": "行情读取失败: {0}".format(exc)})
-    expanded = dedupe_records(records, settings.get("dedupe_by", "tracking_index"), settings.get("max_per_group", 1))
-    payload = {"generated_at": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"), "mode": "READ_ONLY_RESEARCH",
-               "safety": {"trading_functions_called": False, "config_modified": False, "live_trading_enabled_modified": False},
-               "settings": settings, "total_count": len(records), "eligible_count": len([r for r in records if r.get("eligible")]),
-               "expanded_count": len(expanded), "records": records}
-    expanded_payload = {"generated_at": payload["generated_at"], "mode": "READ_ONLY_RESEARCH", "expanded_etf_pool": [r["stock_code"] for r in expanded], "records": expanded}
-    _mkdir(output_dir)
-    _json(os.path.join(output_dir, "etf_universe_scan_latest.json"), payload)
-    _json(os.path.join(output_dir, "expanded_etf_pool_latest.json"), expanded_payload)
-    with open(os.path.join(output_dir, "expanded_etf_pool_latest.txt"), "w", encoding="utf-8") as handle:
-        handle.write("\n".join(expanded_payload["expanded_etf_pool"]) + ("\n" if expanded_payload["expanded_etf_pool"] else ""))
-    write_markdown(os.path.join(output_dir, "etf_universe_scan_latest.md"), payload, expanded_payload)
-    return payload, expanded_payload
+    reporter = ProgressReporter("etf_universe_scan", os.path.join(output_dir, "latest_status.json"), quiet=(quiet or not verbose))
+    try:
+        reporter.emit("[START] 全市场 ETF 候选池扫描开始")
+        reporter.emit("[INFO] 正在读取 ETF 列表...")
+        reporter.update(latest_message="正在读取 ETF 列表")
+        rows = discover_etfs(cfg, xtdata, sectors=sectors, local_only=local_only)
+        if max_etfs is not None:
+            rows = rows[:int(max_etfs)]
+        codes = [r["stock_code"] for r in rows]
+        reporter.emit("[INFO] ETF 列表读取完成，共 {0} 只".format(len(codes)))
+        reporter.update(total_etfs=len(codes), latest_message="ETF 列表读取完成")
+        start = settings.get("lookback_start_date") or _default_start()
+        end = settings.get("lookback_end_date") or datetime.date.today().strftime("%Y-%m-%d")
+        reporter.emit("[INFO] 正在下载/读取历史行情: {0} 至 {1}".format(start, end))
+        reporter.update(latest_message="正在下载/读取历史行情")
+        data, unused_dates = replay_data.load_history(codes, start, end, xtdata=xtdata) if codes else ({"close": {}, "amount": {}}, [])
+        reporter.emit("[INFO] 历史行情读取完成")
+        reporter.update(latest_message="历史行情读取完成")
+        records = []
+        by_code = dict((r["stock_code"], r) for r in rows)
+        status_interval = max(1, int(status_interval or 1))
+        for idx, code in enumerate(codes, 1):
+            reporter.emit("[{0}/{1}] 评分 ETF: {2} ...".format(idx, len(codes), code))
+            reporter.update(current_index=idx, current_code=code, completed_etfs=idx - 1, latest_message="正在评分 ETF")
+            try:
+                record = evaluate_etf(by_code[code], _series(data["close"], code), _series(data["amount"], code), settings)
+                records.append(record)
+            except Exception as exc:
+                row = by_code[code]
+                record = {"stock_code": code, "stock_name": row.get("stock_name") or code, "category": row.get("category") or "未知",
+                                "tracking_index": row.get("tracking_index") or "", "listed_days": 0, "avg_amount_20d": 0.0,
+                                "return_20d": 0.0, "return_60d": 0.0, "max_drawdown_60d": 0.0,
+                                "annualized_volatility_60d": 0.0, "score": 0.0, "eligible": False,
+                                "skip_reason": "行情读取失败: {0}".format(exc)}
+                records.append(record)
+            reporter.emit("[{0}/{1}] 完成: eligible={2} score={3}".format(idx, len(codes), record.get("eligible"), record.get("score")))
+            if idx % status_interval == 0 or idx == len(codes):
+                reporter.update(completed_etfs=idx, eligible_count=len([r for r in records if r.get("eligible")]), latest_message="ETF 评分进度更新")
+        expanded = dedupe_records(records, settings.get("dedupe_by", "tracking_index"), settings.get("max_per_group", 1))
+        payload = {"generated_at": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"), "mode": "READ_ONLY_RESEARCH",
+        "safety": {"trading_functions_called": False, "config_modified": False, "live_trading_enabled_modified": False},
+        "settings": settings, "total_count": len(records), "eligible_count": len([r for r in records if r.get("eligible")]),
+        "expanded_count": len(expanded), "records": records}
+        expanded_payload = {"generated_at": payload["generated_at"], "mode": "READ_ONLY_RESEARCH", "expanded_etf_pool": [r["stock_code"] for r in expanded], "records": expanded}
+        _mkdir(output_dir)
+        _json(os.path.join(output_dir, "etf_universe_scan_latest.json"), payload)
+        _json(os.path.join(output_dir, "expanded_etf_pool_latest.json"), expanded_payload)
+        with open(os.path.join(output_dir, "expanded_etf_pool_latest.txt"), "w", encoding="utf-8") as handle:
+            handle.write("\n".join(expanded_payload["expanded_etf_pool"]) + ("\n" if expanded_payload["expanded_etf_pool"] else ""))
+            handle.flush()
+        write_markdown(os.path.join(output_dir, "etf_universe_scan_latest.md"), payload, expanded_payload)
+        reporter.done(total_etfs=len(records), eligible_count=payload.get("eligible_count"), expanded_count=payload.get("expanded_count"))
+        reporter.emit("[DONE] ETF 候选池扫描完成: total={0} eligible={1} expanded={2}".format(len(records), payload.get("eligible_count"), payload.get("expanded_count")))
+        return payload, expanded_payload
+    except Exception as exc:
+        reporter.fail(exc)
+        raise
+    finally:
+        reporter.close()
 
 
 def write_markdown(path, payload, expanded):
@@ -229,10 +309,19 @@ def write_markdown(path, payload, expanded):
 def main(argv=None):
     parser = argparse.ArgumentParser(description="只读全市场 ETF 候选池扫描")
     parser.add_argument("--output-dir", default=OUTPUT_DIR)
+    parser.add_argument("--max-etfs", type=int, default=None)
+    parser.add_argument("--sectors", default=None)
+    parser.add_argument("--local-only", action="store_true")
+    parser.add_argument("--status-interval", type=int, default=1)
+    parser.add_argument("--verbose", dest="verbose", action="store_true", default=True)
+    parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args(argv)
-    from xtquant import xtdata
-    payload, expanded = run_scan(xtdata=xtdata, output_dir=args.output_dir)
-    print("[OK] ETF 候选池扫描完成: eligible={0}, expanded={1}".format(payload.get("eligible_count"), expanded.get("expanded_etf_pool")))
+    xtdata = None
+    if not args.local_only:
+        from xtquant import xtdata as _xtdata
+        xtdata = _xtdata
+    sectors = [x.strip() for x in args.sectors.split(",") if x.strip()] if args.sectors else None
+    run_scan(xtdata=xtdata, output_dir=args.output_dir, max_etfs=args.max_etfs, sectors=sectors, local_only=args.local_only, status_interval=args.status_interval, verbose=args.verbose, quiet=args.quiet)
 
 
 if __name__ == "__main__":
