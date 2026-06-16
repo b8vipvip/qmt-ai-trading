@@ -105,6 +105,24 @@ class DiagnosticTests(unittest.TestCase):
                 with open(os.path.join(root, "logs", "ai_api_calls.jsonl"), "w", encoding="utf-8") as handle: handle.write("bad json\n{}\n")
                 self.assertEqual("ok", diagnostic.collect_ai_api()["status"])
 
+    def test_shadow_includes_latest_daily_review_ai_diagnostics(self):
+        with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
+            self.write_json(root, "reports/daily_report_20260615.json", {
+                "ai_called": True, "review_mode": "ai_failed_fallback",
+                "provider": "example", "model": "model", "error_message": "timeout"
+            })
+            result = diagnostic.collect_shadow()
+            self.assertTrue(result["daily_review_ai_called"])
+            self.assertEqual("ai_failed_fallback", result["daily_review_mode"])
+            self.assertEqual("example/model", result["daily_review_provider_model"])
+            self.assertEqual("timeout", result["daily_review_error"])
+
+    def test_shadow_defaults_daily_review_to_template_without_report(self):
+        with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
+            result = diagnostic.collect_shadow()
+            self.assertFalse(result["daily_review_ai_called"])
+            self.assertEqual("template", result["daily_review_mode"])
+
     def test_failed_collector_still_writes_reports(self):
         with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root), mock.patch.object(diagnostic, "collect_etf", side_effect=RuntimeError("broken")):
             report = diagnostic.main()

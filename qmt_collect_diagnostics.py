@@ -248,6 +248,18 @@ def collect_recent_files():
             "reports": _file_list("reports/daily_report_*")}
 
 
+def _daily_review_diagnostics():
+    path = _latest("reports/daily_report_*.json")
+    report = _read_json(path, {}) if path else {}
+    provider, model = report.get("provider"), report.get("model")
+    provider_model = "/".join([str(value) for value in (provider, model) if value]) or None
+    error = report.get("error_message") or report.get("error_type")
+    return {"daily_review_ai_called": report.get("ai_called", False),
+            "daily_review_mode": report.get("review_mode", "template"),
+            "daily_review_provider_model": provider_model,
+            "daily_review_error": error}
+
+
 def collect_shadow():
     portfolio = _read_json(os.path.join(ROOT, "shadow", "portfolio.json"), {})
     snapshot = _read_json(os.path.join(ROOT, "shadow", "daily_snapshot.json"), {})
@@ -259,9 +271,11 @@ def collect_shadow():
                 days = max(0, len([line for line in handle if line.strip()]) - 1)
         except IOError:
             pass
-    return redact({"started": bool(portfolio or snapshot or days), "running_days": days,
-                   "portfolio": portfolio, "daily_snapshot": snapshot,
-                   "equity_curve_exists": os.path.exists(curve), "latest_reports": _file_list("reports/daily_report_*", 2)})
+    result = {"started": bool(portfolio or snapshot or days), "running_days": days,
+              "portfolio": portfolio, "daily_snapshot": snapshot,
+              "equity_curve_exists": os.path.exists(curve), "latest_reports": _file_list("reports/daily_report_*", 2)}
+    result.update(_daily_review_diagnostics())
+    return redact(result)
 
 
 def determine_stage(config, updates, etf, ai, shadow=None):
