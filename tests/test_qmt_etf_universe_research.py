@@ -54,6 +54,10 @@ class EtfUniverseResearchTests(unittest.TestCase):
             payload, expanded = scan.run_scan(cfg=cfg, output_dir=tmp)
             self.assertTrue(os.path.exists(os.path.join(tmp, "etf_universe_scan_latest.json")))
             self.assertTrue(os.path.exists(os.path.join(tmp, "expanded_etf_pool_latest.txt")))
+            self.assertTrue(os.path.exists(os.path.join(tmp, "latest_status.json")))
+            with open(os.path.join(tmp, "latest_status.json"), "r", encoding="utf-8") as h:
+                self.assertEqual("done", json.load(h)["status"])
+            self.assertTrue(os.path.exists(os.path.join(scan.ROOT, "logs", "etf_universe_scan_latest.log")))
         self.assertEqual(original, json.dumps(cfg, sort_keys=True, ensure_ascii=False))
         self.assertEqual(["510300.SH"], expanded["expanded_etf_pool"])
         reasons = dict((r["stock_code"], r["skip_reason"]) for r in payload["records"])
@@ -74,14 +78,33 @@ class EtfUniverseResearchTests(unittest.TestCase):
                     "continue_shadow_replay_recommended": True, "robustness_score": 80,
                     "stability_score": 80, "period_results": [{"tradable_selected_etf_counts": {cfg["allowed_stocks"][0]: 2}}]}
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(compare.batch, "run_batch", side_effect=fake_run):
-            result = compare.run_compare(cfg=cfg, expanded_pool=["510500.SH"], output_dir=tmp, periods=[{"period_name":"p","start_date":"2025-01-01","end_date":"2025-12-31"}])
+            result = compare.run_compare(cfg=cfg, expanded_pool=["510500.SH", "512100.SH"], output_dir=tmp, periods=[{"period_name":"p","start_date":"2025-01-01","end_date":"2025-12-31"}], max_expanded_etfs=1)
             self.assertTrue(os.path.exists(os.path.join(tmp, "pool_compare_latest.md")))
+            self.assertTrue(os.path.exists(os.path.join(tmp, "latest_status.json")))
+            with open(os.path.join(tmp, "latest_status.json"), "r", encoding="utf-8") as h:
+                self.assertEqual("done", json.load(h)["status"])
+            self.assertTrue(os.path.exists(os.path.join(compare.ROOT, "logs", "etf_pool_compare_latest.log")))
         self.assertEqual(["510300.SH"], cfg["allowed_stocks"])
         metrics = result["expanded_pool"]["metrics"]
         self.assertIn("max_drawdown", metrics)
         self.assertIn("annual_non_overlapping_average_return", metrics)
         self.assertIn("overfit_risk", metrics)
         self.assertIn("underfit_risk", metrics)
+        self.assertEqual(["510500.SH"], result["expanded_pool"]["pool"])
+
+    def test_scan_supports_max_etfs_and_local_only_status_running(self):
+        cfg = {"live_trading_enabled": False, "allowed_stocks": ["510300.SH", "510500.SH"]}
+        data, dates = make_data(["510300.SH"], 260)
+        with tempfile.TemporaryDirectory() as tmp:
+            def fake_load(codes, start, end, xtdata=None):
+                status_path = os.path.join(tmp, "latest_status.json")
+                with open(status_path, "r", encoding="utf-8") as h:
+                    self.assertEqual("running", json.load(h)["status"])
+                self.assertEqual(["510300.SH"], codes)
+                return data, dates
+            with mock.patch.object(scan.replay_data, "load_history", side_effect=fake_load):
+                payload, expanded = scan.run_scan(cfg=cfg, output_dir=tmp, max_etfs=1, local_only=True, quiet=True)
+                self.assertEqual(1, payload["total_count"])
 
     def test_diagnostics_collects_research_outputs(self):
         with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostics, "ROOT", root):
@@ -91,8 +114,21 @@ class EtfUniverseResearchTests(unittest.TestCase):
                 json.dump({"total_count": 2, "eligible_count": 1, "expanded_count": 1, "records": []}, h)
             with open(os.path.join(root, "research", "etf_pool_compare", "pool_compare_latest.json"), "w") as h:
                 json.dump({"comparison": {"suitable_for_continued_shadow": False, "live_trading_not_recommended": True}}, h)
-            self.assertTrue(diagnostics.collect_etf_universe_scan()["exists"])
-            self.assertTrue(diagnostics.collect_etf_pool_compare()["exists"])
+            with open(os.path.join(root, "research", "etf_universe_scan", "latest_status.json"), "w") as h:
+                json.dump({"status": "running", "latest_message": "x"}, h)
+            with open(os.path.join(root, "research", "etf_pool_compare", "latest_status.json"), "w") as h:
+                json.dump({"status": "done", "latest_message": "y"}, h)
+            os.makedirs(os.path.join(root, "logs"))
+            with open(os.path.join(root, "logs", "etf_universe_scan_latest.log"), "w") as h:
+                h.write("x")
+            with open(os.path.join(root, "logs", "etf_pool_compare_latest.log"), "w") as h:
+                h.write("y")
+            scan_state = diagnostics.collect_etf_universe_scan()
+            compare_state = diagnostics.collect_etf_pool_compare()
+            self.assertTrue(scan_state["exists"])
+            self.assertTrue(compare_state["exists"])
+            self.assertEqual("running", scan_state["runtime_status"]["status"])
+            self.assertEqual("done", compare_state["runtime_status"]["status"])
 
 
 if __name__ == "__main__":
