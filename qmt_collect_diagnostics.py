@@ -60,9 +60,14 @@ def _git(*args):
 
 def collect_git():
     status = _git("status", "--short")
+    status_lines = status.splitlines()
+    warnings = []
+    if any(line.strip() == "?? research/" for line in status_lines):
+        warnings.append("研究产物目录 research/ 未被忽略，建议加入 .gitignore")
     return {"branch": _git("rev-parse", "--abbrev-ref", "HEAD"), "head": _git("rev-parse", "HEAD"),
             "origin_main": _git("rev-parse", "origin/main"), "has_uncommitted_changes": bool(status),
-            "status_short": status.splitlines(), "recent_commits": _git("log", "-5", "--oneline").splitlines()}
+            "status_short": status_lines, "warnings": warnings,
+            "recent_commits": _git("log", "-5", "--oneline").splitlines()}
 
 
 def collect_config():

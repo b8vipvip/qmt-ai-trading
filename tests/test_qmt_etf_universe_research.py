@@ -70,7 +70,7 @@ class EtfUniverseResearchTests(unittest.TestCase):
 
     def test_compare_uses_research_config_and_reports_required_metrics(self):
         cfg = {"live_trading_enabled": False, "allowed_stocks": ["510300.SH"], "etf_rotation": {}, "shadow_trading": {"initial_cash": 100000}}
-        def fake_run(periods, output_dir, cfg=None, rotation=None, xtdata=None):
+        def fake_run(periods, output_dir, cfg=None, rotation=None, xtdata=None, progress=None):
             self.assertFalse(cfg["live_trading_enabled"])
             return {"non_overlapping_summary": {"average_return_pct": 3, "average_win_rate": 0.5, "average_turnover": 1},
                     "rolling_summary": {"average_return_pct": 2}, "max_drawdown_worst_pct": 6,
@@ -129,6 +129,70 @@ class EtfUniverseResearchTests(unittest.TestCase):
             self.assertTrue(compare_state["exists"])
             self.assertEqual("running", scan_state["runtime_status"]["status"])
             self.assertEqual("done", compare_state["runtime_status"]["status"])
+
+    def test_scan_default_caps_expanded_pool_and_excludes_non_positive_scores(self):
+        records = []
+        for idx in range(35):
+            records.append({"stock_code": "5%05d.SH" % idx, "category": "cat%d" % idx,
+                            "tracking_index": "idx%d" % idx, "eligible": True, "score": 10 - idx * 0.1})
+        records.append({"stock_code": "599999.SH", "category": "zero", "tracking_index": "zero", "eligible": True, "score": 0})
+        expanded, stats = scan.build_expanded_records(records)
+        self.assertEqual(30, len(expanded))
+        self.assertNotIn("599999.SH", [r["stock_code"] for r in expanded])
+        self.assertEqual(1, stats["filtered_out_by_score"])
+
+    def test_scan_max_expanded_and_min_score_options(self):
+        records = [{"stock_code": "5%05d.SH" % idx, "category": "cat%d" % idx,
+                    "tracking_index": "idx%d" % idx, "eligible": True, "score": idx} for idx in range(10)]
+        expanded, stats = scan.build_expanded_records(records, min_score=7, max_expanded_etfs=2)
+        self.assertEqual(["500009.SH", "500008.SH"], [r["stock_code"] for r in expanded])
+        self.assertEqual(8, stats["filtered_out_by_score"])
+
+    def test_compare_default_caps_expanded_pool_and_logs_period_progress(self):
+        cfg = {"live_trading_enabled": False, "allowed_stocks": ["510300.SH"], "etf_rotation": {}, "shadow_trading": {"initial_cash": 100000}}
+        periods = [{"period_name":"p1","start_date":"2025-01-01","end_date":"2025-01-31"}, {"period_name":"p2","start_date":"2025-02-01","end_date":"2025-02-28"}]
+        def fake_run(periods_arg, output_dir, cfg=None, rotation=None, xtdata=None, progress=None):
+            if progress:
+                progress.emit("[INFO] 本次共 %d 个区间" % len(periods_arg), force_status=True)
+                for idx, period in enumerate(periods_arg):
+                    progress.current_index = idx + 1
+                    progress.current_period = period
+                    progress.emit("[%d/%d] 开始: %s 至 %s" % (idx + 1, len(periods_arg), period["start_date"], period["end_date"]), force_status=True)
+                    progress.completed_periods += 1
+                    progress.emit("[%d/%d] 回放完成" % (idx + 1, len(periods_arg)), force_status=True)
+            return {"non_overlapping_summary": {"average_return_pct": 1, "average_win_rate": 1, "average_turnover": 1},
+                    "rolling_summary": {"average_return_pct": 1}, "max_drawdown_worst_pct": 1,
+                    "robustness_score": 80, "stability_score": 80, "period_results": []}
+        expanded_pool = ["5%05d.SH" % idx for idx in range(60)]
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(compare.batch, "run_batch", side_effect=fake_run):
+            result = compare.run_compare(cfg=cfg, expanded_pool=expanded_pool, output_dir=tmp, periods=periods, quiet=True)
+            self.assertEqual(30, len(result["expanded_pool"]["pool"]))
+            with open(os.path.join(compare.ROOT, "logs", "etf_pool_compare_latest.log"), "r", encoding="utf-8") as h:
+                log = h.read()
+        self.assertIn("[expanded_pool][1/2] 开始 p1", log)
+        self.assertIn("[expanded_pool][2/2] 完成", log)
+
+    def test_compare_warns_when_explicit_expanded_pool_over_50(self):
+        cfg = {"live_trading_enabled": False, "allowed_stocks": ["510300.SH"], "etf_rotation": {}, "shadow_trading": {"initial_cash": 100000}}
+        def fake_run(periods_arg, output_dir, cfg=None, rotation=None, xtdata=None, progress=None):
+            return {"non_overlapping_summary": {"average_return_pct": 1, "average_win_rate": 1, "average_turnover": 1},
+                    "rolling_summary": {"average_return_pct": 1}, "max_drawdown_worst_pct": 1,
+                    "robustness_score": 80, "stability_score": 80, "period_results": []}
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(compare.batch, "run_batch", side_effect=fake_run):
+            result = compare.run_compare(cfg=cfg, expanded_pool=["5%05d.SH" % idx for idx in range(60)], output_dir=tmp,
+                                         periods=[{"period_name":"p","start_date":"2025-01-01","end_date":"2025-01-31"}],
+                                         max_expanded_etfs=60, quiet=True)
+            self.assertEqual(60, len(result["expanded_pool"]["pool"]))
+            with open(os.path.join(tmp, "latest_status.json"), "r", encoding="utf-8") as h:
+                status = json.load(h)
+        self.assertTrue(any("扩展池超过 50" in item for item in status.get("warnings", [])))
+
+    def test_research_is_gitignored_and_diagnostics_hints_when_unignored(self):
+        with open(os.path.join(scan.ROOT, ".gitignore"), "r", encoding="utf-8") as h:
+            self.assertIn("research/", h.read().splitlines())
+        with mock.patch.object(diagnostics, "_git", side_effect=lambda *args: "?? research/" if args == ("status", "--short") else ""):
+            state = diagnostics.collect_git()
+        self.assertIn("研究产物目录 research/ 未被忽略，建议加入 .gitignore", state["warnings"])
 
 
 if __name__ == "__main__":
