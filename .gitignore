@@ -49,3 +49,4 @@ logs/assistant_diagnostic_*.md
 logs/assistant_diagnostic_*.json
 logs/assistant_diagnostic_latest.md
 logs/assistant_diagnostic_latest.json
+shadow_replay/
