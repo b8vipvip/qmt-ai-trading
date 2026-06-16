@@ -14,6 +14,7 @@ from data_tools.etf_universe import load_raw_config
 from data_tools.etf_rotation_selector import score_etf
 from data_tools.market_regime import classify_index, classify_market
 from qmt_generate_signal_rotation import build_rotation_signal
+from risk.risk_engine import RiskEngine
 from shadow_trading.shadow_portfolio import calculate_max_drawdown
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -64,8 +65,8 @@ def fetch_history(xtdata, codes, start_time, end_time):
 
 def load_history(codes, start_date, end_date, xtdata=None):
     if xtdata is None:
-        from xtquant import xtdata as qmt_xtdata
-        xtdata = qmt_xtdata
+        from qmt_gateway.gateway import QmtGateway
+        xtdata = QmtGateway({"live_trading_enabled": False}).data._client()
     data = fetch_history(xtdata, codes, _compact_date(start_date), _compact_date(end_date))
     dates = []
     close_frame = data["close"]
@@ -97,7 +98,7 @@ def _unique_symbols(values):
     return result
 
 
-def build_order_plan(cfg, signal, portfolio):
+def build_order_plan(cfg, signal, portfolio, risk_result=None, context=None):
     code = signal.get("stock_code", "")
     price = _safe_float(signal.get("last_close"))
     lot = int(cfg.get("lot_size", 100))
@@ -107,9 +108,14 @@ def build_order_plan(cfg, signal, portfolio):
     current_value = current * price
     total = _safe_float(portfolio.get("total_asset"), _safe_float(portfolio.get("cash")))
     cash = _safe_float(portfolio.get("cash"))
+    if risk_result is None:
+        risk_result = RiskEngine(cfg, mode="shadow").evaluate(signal, portfolio=portfolio, context=context or {})
+    target_pct = risk_result.get("approved_target_position_pct")
     plan = {"stock_code": code, "signal": signal.get("signal"), "action": "NO_ACTION", "plan_side": "NONE",
-            "plan_volume": 0, "plan_price_ref": price, "plan_amount": 0.0, "warnings": []}
-    if not code or price <= 0 or signal.get("target_position_pct") is None or signal.get("signal") == "HOLD":
+            "plan_volume": 0, "plan_price_ref": price, "plan_amount": 0.0, "warnings": [], "risk": risk_result}
+    if not risk_result.get("approved", False):
+        plan["warnings"].append("Risk Engine拒绝交易：" + ";".join(risk_result.get("risk_rejections") or [])); return plan
+    if not code or price <= 0 or target_pct is None or signal.get("signal") == "HOLD":
         return plan
     if signal.get("signal") == "SELL_SIGNAL":
         volume = int(current / lot) * lot
@@ -117,7 +123,7 @@ def build_order_plan(cfg, signal, portfolio):
             plan.update({"action": "PLAN_SELL", "plan_side": "SELL", "plan_volume": volume, "plan_amount": volume * price})
         return plan
     if signal.get("signal") == "BUY_SIGNAL":
-        diff = total * _safe_float(signal.get("target_position_pct")) - current_value
+        diff = total * _safe_float(target_pct) - current_value
         diff = min(diff, max_value, cash)
         volume = int((diff / price) / lot) * lot
         if volume > 0 and volume * price >= min_value:
@@ -197,8 +203,10 @@ def replay(cfg, rotation, tradable_symbols, benchmark_symbols, data, dates, star
         if signal.get("stock_code") and signal.get("stock_code") not in tradable_set:
             warning = "信号代码不是可交易 ETF，已强制 NO_ACTION: {0}".format(signal.get("stock_code"))
             warnings.append(warning); candidate_warnings.append(warning)
-            signal["signal"] = "HOLD"; signal["target_position_pct"] = None
-        plan = build_order_plan(cfg, signal, portfolio)
+            signal["signal"] = "HOLD"; signal["raw_target_position_pct"] = None; signal["target_position_pct"] = None
+        context = {"trades_today": len([t for t in portfolio.get("trades", []) if t.get("trade_date") == day]), "sold_today": any(t.get("trade_date") == day and t.get("side") == "SELL" for t in portfolio.get("trades", [])), "max_drawdown_pct": portfolio.get("max_drawdown", 0)}
+        risk_result = RiskEngine(cfg, mode="shadow").evaluate(signal, portfolio=portfolio, context=context)
+        plan = build_order_plan(cfg, signal, portfolio, risk_result, context)
         if plan.get("stock_code") and plan.get("stock_code") not in tradable_set:
             warning = "计划代码不是可交易 ETF，已强制 NO_ACTION: {0}".format(plan.get("stock_code"))
             warnings.append(warning); candidate_warnings.append(warning)
@@ -212,7 +220,7 @@ def replay(cfg, rotation, tradable_symbols, benchmark_symbols, data, dates, star
         portfolio.update({"cash": round(portfolio["cash"], 2), "market_value": round(mv, 2), "total_asset": round(portfolio["cash"] + mv, 2), "floating_pnl": round(mv - cost, 2)})
         equity.append({"date": day, "total_asset": portfolio["total_asset"], "cash": portfolio["cash"], "market_value": portfolio["market_value"], "floating_pnl": portfolio["floating_pnl"]})
         portfolio["max_drawdown"] = round(calculate_max_drawdown([r["total_asset"] for r in equity]), 8)
-        snaps.append({"date": day, "market_regime": regime["market_regime"], "selected_etf": selected[0]["stock_code"] if selected else "", "signal": signal.get("signal"), "action": plan.get("action"), "total_asset": portfolio["total_asset"], "max_drawdown": portfolio["max_drawdown"], "warnings": ";".join(warnings[-3:])})
+        snaps.append({"date": day, "market_regime": regime["market_regime"], "selected_etf": selected[0]["stock_code"] if selected else "", "signal": signal.get("signal"), "action": plan.get("action"), "total_asset": portfolio["total_asset"], "max_drawdown": portfolio["max_drawdown"], "warnings": ";".join((warnings + plan.get("risk", {}).get("risk_rejections", []))[-3:])})
     write_outputs(output_dir, portfolio, equity, snaps, summary(start_date, end_date, initial, portfolio, equity, counts, warnings, benchmark_counts, benchmark_symbols, tradable_symbols, candidate_warnings))
     return portfolio
 

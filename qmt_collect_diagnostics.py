@@ -375,6 +375,22 @@ def collect_etf_pool_compare():
                    "log_exists": os.path.exists(log_path), "log_path": safe_relpath(log_path, ROOT) if os.path.exists(log_path) else None,
                    "runtime_status": status, "display": display})
 
+
+def collect_validation_reports():
+    reports = {
+        "project_health": "reports/latest_project_health.json",
+        "strategy_validation": "reports/latest_strategy_validation.json",
+        "risk_report": "reports/latest_risk_report.json",
+    }
+    result = {}
+    for key, rel in reports.items():
+        path = os.path.join(ROOT, rel)
+        if os.path.exists(path):
+            result[key] = {"status": "ok", "path": rel, "data": _read_json(path, {})}
+        else:
+            result[key] = {"status": "missing", "path": rel}
+    return redact(result)
+
 def collect_shadow():
     portfolio = _read_json(os.path.join(ROOT, "shadow", "portfolio.json"), {})
     snapshot = _read_json(os.path.join(ROOT, "shadow", "daily_snapshot.json"), {})
@@ -408,7 +424,7 @@ def build_report():
     defaults = {"config": {}, "update_checks": {k: "未知" for k in ["code_pull", "unit_tests", "safety_scan"]},
                 "etf_rotation": {"dry_run_passed": False}, "ai_research": {"pipeline_success": False}}
     collectors = [("config", collect_config), ("update_checks", collect_update_checks), ("etf_rotation", collect_etf),
-                  ("ai_research", collect_ai_research), ("git", collect_git), ("ai_api", collect_ai_api), ("shadow", collect_shadow), ("shadow_replay", collect_shadow_replay), ("shadow_replay_batch", collect_shadow_replay_batch), ("etf_universe_scan", collect_etf_universe_scan), ("etf_pool_compare", collect_etf_pool_compare), ("recent_files", collect_recent_files)]
+                  ("ai_research", collect_ai_research), ("git", collect_git), ("ai_api", collect_ai_api), ("shadow", collect_shadow), ("shadow_replay", collect_shadow_replay), ("shadow_replay_batch", collect_shadow_replay_batch), ("etf_universe_scan", collect_etf_universe_scan), ("etf_pool_compare", collect_etf_pool_compare), ("recent_files", collect_recent_files), ("validation_reports", collect_validation_reports)]
     values = {}
     for name, collector in collectors:
         try:
@@ -428,7 +444,7 @@ def build_report():
     live = config.get("live_trading_enabled") is True
     return redact(dict({"generated_at": _now(), "stage": stage, "can_continue": can_continue, "next_recommendation": recommendation,
         "risks": (["live_trading_enabled=true：存在实盘风险"] if live else ["live_trading_enabled=false：不会实盘下单"]),
-        "redactions_applied": ["API keys/tokens/secrets", "account_id/account identifiers"], "errors": errors}, **values))
+        "redactions_applied": ["API keys/tokens/secrets", "account_id/account identifiers"], "errors": errors, "project_health": values.get("validation_reports", {}).get("project_health", {}), "strategy_validation": values.get("validation_reports", {}).get("strategy_validation", {}), "risk_report": values.get("validation_reports", {}).get("risk_report", {})}, **values))
 
 
 def _render_shadow_replay_markdown(value):
@@ -580,13 +596,22 @@ def render_markdown(r):
 ## 10. 候选池对比状态
 {etf_pool_compare}
 
-## 11. 最近产物文件
+## 11. 项目健康验收
+{project_health}
+
+## 12. 策略验证验收
+{strategy_validation}
+
+## 13. 风控验收
+{risk_report}
+
+## 14. 最近产物文件
 {files}
 
-## 12. 需要发给 ChatGPT 的重点
+## 15. 需要发给 ChatGPT 的重点
 - 请优先分析当前阶段、失败检查、风险警告和下一步建议。
 - 报告已脱敏；诊断器只读，不执行交易。
-""".format(stage=r["stage"], go="是" if r["can_continue"] else "否", next=r["next_recommendation"], risk="；".join(r["risks"]), git=block(r["git"]), update_final=r["update_checks"].get("final_status"), code_pull=r["update_checks"].get("code_pull"), config_check=r["update_checks"].get("config_check"), unit_tests=r["update_checks"].get("unit_tests"), python_compile=r["update_checks"].get("python_compile"), safety_scan=r["update_checks"].get("safety_scan"), failure_reason=r["update_checks"].get("failure_reason"), suggestion=r["update_checks"].get("suggestion"), source_summary=r["update_checks"].get("source_summary"), config=block(r["config"]), planned_volume=r["etf_rotation"].get("planned_volume"), planned_amount=r["etf_rotation"].get("planned_amount"), planned_price_ref=r["etf_rotation"].get("planned_price_ref"), etf=block(r["etf_rotation"]), ai=block(r["ai_research"]), api=block(r["ai_api"]), shadow_replay=_render_shadow_replay_markdown(r.get("shadow_replay", {})), shadow_replay_batch=_render_shadow_replay_batch_markdown(r.get("shadow_replay_batch", {})), etf_universe_scan=_render_etf_universe_scan_markdown(r.get("etf_universe_scan", {})), etf_pool_compare=_render_etf_pool_compare_markdown(r.get("etf_pool_compare", {})), files=block(r["recent_files"]))
+""".format(stage=r["stage"], go="是" if r["can_continue"] else "否", next=r["next_recommendation"], risk="；".join(r["risks"]), git=block(r["git"]), update_final=r["update_checks"].get("final_status"), code_pull=r["update_checks"].get("code_pull"), config_check=r["update_checks"].get("config_check"), unit_tests=r["update_checks"].get("unit_tests"), python_compile=r["update_checks"].get("python_compile"), safety_scan=r["update_checks"].get("safety_scan"), failure_reason=r["update_checks"].get("failure_reason"), suggestion=r["update_checks"].get("suggestion"), source_summary=r["update_checks"].get("source_summary"), config=block(r["config"]), planned_volume=r["etf_rotation"].get("planned_volume"), planned_amount=r["etf_rotation"].get("planned_amount"), planned_price_ref=r["etf_rotation"].get("planned_price_ref"), etf=block(r["etf_rotation"]), ai=block(r["ai_research"]), api=block(r["ai_api"]), shadow_replay=_render_shadow_replay_markdown(r.get("shadow_replay", {})), shadow_replay_batch=_render_shadow_replay_batch_markdown(r.get("shadow_replay_batch", {})), etf_universe_scan=_render_etf_universe_scan_markdown(r.get("etf_universe_scan", {})), etf_pool_compare=_render_etf_pool_compare_markdown(r.get("etf_pool_compare", {})), project_health=block(r.get("project_health", {})), strategy_validation=block(r.get("strategy_validation", {})), risk_report=block(r.get("risk_report", {})), files=block(r["recent_files"]))
 
 
 def main():

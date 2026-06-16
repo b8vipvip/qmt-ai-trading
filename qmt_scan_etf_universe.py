@@ -363,8 +363,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     xtdata = None
     if not args.local_only:
-        from xtquant import xtdata as _xtdata
-        xtdata = _xtdata
+        from qmt_gateway.gateway import QmtGateway
+        xtdata = QmtGateway({"live_trading_enabled": False}).data._client()
     sectors = [x.strip() for x in args.sectors.split(",") if x.strip()] if args.sectors else None
     run_scan(xtdata=xtdata, output_dir=args.output_dir, max_etfs=args.max_etfs, sectors=sectors, local_only=args.local_only, status_interval=args.status_interval, verbose=args.verbose, quiet=args.quiet, min_score=args.min_score, max_expanded_etfs=args.max_expanded_etfs, min_avg_amount_20d=args.min_avg_amount_20d, max_per_category=args.max_per_category, max_per_tracking_index=args.max_per_tracking_index)
 

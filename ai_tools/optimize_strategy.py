@@ -29,7 +29,8 @@ def parameter_sets(grid):
 
 
 def get_close_data(stock_code, period, start_time, end_time):
-    from xtquant import xtdata
+    from qmt_gateway.gateway import QmtGateway
+    xtdata = QmtGateway({"live_trading_enabled": False}).data._client()
     xtdata.download_history_data(stock_code, period, start_time, end_time)
     data = xtdata.get_market_data(
         field_list=["close"], stock_list=[stock_code], period=period,

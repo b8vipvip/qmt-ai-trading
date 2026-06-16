@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # qmt_backtest_ma.py
+# 仅作为 MA 示例和流程验证，不作为实盘策略依据。
 # 只读回测脚本：不连接交易接口，不下单
 
 import json

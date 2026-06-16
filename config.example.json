@@ -95,5 +95,20 @@
     "slippage_rate": 0.001,
     "commission_rate": 0.0003,
     "min_commission": 5.0
+  },
+  "risk_engine": {
+    "enabled": true,
+    "max_total_position_pct": 0.5,
+    "max_symbol_position_pct": 0.2,
+    "max_daily_loss_pct": 0.02,
+    "max_weekly_loss_pct": 0.05,
+    "max_drawdown_stop_pct": 0.12,
+    "cooldown_days_after_loss": 2,
+    "max_trades_per_day": 2,
+    "allow_buy_after_sell_same_day": false,
+    "force_manual_confirm": true,
+    "live_initial_capital_pct": 0.05,
+    "shadow_max_total_position_pct": 0.7,
+    "shadow_max_symbol_position_pct": 0.5
   }
 }
