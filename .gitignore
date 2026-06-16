@@ -6,6 +6,7 @@ ai_providers.local.json
 *.pem
 
 # runtime outputs
+reports/
 logs/
 logs/ai_api_calls.jsonl
 logs/ai_api_report.json
