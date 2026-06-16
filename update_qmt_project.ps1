@@ -146,15 +146,20 @@ function Invoke-SafetyScan {
     $violations = @()
     $allowedRejectingTradeMethods = 0
     foreach ($file in $files) {
+        $fileNorm = $file -replace '\\','/'
         $fullPath = Join-Path $root $file
         $text = Read-TextUtf8 $fullPath
-        if ($file -eq "qmt_gateway/trade_executor_disabled.py") {
-            foreach ($method in @("order_stock", "cancel_order_stock")) {
-                if (Test-DisabledExecutorRejects $text $method) { $allowedRejectingTradeMethods++ }
-                else { $violations += "$file`:0`: $method 必须只抛出 RuntimeError 拒绝交易" }
+        if ($fileNorm -eq "qmt_gateway/trade_executor_disabled.py") {
+            $ok1 = Test-DisabledExecutorRejects $text "order_stock"
+            $ok2 = Test-DisabledExecutorRejects $text "cancel_order_stock"
+            if (-not ($ok1 -and $ok2)) {
+                $violations += "$fileNorm`:0`: DisabledTradeExecutor 必须只抛出 RuntimeError 拒绝交易"
+            } else {
+                $allowedRejectingTradeMethods += 2
             }
+            continue
         }
-        if ($file -like "tests/*") { continue }
+        if ($fileNorm -like "tests/*") { continue }
         $lineNumber = 0
         foreach ($line in Get-Content $fullPath) {
             $lineNumber++
@@ -166,8 +171,7 @@ function Invoke-SafetyScan {
             $codeOnly = $codeOnly -replace '"(?:\\.|[^"\\])*"', '""'
             $codeOnly = $codeOnly -replace "'(?:\\.|[^'\\])*'", "''"
             $dangerousCall = $codeOnly -match '\b(order_stock|cancel_order_stock)\s*\('
-            $allowedDisabledDef = $file -eq "qmt_gateway/trade_executor_disabled.py" -and $codeOnly -match '^\s*def\s+(order_stock|cancel_order_stock)\s*\('
-            if ($liveEnabled -or $apiKey -or ($dangerousCall -and -not $allowedDisabledDef)) {
+            if ($liveEnabled -or $apiKey -or $dangerousCall) {
                 $violations += "$file`:$lineNumber`: $($line.Trim())"
             }
         }

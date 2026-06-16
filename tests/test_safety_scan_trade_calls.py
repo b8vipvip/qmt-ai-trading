@@ -35,6 +35,18 @@ class SafetyScanTradeCallsTest(unittest.TestCase):
         )
         self.assertEqual([], scan_source_text_for_trade_call_violations("qmt_gateway/trade_executor_disabled.py", source))
 
+    def test_update_script_skips_disabled_executor_after_rejecting_validation(self):
+        text = self._read("update_qmt_project.ps1")
+        self.assertIn("$fileNorm = $file -replace '\\\\','/'", text)
+        marker = 'if ($fileNorm -eq "qmt_gateway/trade_executor_disabled.py") {'
+        start = text.index(marker)
+        end = text.index('if ($fileNorm -like "tests/*") { continue }', start)
+        block = text[start:end]
+        self.assertIn('Test-DisabledExecutorRejects $text "order_stock"', block)
+        self.assertIn('Test-DisabledExecutorRejects $text "cancel_order_stock"', block)
+        self.assertIn('DisabledTradeExecutor 必须只抛出 RuntimeError 拒绝交易', block)
+        self.assertIn('continue', block)
+
     def test_regular_source_order_stock_call_fails_scan(self):
         violations = scan_source_text_for_trade_call_violations("strategies/example.py", "trader.order_stock('000001.SZ')\n")
         self.assertTrue(violations)
