@@ -206,7 +206,7 @@ def summary(start, end, initial, portfolio, equity, counts, warnings):
 
 
 def write_csv(path, rows, fields):
-    with open(path, "w", newline="", encoding="utf-8-sig") as handle:
+    with open(path, "w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore"); writer.writeheader(); writer.writerows(rows)
 
 
@@ -218,7 +218,8 @@ def write_outputs(out, portfolio, equity, snaps, summ):
     write_csv(os.path.join(out, "daily_snapshots.csv"), snaps, ["date", "market_regime", "selected_etf", "signal", "action", "total_asset", "max_drawdown", "warnings"])
     _json(os.path.join(out, "replay_summary.json"), summ)
     report = "# ETF 历史影子盘回放报告\n\n- 总体收益：{0}%\n- 最大回撤：{1}%\n- 交易次数：{2}\n- ETF 选择分布：{3}\n- 亏损区间：请结合 equity_curve.csv 查看净值低于前高的区间。\n- 是否过度交易：{4}\n- 是否建议继续影子盘：建议继续，仅作为观察验证。\n- 是否不建议实盘：不建议仅凭本次历史回放直接实盘。\n\n风险提示：历史回放不代表未来收益。\n".format(summ["total_return_pct"], summ["max_drawdown_pct"], summ["total_trades"], json.dumps(summ["selected_etf_counts"], ensure_ascii=False), "是" if summ["turnover"] > 5 else "否")
-    with open(os.path.join(out, "replay_report.md"), "w", encoding="utf-8") as handle: handle.write(report)
+    with open(os.path.join(out, "replay_report.md"), "w", encoding="utf-8") as handle:
+        handle.write(report)
 
 
 def main(argv=None):

@@ -45,28 +45,52 @@ function Add-LocalExcludes {
     } else { Write-Ok "本地临时文件忽略规则已配置" }
 }
 function Invoke-Checked($description, $command, $arguments) {
-    & $command @arguments
+    if ($command -eq "py") { & $command @(@("-3") + $arguments) } else { & $command @arguments }
     if ($LASTEXITCODE -ne 0) {
         if ($summary.Contains($description)) { $summary[$description] = "失败" }
         throw "$description 失败（退出码 $LASTEXITCODE）"
     }
 }
+function Read-TextUtf8($path) {
+    return [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
+}
 function Get-QmtPython {
     $configPath = Join-Path $root "config.json"
+    $configuredPython = $null
     if (Test-Path $configPath) {
         try {
-            $configuredPython = (Get-Content -Raw -Path $configPath | ConvertFrom-Json).qmt_python_exe
-            if ($configuredPython -and (Test-Path -LiteralPath $configuredPython -PathType Leaf)) {
+            $configText = Read-TextUtf8 $configPath
+            $match = [regex]::Match($configText, '(?m)"qmt_python_exe"\s*:\s*"((?:\\.|[^"\\])*)"')
+            if ($match.Success) {
+                $configuredPython = $match.Groups[1].Value -replace '\\"','"' -replace '\\\\','\'
+            }
+        } catch {
+            Write-Warn "按 UTF-8 读取 config.json 中的 qmt_python_exe 失败，将尝试备用 QMT Python: $($_.Exception.Message)"
+        }
+        if ($configuredPython) {
+            if (Test-Path -LiteralPath $configuredPython -PathType Leaf) {
                 Write-Ok "使用 config.json 中的 QMT Python: $configuredPython"
                 return $configuredPython
             }
-            Write-Warn "config.json 中未配置可用的 qmt_python_exe，将使用 py"
-        } catch {
-            Write-Warn "读取 config.json 中的 qmt_python_exe 失败，将使用 py"
+            Write-Warn "config.json 中的 qmt_python_exe 不存在或不可执行，将尝试备用 QMT Python: $configuredPython"
+        } else {
+            Write-Warn "config.json 中未配置 qmt_python_exe，将尝试备用 QMT Python"
         }
     } else {
-        Write-Warn "未找到 config.json，将使用 py"
+        Write-Warn "未找到 config.json，将尝试备用 QMT Python"
     }
+    $candidatePythons = @(
+        $env:QMT_PYTHON_EXE,
+        "D:\国金证券QMT交易端\bin.x64\python.exe",
+        "D:\国金QMT交易端\bin.x64\python.exe"
+    ) | Where-Object { $_ }
+    foreach ($candidate in $candidatePythons) {
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            Write-Ok "使用备用 QMT Python: $candidate"
+            return $candidate
+        }
+    }
+    Write-Warn "未找到可用 QMT Python；将使用 py -3 启动器，避免调用裸 python"
     return "py"
 }
 function Invoke-SafetyScan {

@@ -53,8 +53,10 @@ class ShadowReplayTests(unittest.TestCase):
         for col in dates2[70:]:
             data2["close"].loc.data["AAA"][col] = 999.0
         replay.replay(self.cfg, self.rotation, ["AAA", "BBB", "IDX"], data2, dates2, dates[65], dates[69], out2)
-        a = json.load(open(os.path.join(out1, "replay_summary.json"), "r"))
-        b = json.load(open(os.path.join(out2, "replay_summary.json"), "r"))
+        with open(os.path.join(out1, "replay_summary.json"), "r", encoding="utf-8") as handle:
+            a = json.load(handle)
+        with open(os.path.join(out2, "replay_summary.json"), "r", encoding="utf-8") as handle:
+            b = json.load(handle)
         self.assertEqual(a["final_asset"], b["final_asset"])
 
     def test_replay_outputs_and_does_not_write_real_shadow(self):
@@ -74,8 +76,11 @@ class ShadowReplayTests(unittest.TestCase):
     def test_missing_quote_records_warning(self):
         data, dates = make_data(missing_last=True)
         replay.replay(self.cfg, self.rotation, ["AAA", "BBB", "IDX"], data, dates, dates[-2], dates[-1], self.tmp)
-        summary = json.load(open(os.path.join(self.tmp, "replay_summary.json"), "r"))
+        summary_path = os.path.join(self.tmp, "replay_summary.json")
+        with open(summary_path, "r", encoding="utf-8") as handle:
+            summary = json.load(handle)
         self.assertTrue(summary["warnings"])
+        self.assertTrue(any("行情缺失或无效" in warning for warning in summary["warnings"]))
 
     def test_max_drawdown_calculation(self):
         self.assertAlmostEqual(replay.calculate_max_drawdown([100, 120, 90, 150]), 0.25)
