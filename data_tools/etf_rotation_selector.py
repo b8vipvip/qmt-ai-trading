@@ -154,7 +154,8 @@ def write_outputs(cfg, rows, selected):
 
 
 def main():
-    from xtquant import xtdata
+    from qmt_gateway.gateway import QmtGateway
+    xtdata = QmtGateway({"live_trading_enabled": False}).data._client()
     cfg, rotation = load_rotation_config()
     codes = load_etf_universe()
     data = fetch_market_data(xtdata, codes, rotation.get("lookback_start_time", "20230101"))

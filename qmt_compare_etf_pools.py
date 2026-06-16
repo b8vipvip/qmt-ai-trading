@@ -266,7 +266,8 @@ def main(argv=None):
     parser.add_argument("--max-expanded-etfs", type=int, default=DEFAULT_MAX_EXPANDED_ETFS)
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args(argv)
-    from xtquant import xtdata
+    from qmt_gateway.gateway import QmtGateway
+    xtdata = QmtGateway({"live_trading_enabled": False}).data._client()
     run_compare(expanded_pool=load_expanded_pool(args.expanded_pool_file), output_dir=args.output_dir, xtdata=xtdata, max_expanded_etfs=args.max_expanded_etfs, quiet=args.quiet)
 
 

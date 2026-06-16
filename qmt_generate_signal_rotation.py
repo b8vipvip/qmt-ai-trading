@@ -21,17 +21,22 @@ def build_rotation_signal(selected_payload, regime_payload, min_score_to_buy):
     regime = regime_payload.get("market_regime", "unknown")
     candidate = selected[0] if selected else None
     if not candidate:
-        return {"stock_code": "", "last_close": 0.0, "signal": "HOLD", "target_position_pct": None,
+        return {"stock_code": "", "last_close": 0.0, "signal": "HOLD", "position_intent": "NO_EXPOSURE_CHANGE",
+                "raw_target_position_pct": None, "target_position_pct": None, "strategy_confidence": 0.0,
                 "reason": "没有通过风控过滤的ETF候选"}
     score = float(candidate.get("score", 0.0))
     if regime == "bearish":
         signal, target, reason = "SELL_SIGNAL", 0.0, "市场环境偏空，轮动策略不生成买入信号"
+        intent = "DECREASE_EXPOSURE"; confidence = 0.7
     elif regime == "bullish" and score >= float(min_score_to_buy):
         signal, target, reason = "BUY_SIGNAL", 1.0, "市场环境偏多且ETF趋势评分通过"
+        intent = "INCREASE_EXPOSURE"; confidence = min(0.95, max(0.5, score / 100.0))
     else:
         signal, target, reason = "HOLD", None, "市场环境或ETF评分未达到买入条件"
+        intent = "NO_EXPOSURE_CHANGE"; confidence = 0.5
     return {"stock_code": candidate["stock_code"], "last_close": float(candidate["last_close"]), "signal": signal,
-            "target_position_pct": target, "reason": reason, "rotation_score": score, "market_regime": regime}
+            "position_intent": intent, "raw_target_position_pct": target, "target_position_pct": None,
+            "strategy_confidence": confidence, "reason": reason, "rotation_score": score, "market_regime": regime}
 
 
 def main():

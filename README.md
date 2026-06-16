@@ -221,3 +221,15 @@ Get-Content "D:\AI\qmt\research\etf_pool_compare\latest_status.json"
 - `qmt_scan_etf_universe.py --sectors "沪深ETF,ETF,全部ETF"`：指定读取的 QMT 板块名；
 - `qmt_scan_etf_universe.py --quiet`：关闭控制台进度输出，但仍写日志和状态文件；
 - `qmt_compare_etf_pools.py --max-expanded-etfs 20`：限制扩展 ETF 池回放规模。
+
+## QMT 验证边界与实盘门禁
+
+详见 `docs/trading_modes.md`。本项目当前仍处于 ETF 影子盘观察期：
+
+- `research_backtest`：快速研究，只验证想法，不作为实盘依据。
+- `shadow_replay`：接近真实成交的历史回放，作为策略验证主线。
+- `daily_dryrun`：真实账户只读计划，只读账户和行情，不下单。
+
+`qmt_backtest_ma.py` 仅作为 MA 示例和流程验证，不作为实盘策略依据。
+
+当前是否允许实盘：否。当前是否允许小资金实盘：否。原因包括：`live_trading_enabled=false`、daily dry-run 未满 20 个交易日、Risk Engine 尚未完全验收、仍存在年度回撤/过拟合/集中度风险。
