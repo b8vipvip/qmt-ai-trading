@@ -288,6 +288,25 @@ def collect_shadow_replay():
                                "metric_warnings": warnings + list(summary.get("warnings") or [])}})
 
 
+
+def collect_shadow_replay_batch():
+    path = _latest("shadow_replay_batch/run_*/batch_summary.json")
+    summary = _read_json(path, {}) if path else {}
+    worst_dd = summary.get("max_drawdown_worst_period")
+    display = {
+        "period_count": len(summary.get("period_results") or summary.get("periods") or []),
+        "average_return_pct": summary.get("average_return_pct"),
+        "worst_period": summary.get("worst_period"),
+        "max_drawdown_worst_period": worst_dd,
+        "positive_period_count": summary.get("positive_period_count"),
+        "negative_period_count": summary.get("negative_period_count"),
+        "stability_score": summary.get("stability_score"),
+        "overfit_warning": summary.get("overfit_warning"),
+        "continue_shadow_replay_recommended": summary.get("continue_shadow_replay_recommended"),
+        "live_trading_not_recommended": summary.get("live_trading_not_recommended"),
+    }
+    return redact({"exists": bool(path), "summary_path": safe_relpath(path, ROOT) if path else None, "summary": summary, "display": display})
+
 def collect_shadow():
     portfolio = _read_json(os.path.join(ROOT, "shadow", "portfolio.json"), {})
     snapshot = _read_json(os.path.join(ROOT, "shadow", "daily_snapshot.json"), {})
@@ -321,7 +340,7 @@ def build_report():
     defaults = {"config": {}, "update_checks": {k: "未知" for k in ["code_pull", "unit_tests", "safety_scan"]},
                 "etf_rotation": {"dry_run_passed": False}, "ai_research": {"pipeline_success": False}}
     collectors = [("config", collect_config), ("update_checks", collect_update_checks), ("etf_rotation", collect_etf),
-                  ("ai_research", collect_ai_research), ("git", collect_git), ("ai_api", collect_ai_api), ("shadow", collect_shadow), ("shadow_replay", collect_shadow_replay), ("recent_files", collect_recent_files)]
+                  ("ai_research", collect_ai_research), ("git", collect_git), ("ai_api", collect_ai_api), ("shadow", collect_shadow), ("shadow_replay", collect_shadow_replay), ("shadow_replay_batch", collect_shadow_replay_batch), ("recent_files", collect_recent_files)]
     values = {}
     for name, collector in collectors:
         try:
@@ -364,6 +383,24 @@ def _render_shadow_replay_markdown(value):
     return "\n".join(lines)
 
 
+
+def _render_shadow_replay_batch_markdown(value):
+    display = value.get("display") or {}
+    lines = [
+        "- 区间数量：{0}".format(display.get("period_count")),
+        "- 平均收益：{0}%".format(display.get("average_return_pct")),
+        "- 最差区间：{0}".format(display.get("worst_period")),
+        "- 最大回撤最严重区间：{0}".format(display.get("max_drawdown_worst_period")),
+        "- 正收益区间数量：{0}".format(display.get("positive_period_count")),
+        "- 负收益区间数量：{0}".format(display.get("negative_period_count")),
+        "- 稳定性评分：{0}".format(display.get("stability_score")),
+        "- 过拟合警告：{0}".format(display.get("overfit_warning")),
+        "- 是否建议继续影子盘：{0}".format("是" if display.get("continue_shadow_replay_recommended") else "否"),
+        "- 是否不建议实盘：{0}".format("是" if display.get("live_trading_not_recommended") else "否"),
+    ]
+    lines.append("\n```json\n" + json.dumps(value, ensure_ascii=False, indent=2) + "\n```")
+    return "\n".join(lines)
+
 def render_markdown(r):
     def block(value): return "```json\n" + json.dumps(value, ensure_ascii=False, indent=2) + "\n```"
     return """# QMT AI Trading Diagnostic Report
@@ -404,13 +441,16 @@ def render_markdown(r):
 ## 7. 历史影子盘回放摘要
 {shadow_replay}
 
-## 8. 最近产物文件
+## 8. 历史多时段回放摘要
+{shadow_replay_batch}
+
+## 9. 最近产物文件
 {files}
 
-## 9. 需要发给 ChatGPT 的重点
+## 10. 需要发给 ChatGPT 的重点
 - 请优先分析当前阶段、失败检查、风险警告和下一步建议。
 - 报告已脱敏；诊断器只读，不执行交易。
-""".format(stage=r["stage"], go="是" if r["can_continue"] else "否", next=r["next_recommendation"], risk="；".join(r["risks"]), git=block(r["git"]), update_final=r["update_checks"].get("final_status"), code_pull=r["update_checks"].get("code_pull"), config_check=r["update_checks"].get("config_check"), unit_tests=r["update_checks"].get("unit_tests"), python_compile=r["update_checks"].get("python_compile"), safety_scan=r["update_checks"].get("safety_scan"), failure_reason=r["update_checks"].get("failure_reason"), suggestion=r["update_checks"].get("suggestion"), source_summary=r["update_checks"].get("source_summary"), config=block(r["config"]), planned_volume=r["etf_rotation"].get("planned_volume"), planned_amount=r["etf_rotation"].get("planned_amount"), planned_price_ref=r["etf_rotation"].get("planned_price_ref"), etf=block(r["etf_rotation"]), ai=block(r["ai_research"]), api=block(r["ai_api"]), shadow_replay=_render_shadow_replay_markdown(r.get("shadow_replay", {})), files=block(r["recent_files"]))
+""".format(stage=r["stage"], go="是" if r["can_continue"] else "否", next=r["next_recommendation"], risk="；".join(r["risks"]), git=block(r["git"]), update_final=r["update_checks"].get("final_status"), code_pull=r["update_checks"].get("code_pull"), config_check=r["update_checks"].get("config_check"), unit_tests=r["update_checks"].get("unit_tests"), python_compile=r["update_checks"].get("python_compile"), safety_scan=r["update_checks"].get("safety_scan"), failure_reason=r["update_checks"].get("failure_reason"), suggestion=r["update_checks"].get("suggestion"), source_summary=r["update_checks"].get("source_summary"), config=block(r["config"]), planned_volume=r["etf_rotation"].get("planned_volume"), planned_amount=r["etf_rotation"].get("planned_amount"), planned_price_ref=r["etf_rotation"].get("planned_price_ref"), etf=block(r["etf_rotation"]), ai=block(r["ai_research"]), api=block(r["ai_api"]), shadow_replay=_render_shadow_replay_markdown(r.get("shadow_replay", {})), shadow_replay_batch=_render_shadow_replay_batch_markdown(r.get("shadow_replay_batch", {})), files=block(r["recent_files"]))
 
 
 def main():

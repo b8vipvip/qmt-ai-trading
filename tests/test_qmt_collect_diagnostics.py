@@ -161,6 +161,21 @@ class DiagnosticTests(unittest.TestCase):
             result = diagnostic.collect_shadow_replay()
             self.assertTrue(any("win_rate" in item for item in result["display"]["metric_warnings"]))
 
+    def test_collects_latest_shadow_replay_batch_summary(self):
+        with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
+            self.write_json(root, "shadow_replay_batch/run_20260616_120000/batch_summary.json", {
+                "period_results": [{"period_name": "p1"}, {"period_name": "p2"}],
+                "average_return_pct": 1.5, "worst_period": "p2", "max_drawdown_worst_period": "p2",
+                "positive_period_count": 1, "negative_period_count": 1, "stability_score": 70,
+                "overfit_warning": "无明显过拟合警告", "continue_shadow_replay_recommended": True,
+                "live_trading_not_recommended": True
+            })
+            result = diagnostic.collect_shadow_replay_batch()
+            self.assertTrue(result["exists"])
+            self.assertEqual(2, result["display"]["period_count"])
+            self.assertEqual(1.5, result["display"]["average_return_pct"])
+            self.assertTrue(result["display"]["continue_shadow_replay_recommended"])
+
     def test_etf_shadow_state_takes_priority_over_ma_daily_fields(self):
         with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
             self.write_json(root, "signals/daily_status.json", {"stock_code": "600000.SH", "signal": "SELL_SIGNAL"})
