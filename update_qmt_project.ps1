@@ -34,7 +34,7 @@ function Add-LocalExcludes {
     $patterns = @(
         "qmt_ai_research_pipeline.py", "update_qmt_project_old_broken.ps1", "patch_*.py", "fix_*.py", "test_ai_api.py", "*_local.py", "*.local.json",
         "config.json.bak_*", "config.json.bak_before_autopatch_*", "config.json.bak_allowed_stocks_*",
-        "config.json.bak_risk_limit_*", "logs/", "signals/", "runs/", "shadow/", "shadow_replay/", "reports/", "backtest_results/"
+        "config.json.bak_risk_limit_*", "logs/", "signals/", "runs/", "shadow/", "shadow_replay/", "shadow_replay_batch/", "reports/", "backtest_results/"
     )
     $existing = @()
     if (Test-Path $excludeFile) { $existing = @(Get-Content $excludeFile) }
