@@ -144,11 +144,13 @@ def default_periods(today=None):
         ("2023全年", "2023-01-01", "2023-12-31"),
         ("2024全年", "2024-01-01", "2024-12-31"),
         ("2025全年", "2025-01-01", "2025-12-31"),
-        ("2025年至今", "2025-01-01", _date_text(this_year_end)),
+        ("2026年至今", "2026-01-01", _date_text(this_year_end)),
         ("2023年至今", "2023-01-01", _date_text(this_year_end)),
+        ("最近3个月", _date_text(this_year_end - datetime.timedelta(days=91)), _date_text(this_year_end)),
         ("最近6个月", _date_text(this_year_end - datetime.timedelta(days=183)), _date_text(this_year_end)),
         ("最近12个月", _date_text(this_year_end - datetime.timedelta(days=365)), _date_text(this_year_end)),
         ("最近18个月", _date_text(this_year_end - datetime.timedelta(days=548)), _date_text(this_year_end)),
+        ("最近24个月", _date_text(this_year_end - datetime.timedelta(days=730)), _date_text(this_year_end)),
     ]
     return [{"period_name": name, "start_date": start, "end_date": end} for name, start, end in periods]
 
@@ -206,47 +208,154 @@ def _median(values):
     return values[mid] if len(values) % 2 else (values[mid - 1] + values[mid]) / 2.0
 
 
-def build_batch_summary(periods, results):
+def _period_year_bounds(result):
+    try:
+        start = _parse_date(result.get("start_date")); end = _parse_date(result.get("end_date"))
+        return start, end
+    except Exception:
+        return None, None
+
+
+def _period_category(result):
+    name = str(result.get("period_name") or "")
+    start, end = _period_year_bounds(result)
+    if "2023年至今" in name or name in ("full_period", "全周期", "长期全周期"):
+        return "full_period"
+    if "最近" in name or "rolling" in name.lower():
+        return "rolling"
+    if start and end and start.month == 1 and start.day == 1 and start.year == end.year:
+        if (end.month == 12 and end.day == 31) or end == _today():
+            return "non_overlapping"
+    return "non_overlapping"
+
+
+def _split_period_results(results):
+    groups = {"non_overlapping": [], "rolling": [], "full_period": []}
+    for result in results:
+        groups[_period_category(result)].append(result)
+    return groups
+
+
+def _basic_period_summary(results):
     valid_returns = [_safe_float(r.get("total_return_pct")) for r in results if r.get("total_return_pct") is not None]
     ann = [_safe_float(r.get("annualized_return_pct")) for r in results if r.get("annualized_return_pct") is not None]
     dds = [_safe_float(r.get("max_drawdown_pct")) for r in results if r.get("max_drawdown_pct") is not None]
+    win_rates = [_safe_float(r.get("win_rate")) for r in results if r.get("win_rate") is not None]
+    turnovers = [_safe_float(r.get("turnover")) for r in results if r.get("turnover") is not None]
     best = max(results, key=lambda r: _safe_float(r.get("total_return_pct"))) if results else None
     worst = min(results, key=lambda r: _safe_float(r.get("total_return_pct"))) if results else None
     worst_dd = max(results, key=lambda r: _safe_float(r.get("max_drawdown_pct"))) if results else None
     pos = len([r for r in results if _safe_float(r.get("total_return_pct")) > 0])
     neg = len([r for r in results if _safe_float(r.get("total_return_pct")) < 0])
-    warnings = []
-    if any(r.get("candidate_pool_valid") is False for r in results): warnings.append("候选池存在无效区间，稳定性不合格")
-    if any(_safe_float(r.get("max_drawdown_pct")) > 15 for r in results): warnings.append("存在最大回撤超过15%的高风险区间")
-    if neg > len(results) / 2.0: warnings.append("多数区间亏损，策略不稳")
-    total_positive = sum([max(0.0, _safe_float(r.get("total_return_pct"))) for r in results])
-    if total_positive > 0 and max([max(0.0, _safe_float(r.get("total_return_pct"))) for r in results] or [0]) / total_positive >= 0.7:
-        warnings.append("收益主要来自单一区间，可能过拟合")
-    for r in results:
-        counts = r.get("tradable_selected_etf_counts") or {}; total = sum([_safe_float(v) for v in counts.values()])
-        if total > 0 and _safe_float(counts.get("159915.SZ")) / total >= 0.6: warnings.append("159915.SZ 选择占比过高，存在风格集中风险"); break
-    if any(_safe_float(r.get("turnover")) > 5 for r in results): warnings.append("存在过度交易风险")
-    score = max(0, 100 - len(warnings) * 15 - neg * 5)
-    overfit = any("过拟合" in w for w in warnings)
-    return {"generated_at": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"), "periods": periods,
+    return {"period_count": len(results), "period_names": [r.get("period_name") for r in results],
             "best_period": best.get("period_name") if best else None, "worst_period": worst.get("period_name") if worst else None,
             "average_return_pct": round(sum(valid_returns) / float(len(valid_returns)), 4) if valid_returns else 0.0,
             "median_return_pct": round(_median(valid_returns), 4),
             "average_annualized_return_pct": round(sum(ann) / float(len(ann)), 4) if ann else 0.0,
-            "max_drawdown_worst_pct": round(max(dds), 4) if dds else 0.0, "max_drawdown_worst_period": worst_dd.get("period_name") if worst_dd else None,
+            "max_drawdown_worst_pct": round(max(dds), 4) if dds else 0.0,
+            "max_drawdown_worst_period": worst_dd.get("period_name") if worst_dd else None,
             "max_drawdown_average_pct": round(sum(dds) / float(len(dds)), 4) if dds else 0.0,
-            "positive_period_count": pos, "negative_period_count": neg, "stability_score": score,
-            "overfit_warning": "；".join([w for w in warnings if "过拟合" in w]) if overfit else "无明显过拟合警告",
-            "continue_shadow_replay_recommended": score >= 60, "live_trading_not_recommended": True,
-            "warnings": warnings, "period_results": results}
+            "average_win_rate": round(sum(win_rates) / float(len(win_rates)), 4) if win_rates else None,
+            "average_turnover": round(sum(turnovers) / float(len(turnovers)), 4) if turnovers else 0.0,
+            "positive_period_count": pos, "negative_period_count": neg}
+
+
+def build_batch_summary(periods, results):
+    groups = _split_period_results(results)
+    core_results = groups["non_overlapping"] or results
+    non_overlapping_summary = _basic_period_summary(core_results)
+    rolling_summary = _basic_period_summary(groups["rolling"])
+    full_period_summary = _basic_period_summary(groups["full_period"])
+    warnings = []
+    overfit_flags = []
+    underfit_flags = []
+    risk_flags = []
+    if any(r.get("candidate_pool_valid") is False for r in results): warnings.append("候选池存在无效区间，稳定性不合格")
+    if any(_safe_float(r.get("max_drawdown_pct")) > 15 for r in core_results): risk_flags.append("任一年度最大回撤超过15%，高风险")
+    full_max_dd = full_period_summary.get("max_drawdown_worst_pct") or 0.0
+    if full_max_dd > 20: risk_flags.append("长周期最大回撤超过20%，不适合实盘")
+    if any(_safe_float(r.get("turnover")) > 5 for r in results): risk_flags.append("turnover 偏高，存在过度交易风险")
+    if non_overlapping_summary.get("negative_period_count", 0) > len(core_results) / 2.0:
+        warnings.append("多数区间亏损（年度非重叠口径），策略不稳"); underfit_flags.append("多数年度收益低或亏损")
+    positives = [max(0.0, _safe_float(r.get("total_return_pct"))) for r in core_results]
+    total_positive = sum(positives)
+    if total_positive > 0 and max(positives or [0]) / total_positive >= 0.7:
+        overfit_flags.append("收益主要来自单一年度区间，可能过拟合")
+    core_returns = [_safe_float(r.get("total_return_pct")) for r in core_results if r.get("total_return_pct") is not None]
+    if full_period_summary.get("average_return_pct", 0) > 0 and core_returns and (max(core_returns) - min(core_returns) >= 15 or non_overlapping_summary.get("negative_period_count", 0) > 0):
+        overfit_flags.append("full_period 表现较好但年度区间分化严重，可能过拟合")
+    rolling_returns = [_safe_float(r.get("total_return_pct")) for r in groups["rolling"] if r.get("total_return_pct") is not None]
+    early_losses = [r for r in core_results if str(r.get("period_name") or "")[:4] in ("2023", "2024") and _safe_float(r.get("total_return_pct")) < 0]
+    if rolling_returns and sum(rolling_returns) / float(len(rolling_returns)) > 5 and early_losses:
+        overfit_flags.append("最近滚动区间较好但早期年份亏损，存在近期行情依赖风险")
+    if len(core_results) >= 2 and _safe_float(core_results[0].get("total_return_pct")) > 0 and _safe_float(core_results[-1].get("total_return_pct")) < 0:
+        overfit_flags.append("样本内较好、样本外较差，存在参数或策略版本过拟合风险")
+    win_rates = [_safe_float(r.get("win_rate")) for r in core_results if r.get("win_rate") is not None]
+    if win_rates and sum(win_rates) / float(len(win_rates)) < 0.35:
+        underfit_flags.append("长期胜率很低")
+    if non_overlapping_summary.get("positive_period_count", 0) <= len(core_results) / 3.0 and core_results:
+        underfit_flags.append("大部分市场环境无法盈利")
+    if non_overlapping_summary.get("average_return_pct", 0) < 3 and non_overlapping_summary.get("max_drawdown_average_pct", 0) > 10:
+        underfit_flags.append("收益低但回撤仍高，规则可能无效")
+    for r in results:
+        counts = r.get("tradable_selected_etf_counts") or {}; total = sum([_safe_float(v) for v in counts.values()])
+        if total > 0 and _safe_float(counts.get("159915.SZ")) / total >= 0.6: risk_flags.append("159915.SZ 选择占比过高，存在风格集中风险"); break
+    warnings.extend(overfit_flags + underfit_flags + risk_flags)
+    overfitting_score = max(0, 100 - len(overfit_flags) * 25)
+    underfitting_score = max(0, 100 - len(underfit_flags) * 25)
+    risk_penalty = len(risk_flags) * 20 + non_overlapping_summary.get("negative_period_count", 0) * 5
+    regime_fit_score = max(0, 100 - len(underfit_flags) * 15 - len(overfit_flags) * 10 - non_overlapping_summary.get("negative_period_count", 0) * 8)
+    robustness_score = max(0, min(overfitting_score, underfitting_score, regime_fit_score) - risk_penalty)
+    stability_score = robustness_score
+    recommendation = []
+    if overfit_flags: recommendation.append("降低近期样本权重，使用年度非重叠区间做主评分，并增加样本外验证")
+    if underfit_flags: recommendation.append("复核入场/出场规则、候选池和市场状态过滤，避免规则整体无效")
+    if risk_flags: recommendation.append("优先降低回撤、换手率和单一 ETF 集中度")
+    if not recommendation: recommendation.append("可继续影子盘观察，但仍不构成实盘建议")
+    overfit_warning = "；".join(overfit_flags) if overfit_flags else "无明显过拟合警告"
+    return {"generated_at": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"), "periods": periods,
+            "non_overlapping_summary": non_overlapping_summary, "rolling_summary": rolling_summary, "full_period_summary": full_period_summary,
+            "overfitting_score": overfitting_score, "underfitting_score": underfitting_score, "regime_fit_score": regime_fit_score,
+            "robustness_score": robustness_score, "optimization_recommendation": "；".join(recommendation),
+            "best_period": non_overlapping_summary.get("best_period"), "worst_period": non_overlapping_summary.get("worst_period"),
+            "average_return_pct": non_overlapping_summary.get("average_return_pct"), "median_return_pct": non_overlapping_summary.get("median_return_pct"),
+            "average_annualized_return_pct": non_overlapping_summary.get("average_annualized_return_pct"),
+            "max_drawdown_worst_pct": non_overlapping_summary.get("max_drawdown_worst_pct"), "max_drawdown_worst_period": non_overlapping_summary.get("max_drawdown_worst_period"),
+            "max_drawdown_average_pct": non_overlapping_summary.get("max_drawdown_average_pct"),
+            "positive_period_count": non_overlapping_summary.get("positive_period_count"), "negative_period_count": non_overlapping_summary.get("negative_period_count"),
+            "stability_score": stability_score, "overfit_warning": overfit_warning,
+            "underfit_warning": "；".join(underfit_flags) if underfit_flags else "无明显欠拟合警告",
+            "risk_warning": "；".join(risk_flags) if risk_flags else "无明显风控警告",
+            "continue_shadow_replay_recommended": robustness_score >= 60 and full_max_dd <= 20,
+            "live_trading_not_recommended": True, "warnings": warnings, "period_results": results}
+
+def _period_table(results):
+    if not results:
+        return "- 无"
+    lines = ["| 区间 | 起止 | 收益% | 年化% | 最大回撤% | 胜率 | 换手率 |", "| --- | --- | ---: | ---: | ---: | ---: | ---: |"]
+    for r in results:
+        lines.append("| {0} | {1} 至 {2} | {3} | {4} | {5} | {6} | {7} |".format(r.get("period_name"), r.get("start_date"), r.get("end_date"), r.get("total_return_pct"), r.get("annualized_return_pct"), r.get("max_drawdown_pct"), r.get("win_rate"), r.get("turnover")))
+    return "\n".join(lines)
 
 
 def write_report(path, summary):
-    profitable = [r["period_name"] for r in summary["period_results"] if _safe_float(r.get("total_return_pct")) > 0]
-    losing = [r["period_name"] for r in summary["period_results"] if _safe_float(r.get("total_return_pct")) < 0]
-    lines = ["# 历史多时段区间验证报告", "", "## 1. 总体结论", "- 稳定性评分：{0}".format(summary["stability_score"]), "- 风险警告：{0}".format("；".join(summary.get("warnings") or ["无"])), "", "## 2. 哪些区间赚钱", "- {0}".format("、".join(profitable) if profitable else "无"), "", "## 3. 哪些区间亏损", "- {0}".format("、".join(losing) if losing else "无"), "", "## 4. 最差区间", "- {0}".format(summary.get("worst_period")), "", "## 5. 最大回撤最严重区间", "- {0}（{1}%）".format(summary.get("max_drawdown_worst_period"), summary.get("max_drawdown_worst_pct")), "", "## 6. 是否依赖单一 ETF", "- {0}".format("是，请关注选择分布。" if any("159915" in w for w in summary.get("warnings", [])) else "未发现 159915.SZ 过度集中。"), "", "## 7. 是否过度交易", "- {0}".format("是" if any("过度交易" in w for w in summary.get("warnings", [])) else "否"), "", "## 8. 是否可能过拟合", "- {0}".format(summary.get("overfit_warning")), "", "## 9. 是否建议继续真实影子盘", "- {0}".format("建议继续真实影子盘观察。" if summary.get("continue_shadow_replay_recommended") else "暂不建议继续扩大验证前提下的真实影子盘。"), "", "## 10. 是否不建议实盘", "- 不建议实盘；本模块只读历史行情和本地产物，不构成交易建议。", "", "## 11. 下一步建议", "- 优先复核亏损区间、最大回撤、候选池有效性和 ETF 选择集中度。", ""]
+    groups = _split_period_results(summary.get("period_results") or [])
+    lines = ["# 历史多时段区间验证报告", "",
+             "## 1. 总体结论", "- 核心评分仅使用年度非重叠区间，滚动区间只观察近期状态，2023年至今只展示长周期表现。",
+             "- 稳定性评分：{0}".format(summary.get("stability_score")),
+             "- 鲁棒性评分：{0}".format(summary.get("robustness_score")),
+             "- 市场环境适配评分：{0}".format(summary.get("regime_fit_score")),
+             "- 风险警告：{0}".format("；".join(summary.get("warnings") or ["无"])), "",
+             "## 2. 年度非重叠表现", _period_table(groups.get("non_overlapping") or []), "",
+             "## 3. 滚动区间表现", _period_table(groups.get("rolling") or []), "",
+             "## 4. 长周期表现", _period_table(groups.get("full_period") or []), "",
+             "## 5. 过拟合风险", "- 评分：{0}".format(summary.get("overfitting_score")), "- 诊断：{0}".format(summary.get("overfit_warning")), "",
+             "## 6. 欠拟合风险", "- 评分：{0}".format(summary.get("underfitting_score")), "- 诊断：{0}".format(summary.get("underfit_warning")), "",
+             "## 7. 风控风险", "- {0}".format(summary.get("risk_warning")), "",
+             "## 8. 是否建议继续影子盘", "- {0}".format("建议继续真实影子盘观察。" if summary.get("continue_shadow_replay_recommended") else "暂不建议继续扩大验证前提下的真实影子盘。"), "",
+             "## 9. 是否不建议实盘", "- {0}".format("不建议实盘；本模块只读历史行情和本地产物，不构成交易建议。" if summary.get("live_trading_not_recommended") else "仍需人工复核。"), "",
+             "## 10. 下一步优化方向", "- {0}".format(summary.get("optimization_recommendation")), ""]
     with open(path, "w", encoding="utf-8") as handle: handle.write("\n".join(lines))
-
 
 def write_summary_csv(path, results):
     fields = ["period_name", "start_date", "end_date", "trading_days", "initial_cash", "final_asset", "total_return_pct", "annualized_return_pct", "max_drawdown_pct", "total_trades", "closed_trades", "win_rate", "average_holding_days", "turnover", "open_positions", "realized_pnl", "unrealized_pnl", "candidate_pool_valid"]
