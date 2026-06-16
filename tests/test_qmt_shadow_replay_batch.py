@@ -12,6 +12,15 @@ import qmt_shadow_replay_batch as batch
 from tests.test_qmt_shadow_replay import make_data
 
 
+def first_mock_arg(call_item, default=""):
+    try:
+        if call_item and call_item[0]:
+            return call_item[0][0]
+    except Exception:
+        pass
+    return default
+
+
 class BatchReplayTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
@@ -62,7 +71,7 @@ class BatchReplayTests(unittest.TestCase):
                 progress.write_status("done")
             self.assertEqual(2, len(summary["period_results"]))
             self.assertTrue(mocked_print.called)
-            printed = "\n".join([str(call.args[0]) for call in mocked_print.call_args_list])
+            printed = "\n".join([str(first_mock_arg(call_item)) for call_item in mocked_print.call_args_list])
             self.assertIn("[INFO] 本次共 2 个区间", printed)
             self.assertIn("[1/2]", printed)
             latest_log = os.path.join(batch.ROOT, "logs", "shadow_replay_batch_latest.log")
