@@ -331,6 +331,31 @@ def collect_shadow_replay_batch():
                    "log_exists": os.path.exists(log_path), "log_path": safe_relpath(log_path, ROOT) if os.path.exists(log_path) else None,
                    "runtime_status": status, "display": display})
 
+
+def collect_etf_universe_scan():
+    path = os.path.join(ROOT, "research", "etf_universe_scan", "etf_universe_scan_latest.json")
+    data = _read_json(path, {}) if os.path.exists(path) else {}
+    display = {"exists": bool(data), "total_count": data.get("total_count"), "eligible_count": data.get("eligible_count"),
+               "expanded_count": data.get("expanded_count"), "generated_at": data.get("generated_at"),
+               "safety": data.get("safety"),
+               "top_candidates": [r.get("stock_code") for r in sorted([x for x in data.get("records", []) if x.get("eligible")], key=lambda x: x.get("score", 0), reverse=True)[:10]]}
+    return redact({"exists": os.path.exists(path), "summary_path": safe_relpath(path, ROOT) if os.path.exists(path) else None,
+                   "summary": data, "display": display})
+
+
+def collect_etf_pool_compare():
+    path = os.path.join(ROOT, "research", "etf_pool_compare", "pool_compare_latest.json")
+    data = _read_json(path, {}) if os.path.exists(path) else {}
+    comp = data.get("comparison") or {}
+    display = {"exists": bool(data), "generated_at": data.get("generated_at"),
+               "fixed_metrics": (data.get("fixed_pool") or {}).get("metrics"),
+               "expanded_metrics": (data.get("expanded_pool") or {}).get("metrics"),
+               "suitable_for_continued_shadow": comp.get("suitable_for_continued_shadow"),
+               "live_trading_not_recommended": comp.get("live_trading_not_recommended"),
+               "conclusion": comp.get("conclusion"), "safety": data.get("safety")}
+    return redact({"exists": os.path.exists(path), "summary_path": safe_relpath(path, ROOT) if os.path.exists(path) else None,
+                   "summary": data, "display": display})
+
 def collect_shadow():
     portfolio = _read_json(os.path.join(ROOT, "shadow", "portfolio.json"), {})
     snapshot = _read_json(os.path.join(ROOT, "shadow", "daily_snapshot.json"), {})
@@ -364,7 +389,7 @@ def build_report():
     defaults = {"config": {}, "update_checks": {k: "未知" for k in ["code_pull", "unit_tests", "safety_scan"]},
                 "etf_rotation": {"dry_run_passed": False}, "ai_research": {"pipeline_success": False}}
     collectors = [("config", collect_config), ("update_checks", collect_update_checks), ("etf_rotation", collect_etf),
-                  ("ai_research", collect_ai_research), ("git", collect_git), ("ai_api", collect_ai_api), ("shadow", collect_shadow), ("shadow_replay", collect_shadow_replay), ("shadow_replay_batch", collect_shadow_replay_batch), ("recent_files", collect_recent_files)]
+                  ("ai_research", collect_ai_research), ("git", collect_git), ("ai_api", collect_ai_api), ("shadow", collect_shadow), ("shadow_replay", collect_shadow_replay), ("shadow_replay_batch", collect_shadow_replay_batch), ("etf_universe_scan", collect_etf_universe_scan), ("etf_pool_compare", collect_etf_pool_compare), ("recent_files", collect_recent_files)]
     values = {}
     for name, collector in collectors:
         try:
@@ -446,6 +471,33 @@ def _render_shadow_replay_batch_markdown(value):
     lines.append("\n```json\n" + json.dumps(value, ensure_ascii=False, indent=2) + "\n```")
     return "\n".join(lines)
 
+
+def _render_etf_universe_scan_markdown(value):
+    display = value.get("display") or {}
+    return "\n".join([
+        "- 产物存在：{0}".format("是" if value.get("exists") else "否"),
+        "- 生成时间：{0}".format(display.get("generated_at")),
+        "- 扫描数量：{0}".format(display.get("total_count")),
+        "- 合格数量：{0}".format(display.get("eligible_count")),
+        "- 扩展池数量：{0}".format(display.get("expanded_count")),
+        "- 前十候选：{0}".format(json.dumps(display.get("top_candidates") or [], ensure_ascii=False)),
+        "- 安全状态：{0}".format(json.dumps(display.get("safety") or {}, ensure_ascii=False)),
+    ])
+
+
+def _render_etf_pool_compare_markdown(value):
+    display = value.get("display") or {}
+    return "\n".join([
+        "- 产物存在：{0}".format("是" if value.get("exists") else "否"),
+        "- 生成时间：{0}".format(display.get("generated_at")),
+        "- 是否适合继续影子盘：{0}".format("是" if display.get("suitable_for_continued_shadow") else "否"),
+        "- 是否不建议实盘：{0}".format("是" if display.get("live_trading_not_recommended") else "否"),
+        "- 结论：{0}".format(display.get("conclusion")),
+        "- 固定池指标：{0}".format(json.dumps(display.get("fixed_metrics") or {}, ensure_ascii=False)),
+        "- 扩展池指标：{0}".format(json.dumps(display.get("expanded_metrics") or {}, ensure_ascii=False)),
+        "- 安全状态：{0}".format(json.dumps(display.get("safety") or {}, ensure_ascii=False)),
+    ])
+
 def render_markdown(r):
     def block(value): return "```json\n" + json.dumps(value, ensure_ascii=False, indent=2) + "\n```"
     return """# QMT AI Trading Diagnostic Report
@@ -489,13 +541,19 @@ def render_markdown(r):
 ## 8. 历史多时段回放摘要
 {shadow_replay_batch}
 
-## 9. 最近产物文件
+## 9. 全市场 ETF 候选池研究状态
+{etf_universe_scan}
+
+## 10. 候选池对比状态
+{etf_pool_compare}
+
+## 11. 最近产物文件
 {files}
 
-## 10. 需要发给 ChatGPT 的重点
+## 12. 需要发给 ChatGPT 的重点
 - 请优先分析当前阶段、失败检查、风险警告和下一步建议。
 - 报告已脱敏；诊断器只读，不执行交易。
-""".format(stage=r["stage"], go="是" if r["can_continue"] else "否", next=r["next_recommendation"], risk="；".join(r["risks"]), git=block(r["git"]), update_final=r["update_checks"].get("final_status"), code_pull=r["update_checks"].get("code_pull"), config_check=r["update_checks"].get("config_check"), unit_tests=r["update_checks"].get("unit_tests"), python_compile=r["update_checks"].get("python_compile"), safety_scan=r["update_checks"].get("safety_scan"), failure_reason=r["update_checks"].get("failure_reason"), suggestion=r["update_checks"].get("suggestion"), source_summary=r["update_checks"].get("source_summary"), config=block(r["config"]), planned_volume=r["etf_rotation"].get("planned_volume"), planned_amount=r["etf_rotation"].get("planned_amount"), planned_price_ref=r["etf_rotation"].get("planned_price_ref"), etf=block(r["etf_rotation"]), ai=block(r["ai_research"]), api=block(r["ai_api"]), shadow_replay=_render_shadow_replay_markdown(r.get("shadow_replay", {})), shadow_replay_batch=_render_shadow_replay_batch_markdown(r.get("shadow_replay_batch", {})), files=block(r["recent_files"]))
+""".format(stage=r["stage"], go="是" if r["can_continue"] else "否", next=r["next_recommendation"], risk="；".join(r["risks"]), git=block(r["git"]), update_final=r["update_checks"].get("final_status"), code_pull=r["update_checks"].get("code_pull"), config_check=r["update_checks"].get("config_check"), unit_tests=r["update_checks"].get("unit_tests"), python_compile=r["update_checks"].get("python_compile"), safety_scan=r["update_checks"].get("safety_scan"), failure_reason=r["update_checks"].get("failure_reason"), suggestion=r["update_checks"].get("suggestion"), source_summary=r["update_checks"].get("source_summary"), config=block(r["config"]), planned_volume=r["etf_rotation"].get("planned_volume"), planned_amount=r["etf_rotation"].get("planned_amount"), planned_price_ref=r["etf_rotation"].get("planned_price_ref"), etf=block(r["etf_rotation"]), ai=block(r["ai_research"]), api=block(r["ai_api"]), shadow_replay=_render_shadow_replay_markdown(r.get("shadow_replay", {})), shadow_replay_batch=_render_shadow_replay_batch_markdown(r.get("shadow_replay_batch", {})), etf_universe_scan=_render_etf_universe_scan_markdown(r.get("etf_universe_scan", {})), etf_pool_compare=_render_etf_pool_compare_markdown(r.get("etf_pool_compare", {})), files=block(r["recent_files"]))
 
 
 def main():
