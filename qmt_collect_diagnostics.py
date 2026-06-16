@@ -260,6 +260,12 @@ def _daily_review_diagnostics():
             "daily_review_error": error}
 
 
+def collect_shadow_replay():
+    path = _latest("shadow_replay/run_*/replay_summary.json")
+    summary = _read_json(path, {}) if path else {}
+    return redact({"exists": bool(path), "summary_path": os.path.relpath(path, ROOT) if path else None, "summary": summary})
+
+
 def collect_shadow():
     portfolio = _read_json(os.path.join(ROOT, "shadow", "portfolio.json"), {})
     snapshot = _read_json(os.path.join(ROOT, "shadow", "daily_snapshot.json"), {})
@@ -293,7 +299,7 @@ def build_report():
     defaults = {"config": {}, "update_checks": {k: "未知" for k in ["code_pull", "unit_tests", "safety_scan"]},
                 "etf_rotation": {"dry_run_passed": False}, "ai_research": {"pipeline_success": False}}
     collectors = [("config", collect_config), ("update_checks", collect_update_checks), ("etf_rotation", collect_etf),
-                  ("ai_research", collect_ai_research), ("git", collect_git), ("ai_api", collect_ai_api), ("shadow", collect_shadow), ("recent_files", collect_recent_files)]
+                  ("ai_research", collect_ai_research), ("git", collect_git), ("ai_api", collect_ai_api), ("shadow", collect_shadow), ("shadow_replay", collect_shadow_replay), ("recent_files", collect_recent_files)]
     values = {}
     for name, collector in collectors:
         try:
@@ -353,13 +359,16 @@ def render_markdown(r):
 ## 6. AI API 稳定性
 {api}
 
-## 7. 最近产物文件
+## 7. 历史影子盘回放摘要
+{shadow_replay}
+
+## 8. 最近产物文件
 {files}
 
-## 8. 需要发给 ChatGPT 的重点
+## 9. 需要发给 ChatGPT 的重点
 - 请优先分析当前阶段、失败检查、风险警告和下一步建议。
 - 报告已脱敏；诊断器只读，不执行交易。
-""".format(stage=r["stage"], go="是" if r["can_continue"] else "否", next=r["next_recommendation"], risk="；".join(r["risks"]), git=block(r["git"]), update_final=r["update_checks"].get("final_status"), code_pull=r["update_checks"].get("code_pull"), config_check=r["update_checks"].get("config_check"), unit_tests=r["update_checks"].get("unit_tests"), python_compile=r["update_checks"].get("python_compile"), safety_scan=r["update_checks"].get("safety_scan"), failure_reason=r["update_checks"].get("failure_reason"), suggestion=r["update_checks"].get("suggestion"), source_summary=r["update_checks"].get("source_summary"), config=block(r["config"]), planned_volume=r["etf_rotation"].get("planned_volume"), planned_amount=r["etf_rotation"].get("planned_amount"), planned_price_ref=r["etf_rotation"].get("planned_price_ref"), etf=block(r["etf_rotation"]), ai=block(r["ai_research"]), api=block(r["ai_api"]), files=block(r["recent_files"]))
+""".format(stage=r["stage"], go="是" if r["can_continue"] else "否", next=r["next_recommendation"], risk="；".join(r["risks"]), git=block(r["git"]), update_final=r["update_checks"].get("final_status"), code_pull=r["update_checks"].get("code_pull"), config_check=r["update_checks"].get("config_check"), unit_tests=r["update_checks"].get("unit_tests"), python_compile=r["update_checks"].get("python_compile"), safety_scan=r["update_checks"].get("safety_scan"), failure_reason=r["update_checks"].get("failure_reason"), suggestion=r["update_checks"].get("suggestion"), source_summary=r["update_checks"].get("source_summary"), config=block(r["config"]), planned_volume=r["etf_rotation"].get("planned_volume"), planned_amount=r["etf_rotation"].get("planned_amount"), planned_price_ref=r["etf_rotation"].get("planned_price_ref"), etf=block(r["etf_rotation"]), ai=block(r["ai_research"]), api=block(r["ai_api"]), shadow_replay=block(r.get("shadow_replay", {})), files=block(r["recent_files"]))
 
 
 def main():
