@@ -44,6 +44,38 @@ function Add-LocalExcludes {
         Write-Ok "已将 $($missing.Count) 条本地临时文件规则加入 .git/info/exclude"
     } else { Write-Ok "本地临时文件忽略规则已配置" }
 }
+
+function Move-LegacyUnsafeScripts {
+    param([string]$BackupRoot)
+    $legacyFiles = @(
+        "qmt_plan_order_dryrun.py",
+        "qmt_plan_order_dryrun_test_buy.py",
+        "qmt_query_readonly.py"
+    )
+    $found = @($legacyFiles | Where-Object { Test-Path -LiteralPath (Join-Path $root $_) -PathType Leaf })
+    if ($found.Count -eq 0) {
+        Write-Ok "未发现需隔离的旧版 QMT 直连脚本"
+        return
+    }
+    foreach ($file in $found) {
+        & git ls-files --error-unmatch -- $file *> $null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Warn "发现 Git 已跟踪的旧版 QMT 直连脚本，已中止以避免移动仓库文件: $file"
+            throw "旧版 QMT 直连脚本仍被 Git 跟踪: $file"
+        }
+    }
+    if (-not $BackupRoot) {
+        $BackupRoot = Join-Path (Split-Path -Parent $root) ("qmt_backup\" + $stamp)
+        $summary["backup_dir"] = $BackupRoot
+    }
+    $legacyBackupDir = Join-Path $BackupRoot "legacy_unsafe_scripts"
+    New-Item -ItemType Directory -Path $legacyBackupDir -Force | Out-Null
+    foreach ($file in $found) {
+        Move-Item -LiteralPath (Join-Path $root $file) -Destination (Join-Path $legacyBackupDir $file) -Force
+        Write-Ok "已隔离旧版 QMT 直连脚本: $file"
+    }
+}
+
 function Invoke-Checked($description, $command, $arguments) {
     if ($command -eq "py") { & $command @(@("-3") + $arguments) } else { & $command @arguments }
     if ($LASTEXITCODE -ne 0) {
@@ -157,6 +189,7 @@ try {
     $QmtPython = Get-QmtPython
     Invoke-Checked "config_check" $QmtPython @("qmt_check_config.py")
     $summary["config_check"] = "通过"; Write-Ok "配置检查通过"
+    Move-LegacyUnsafeScripts $backupRoot
     Invoke-Checked "unit_tests" $QmtPython @("-m", "unittest", "discover", "-s", "tests", "-v")
     $summary["unit_tests"] = "通过"; Write-Ok "单元测试通过"
     Invoke-Checked "python_compile" $QmtPython @("-m", "compileall", "-q", "ai_tools", "data_tools", "shadow_trading", "tests")
