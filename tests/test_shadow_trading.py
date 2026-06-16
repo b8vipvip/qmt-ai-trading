@@ -19,10 +19,12 @@ class ShadowTests(unittest.TestCase):
   with tempfile.TemporaryDirectory() as d, mock.patch.object(pipeline,'ROOT',d), mock.patch.object(pipeline,'run_step',side_effect=results): self.assertTrue(pipeline.main())
  def test_diagnostic_shadow_status(self):
   with tempfile.TemporaryDirectory() as d, mock.patch.object(diagnostics,'ROOT',d):
-   os.makedirs(os.path.join(d,'shadow')); json.dump({'total_asset':1},open(os.path.join(d,'shadow','portfolio.json'),'w'))
-   with open(os.path.join(d,'shadow','equity_curve.csv'),'w') as h: h.write('date,total_asset\n2026-06-15,1\n')
+   os.makedirs(os.path.join(d,'shadow'))
+   with open(os.path.join(d,'shadow','portfolio.json'),'w',encoding='utf-8') as h: json.dump({'total_asset':1},h,ensure_ascii=False)
+   with open(os.path.join(d,'shadow','equity_curve.csv'),'w',encoding='utf-8') as h: h.write('date,total_asset\n2026-06-15,1\n')
    self.assertTrue(diagnostics.collect_shadow()['started']); self.assertEqual('ETF 影子盘观察期',diagnostics.determine_stage({}, {'code_pull':'未知','unit_tests':'未知','safety_scan':'未知'}, {'dry_run_passed':True},{'pipeline_success':True},diagnostics.collect_shadow())[0])
  def test_modules_do_not_call_real_trading(self):
   for path in ['shadow_trading/shadow_portfolio.py','qmt_shadow_update.py','qmt_daily_shadow_pipeline.py','ai_tools/ai_daily_reviewer.py']:
-   source=open(path,encoding='utf-8').read(); self.assertNotIn('order_'+'stock(',source); self.assertNotIn('cancel_order_'+'stock(',source)
+   with open(path,'r',encoding='utf-8') as h: source=h.read()
+   self.assertNotIn('order_'+'stock(',source); self.assertNotIn('cancel_order_'+'stock(',source)
 if __name__=='__main__': unittest.main()
