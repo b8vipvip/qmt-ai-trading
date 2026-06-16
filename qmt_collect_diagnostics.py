@@ -13,6 +13,14 @@ SECRET_RE = re.compile(r"(?i)(api[_-]?key|token|secret|authorization|account[_-]
 KEY_VALUE_RE = re.compile(r"(?i)(api[_-]?key|token|secret|authorization)\s*[:=]\s*([^\s,}\]]+)")
 
 
+def safe_relpath(path, start):
+    try:
+        value = os.path.relpath(path, start)
+    except ValueError:
+        value = os.path.abspath(path)
+    return value.replace(os.sep, "/")
+
+
 def _now():
     return datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
@@ -111,17 +119,17 @@ def collect_update_checks():
             if not isinstance(summary, dict):
                 raise ValueError("summary JSON 顶层必须是对象")
         except (IOError, OSError, ValueError, TypeError) as exc:
-            read_errors.append("读取 %s 失败: %s" % (os.path.relpath(summary_path, ROOT), exc))
+            read_errors.append("读取 %s 失败: %s" % (safe_relpath(summary_path, ROOT), exc))
             continue
         for key in keys + ["final_status", "failure_reason", "suggestion"]:
             if key in summary:
                 result[key] = summary.get(key)
         result["latest_backup"] = summary.get("backup_dir")
-        result["source_summary"] = os.path.relpath(summary_path, ROOT).replace(os.sep, "/")
+        result["source_summary"] = safe_relpath(summary_path, ROOT).replace(os.sep, "/")
         stem = os.path.basename(summary_path)[:-len("_summary.json")]
         matching_log = os.path.join(logs, stem + ".log")
         if os.path.isfile(matching_log):
-            result["source_log"] = os.path.relpath(matching_log, ROOT).replace(os.sep, "/")
+            result["source_log"] = safe_relpath(matching_log, ROOT).replace(os.sep, "/")
         break
     if not candidates:
         read_errors.append("未找到 logs/update_latest_summary.json 或历史 logs/update_*_summary.json")
@@ -231,15 +239,15 @@ def collect_ai_research():
     strategy = _latest("strategies/ai_strategy_*.py"); summary = _latest("logs/ai_research_pipeline_*_summary.json")
     summary_data = _read_json(summary, {}) if summary else {}
     def ok(obj): return bool(obj) and not bool(obj.get("error")) and obj.get("success", True) is not False
-    return redact({"analysis_success": ok(data["analysis"]), "latest_strategy": os.path.relpath(strategy, ROOT) if strategy else None,
+    return redact({"analysis_success": ok(data["analysis"]), "latest_strategy": safe_relpath(strategy, ROOT) if strategy else None,
                    "optimization_success": ok(data["backtest_best"]), "iteration_success": ok(data["runs_best"]),
-                   "pipeline_success": ok(summary_data), "latest_pipeline_summary": os.path.relpath(summary, ROOT) if summary else None})
+                   "pipeline_success": ok(summary_data), "latest_pipeline_summary": safe_relpath(summary, ROOT) if summary else None})
 
 
 def _file_list(pattern, limit=10):
     paths = [p for p in glob.glob(os.path.join(ROOT, pattern)) if os.path.isfile(p)]
     paths.sort(key=os.path.getmtime, reverse=True)
-    return [{"name": os.path.relpath(p, ROOT), "modified_at": datetime.datetime.fromtimestamp(os.path.getmtime(p)).strftime("%Y-%m-%dT%H:%M:%S"), "size_bytes": os.path.getsize(p)} for p in paths[:limit]]
+    return [{"name": safe_relpath(p, ROOT), "modified_at": datetime.datetime.fromtimestamp(os.path.getmtime(p)).strftime("%Y-%m-%dT%H:%M:%S"), "size_bytes": os.path.getsize(p)} for p in paths[:limit]]
 
 
 def collect_recent_files():
@@ -271,7 +279,7 @@ def collect_shadow_replay():
         warnings.append("ETF选择分布与指数/基准引用分布存在重叠: " + ",".join(overlap))
     if summary.get("total_trades", 0) and summary.get("closed_trades") == 0 and summary.get("win_rate") is not None:
         warnings.append("无闭合交易时 win_rate 应为空值")
-    return redact({"exists": bool(path), "summary_path": os.path.relpath(path, ROOT) if path else None, "summary": summary,
+    return redact({"exists": bool(path), "summary_path": safe_relpath(path, ROOT) if path else None, "summary": summary,
                    "display": {"period": "{0} 至 {1}".format(summary.get("start_date"), summary.get("end_date")) if summary else None,
                                "total_return_pct": summary.get("total_return_pct"), "annualized_return_pct": summary.get("annualized_return_pct"),
                                "max_drawdown_pct": summary.get("max_drawdown_pct"), "total_trades": summary.get("total_trades"),
