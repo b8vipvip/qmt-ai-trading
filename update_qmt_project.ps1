@@ -125,20 +125,38 @@ function Get-QmtPython {
     Write-Warn "未找到可用 QMT Python；将使用 py -3 启动器，避免调用裸 python"
     return "py"
 }
+function Test-DisabledExecutorRejects {
+    param([string]$Text, [string]$MethodName)
+    $pattern = "(?ms)^\s*def\s+$MethodName\s*\([^`n]*\):(?<body>.*?)(?=^\s*def\s+|\z)"
+    $match = [regex]::Match($Text, $pattern)
+    if (-not $match.Success) { return $false }
+    $body = $match.Groups["body"].Value
+    return ($body -match "raise" -and $body -match "RuntimeError" -and $body -match "禁用|disabled|refused|拒绝")
+}
 function Invoke-SafetyScan {
     $tracked = @(& git ls-files -- "*.py" "*.ps1" "*.json")
     if ($LASTEXITCODE -ne 0) { throw "无法获取安全扫描文件列表" }
     $files = @($tracked | Where-Object {
-        $_ -notmatch '^(tests|docs|logs|signals|runs|shadow|reports|backtest_results|\.git|__pycache__)/' -and
+        $_ -notmatch '^(docs|logs|signals|runs|shadow|reports|backtest_results|\.git|__pycache__)/' -and
         $_ -notmatch '(^|/)__pycache__/' -and
         $_ -notmatch '(^|/)(README\.md|\.env\.example|[^/]*\.example\.json|ai_providers[^/]*\.example\.json)$' -and
         $_ -notmatch '(^|/)(qmt_ai_research_pipeline\.py|update_qmt_project_old_broken\.ps1|patch_[^/]*\.py|fix_[^/]*\.py|test_[^/]*\.py)$' -and
         $_ -ne "update_qmt_project.ps1"
     })
     $violations = @()
+    $allowedRejectingTradeMethods = 0
     foreach ($file in $files) {
+        $fullPath = Join-Path $root $file
+        $text = Read-TextUtf8 $fullPath
+        if ($file -eq "qmt_gateway/trade_executor_disabled.py") {
+            foreach ($method in @("order_stock", "cancel_order_stock")) {
+                if (Test-DisabledExecutorRejects $text $method) { $allowedRejectingTradeMethods++ }
+                else { $violations += "$file`:0`: $method 必须只抛出 RuntimeError 拒绝交易" }
+            }
+        }
+        if ($file -like "tests/*") { continue }
         $lineNumber = 0
-        foreach ($line in Get-Content (Join-Path $root $file)) {
+        foreach ($line in Get-Content $fullPath) {
             $lineNumber++
             # 配置开关只允许按行首的真实赋值；说明文字和禁止词列表不会命中。
             $liveEnabled = $line -match '^\s*["'']?live_trading_enabled["'']?\s*[:=]\s*[Tt]rue\b'
@@ -148,12 +166,14 @@ function Invoke-SafetyScan {
             $codeOnly = $codeOnly -replace '"(?:\\.|[^"\\])*"', '""'
             $codeOnly = $codeOnly -replace "'(?:\\.|[^'\\])*'", "''"
             $dangerousCall = $codeOnly -match '\b(order_stock|cancel_order_stock)\s*\('
-            if ($liveEnabled -or $apiKey -or $dangerousCall) {
+            $allowedDisabledDef = $file -eq "qmt_gateway/trade_executor_disabled.py" -and $codeOnly -match '^\s*def\s+(order_stock|cancel_order_stock)\s*\('
+            if ($liveEnabled -or $apiKey -or ($dangerousCall -and -not $allowedDisabledDef)) {
                 $violations += "$file`:$lineNumber`: $($line.Trim())"
             }
         }
     }
     if ($violations.Count -gt 0) { throw "安全扫描发现真实源码中的危险内容：`n$($violations -join "`n")" }
+    if ($allowedRejectingTradeMethods -gt 0) { Write-Ok "安全扫描通过：仅在 DisabledTradeExecutor 或测试中发现拒绝型交易方法" }
 }
 
 try {
@@ -195,7 +215,7 @@ try {
     Invoke-Checked "python_compile" $QmtPython @("-m", "compileall", "-q", "ai_tools", "data_tools", "shadow_trading", "tests")
     $summary["python_compile"] = "通过"; Write-Ok "Python编译检查通过"
     Invoke-SafetyScan
-    $summary["safety_scan"] = "通过"; Write-Ok "安全扫描通过"
+    $summary["safety_scan"] = "通过"
 } catch {
     $failureReason = $_.Exception.Message
     $suggestion = if ($codeUpdated) { "请根据上面的错误修复后重新运行更新脚本" } else { "请先处理本地修改、分支或网络问题后重试" }
