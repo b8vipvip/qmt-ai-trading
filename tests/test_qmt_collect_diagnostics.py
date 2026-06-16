@@ -141,6 +141,26 @@ class DiagnosticTests(unittest.TestCase):
             self.assertEqual(123456, result["shadow_replay"]["summary"]["final_asset"])
             self.assertEqual("准备进入 ETF 影子盘", result["stage"])
 
+    def test_shadow_replay_display_fields_and_warnings(self):
+        with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
+            self.write_json(root, "shadow_replay/run_20260615_120000/replay_summary.json", {
+                "start_date": "2025-01-01", "end_date": "2026-06-16", "total_return_pct": 1.2,
+                "annualized_return_pct": 0.8, "max_drawdown_pct": 2.3, "total_trades": 1, "closed_trades": 0,
+                "open_positions": True, "win_rate": None, "tradable_selected_etf_counts": {"510300.SH": 3},
+                "benchmark_counts": {"000300.SH": 3}
+            })
+            result = diagnostic.collect_shadow_replay()
+            self.assertTrue(result["exists"])
+            self.assertEqual("2025-01-01 至 2026-06-16", result["display"]["period"])
+            self.assertEqual({"510300.SH": 3}, result["display"]["tradable_selected_etf_counts"])
+            self.assertEqual({"000300.SH": 3}, result["display"]["benchmark_counts"])
+
+    def test_shadow_replay_detects_metric_warning(self):
+        with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
+            self.write_json(root, "shadow_replay/run_20260615_120000/replay_summary.json", {"total_trades": 1, "closed_trades": 0, "win_rate": 0.0})
+            result = diagnostic.collect_shadow_replay()
+            self.assertTrue(any("win_rate" in item for item in result["display"]["metric_warnings"]))
+
     def test_etf_shadow_state_takes_priority_over_ma_daily_fields(self):
         with tempfile.TemporaryDirectory() as root, mock.patch.object(diagnostic, "ROOT", root):
             self.write_json(root, "signals/daily_status.json", {"stock_code": "600000.SH", "signal": "SELL_SIGNAL"})

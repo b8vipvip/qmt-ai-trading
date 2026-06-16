@@ -263,7 +263,21 @@ def _daily_review_diagnostics():
 def collect_shadow_replay():
     path = _latest("shadow_replay/run_*/replay_summary.json")
     summary = _read_json(path, {}) if path else {}
-    return redact({"exists": bool(path), "summary_path": os.path.relpath(path, ROOT) if path else None, "summary": summary})
+    warnings = []
+    selected = summary.get("tradable_selected_etf_counts") or summary.get("selected_etf_counts") or {}
+    benchmarks = summary.get("benchmark_counts") or {}
+    overlap = sorted(set(selected).intersection(set(benchmarks)))
+    if overlap:
+        warnings.append("ETF选择分布与指数/基准引用分布存在重叠: " + ",".join(overlap))
+    if summary.get("total_trades", 0) and summary.get("closed_trades") == 0 and summary.get("win_rate") is not None:
+        warnings.append("无闭合交易时 win_rate 应为空值")
+    return redact({"exists": bool(path), "summary_path": os.path.relpath(path, ROOT) if path else None, "summary": summary,
+                   "display": {"period": "{0} 至 {1}".format(summary.get("start_date"), summary.get("end_date")) if summary else None,
+                               "total_return_pct": summary.get("total_return_pct"), "annualized_return_pct": summary.get("annualized_return_pct"),
+                               "max_drawdown_pct": summary.get("max_drawdown_pct"), "total_trades": summary.get("total_trades"),
+                               "closed_trades": summary.get("closed_trades"), "open_positions": summary.get("open_positions"),
+                               "tradable_selected_etf_counts": selected, "benchmark_counts": benchmarks,
+                               "metric_warnings": warnings + list(summary.get("warnings") or [])}})
 
 
 def collect_shadow():
@@ -322,6 +336,26 @@ def build_report():
         "redactions_applied": ["API keys/tokens/secrets", "account_id/account identifiers"], "errors": errors}, **values))
 
 
+def _render_shadow_replay_markdown(value):
+    display = value.get("display") or {}
+    lines = [
+        "- 历史回放区间：{0}".format(display.get("period")),
+        "- 总收益：{0}%".format(display.get("total_return_pct")),
+        "- 年化收益：{0}%".format(display.get("annualized_return_pct")),
+        "- 最大回撤：{0}%".format(display.get("max_drawdown_pct")),
+        "- 交易次数：{0}".format(display.get("total_trades")),
+        "- 闭合交易数：{0}".format(display.get("closed_trades")),
+        "- 是否仍有未平仓：{0}".format("是" if display.get("open_positions") else "否"),
+        "- 可交易 ETF 选择分布：{0}".format(json.dumps(display.get("tradable_selected_etf_counts") or {}, ensure_ascii=False)),
+        "- 指数/基准引用分布：{0}".format(json.dumps(display.get("benchmark_counts") or {}, ensure_ascii=False)),
+        "- 是否有统计口径警告：{0}".format("是" if display.get("metric_warnings") else "否"),
+    ]
+    if display.get("metric_warnings"):
+        lines.append("- 统计口径警告：{0}".format("；".join([str(item) for item in display.get("metric_warnings") or []])))
+    lines.append("\n```json\n" + json.dumps(value, ensure_ascii=False, indent=2) + "\n```")
+    return "\n".join(lines)
+
+
 def render_markdown(r):
     def block(value): return "```json\n" + json.dumps(value, ensure_ascii=False, indent=2) + "\n```"
     return """# QMT AI Trading Diagnostic Report
@@ -368,7 +402,7 @@ def render_markdown(r):
 ## 9. 需要发给 ChatGPT 的重点
 - 请优先分析当前阶段、失败检查、风险警告和下一步建议。
 - 报告已脱敏；诊断器只读，不执行交易。
-""".format(stage=r["stage"], go="是" if r["can_continue"] else "否", next=r["next_recommendation"], risk="；".join(r["risks"]), git=block(r["git"]), update_final=r["update_checks"].get("final_status"), code_pull=r["update_checks"].get("code_pull"), config_check=r["update_checks"].get("config_check"), unit_tests=r["update_checks"].get("unit_tests"), python_compile=r["update_checks"].get("python_compile"), safety_scan=r["update_checks"].get("safety_scan"), failure_reason=r["update_checks"].get("failure_reason"), suggestion=r["update_checks"].get("suggestion"), source_summary=r["update_checks"].get("source_summary"), config=block(r["config"]), planned_volume=r["etf_rotation"].get("planned_volume"), planned_amount=r["etf_rotation"].get("planned_amount"), planned_price_ref=r["etf_rotation"].get("planned_price_ref"), etf=block(r["etf_rotation"]), ai=block(r["ai_research"]), api=block(r["ai_api"]), shadow_replay=block(r.get("shadow_replay", {})), files=block(r["recent_files"]))
+""".format(stage=r["stage"], go="是" if r["can_continue"] else "否", next=r["next_recommendation"], risk="；".join(r["risks"]), git=block(r["git"]), update_final=r["update_checks"].get("final_status"), code_pull=r["update_checks"].get("code_pull"), config_check=r["update_checks"].get("config_check"), unit_tests=r["update_checks"].get("unit_tests"), python_compile=r["update_checks"].get("python_compile"), safety_scan=r["update_checks"].get("safety_scan"), failure_reason=r["update_checks"].get("failure_reason"), suggestion=r["update_checks"].get("suggestion"), source_summary=r["update_checks"].get("source_summary"), config=block(r["config"]), planned_volume=r["etf_rotation"].get("planned_volume"), planned_amount=r["etf_rotation"].get("planned_amount"), planned_price_ref=r["etf_rotation"].get("planned_price_ref"), etf=block(r["etf_rotation"]), ai=block(r["ai_research"]), api=block(r["ai_api"]), shadow_replay=_render_shadow_replay_markdown(r.get("shadow_replay", {})), files=block(r["recent_files"]))
 
 
 def main():
