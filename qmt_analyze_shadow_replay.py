@@ -22,6 +22,15 @@ API_KEY_RE = re.compile(r"sk-[A-Za-z0-9_-]{8,}")
 ACCOUNT_RE = re.compile(r"(?i)(account[_-]?id|account)\s*[:=]\s*([A-Za-z0-9_-]{4,})")
 
 
+def safe_relpath(path, start):
+    """Return a slash-normalized relative path, falling back safely across Windows drives."""
+    try:
+        display_path = os.path.relpath(path, start)
+    except ValueError:
+        display_path = os.path.abspath(path)
+    return _redact_text(display_path.replace(os.sep, "/"))
+
+
 def _safe_float(value, default=0.0):
     try:
         if value is None or value == "":
@@ -255,7 +264,7 @@ def analyze_run(run_dir):
     overfit_risk = {"risk_level": "high" if len(overfit_flags) >= 2 else ("medium" if overfit_flags else "low"), "flags": overfit_flags}
     drawdown_periods = find_drawdown_periods(equity)
     contributions = calculate_etf_contributions(trades)
-    result = {"analysis_type": "shadow_replay_readonly_ai_analysis", "run_dir": os.path.relpath(run_dir, ROOT).replace(os.sep, "/"),
+    result = {"analysis_type": "shadow_replay_readonly_ai_analysis", "run_dir": safe_relpath(run_dir, ROOT),
               "inputs": {"replay_summary": os.path.basename(summary_path), "trades": os.path.basename(trades_path),
                          "equity_curve": os.path.basename(equity_path), "replay_report": os.path.basename(report_path)},
               "safety": {"strategy_code_modified": False, "trading_functions_called": False, "live_trading_enabled_modified": False,

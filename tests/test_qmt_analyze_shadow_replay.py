@@ -5,6 +5,7 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
 import qmt_analyze_shadow_replay as analyzer
 
@@ -62,6 +63,25 @@ class ShadowReplayAnalyzerTests(unittest.TestCase):
             for key in ["modify_location", "reason", "expected_metric_improvement", "potential_side_effect", "change_now"]:
                 self.assertIn(key, rec)
 
+
+    def test_safe_relpath_returns_relative_path_inside_project_tree(self):
+        project_run_dir = os.path.join(analyzer.ROOT, "shadow_replay", "run_20260616_120000")
+        self.assertEqual("shadow_replay/run_20260616_120000", analyzer.safe_relpath(project_run_dir, analyzer.ROOT))
+
+    def test_safe_relpath_falls_back_when_windows_drives_differ(self):
+        cross_drive_path = r"C:\Users\86185\AppData\Local\Temp\shadow_replay\run_20260616_120000"
+        with mock.patch("qmt_analyze_shadow_replay.os.path.relpath", side_effect=ValueError("path is on mount 'C:', start on mount 'D:'")):
+            value = analyzer.safe_relpath(cross_drive_path, r"D:\AI\qmt")
+        self.assertIn("C:", value)
+        self.assertIn("/", value)
+
+    def test_analyze_run_in_temp_directory_outputs_safe_run_dir(self):
+        analysis = analyzer.analyze_run(self.run_dir)
+        self.assertIn("run_dir", analysis)
+        text = analysis["run_dir"].lower()
+        for forbidden in ["api_key", "token", "secret", "sk-"]:
+            self.assertNotIn(forbidden, text)
+
     def test_latest_run_dir_finds_newest(self):
         newer = os.path.join(self.tmp, "shadow_replay", "run_20260616_130000")
         os.makedirs(newer)
@@ -82,6 +102,18 @@ class ShadowReplayAnalyzerTests(unittest.TestCase):
     def test_module_does_not_expose_real_trading_functions(self):
         self.assertFalse(hasattr(analyzer, "order_stock"))
         self.assertFalse(hasattr(analyzer, "cancel_order_stock"))
+        source_path = os.path.join(analyzer.ROOT, "qmt_analyze_shadow_replay.py")
+        with open(source_path, "r", encoding="utf-8") as handle:
+            source = handle.read()
+        self.assertNotIn("order" + "_stock(", source)
+        self.assertNotIn("cancel_order" + "_stock(", source)
+
+    def test_module_does_not_modify_live_trading_enabled(self):
+        source_path = os.path.join(analyzer.ROOT, "qmt_analyze_shadow_replay.py")
+        with open(source_path, "r", encoding="utf-8") as handle:
+            source = handle.read()
+        self.assertNotIn("live_trading_enabled =", source)
+        self.assertNotIn('"live_trading_enabled": True', source)
 
 
 if __name__ == "__main__":
