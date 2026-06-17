@@ -19,11 +19,32 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--date", dest="trade_date", default=None, help="Trade date, for example 2026-06-17.")
     parser.add_argument("--symbols", default="", help="Comma-separated ETF symbols. Defaults to Data Hub ETF universe.")
     parser.add_argument("--dry-run", action="store_true", default=True, help="Keep dry-run mode enabled (default).")
+    parser.add_argument("--write-reports", action="store_true", help="Write Markdown/JSON/HTML reports to disk.")
+    parser.add_argument("--report-dir", default=None, help="Report output directory. Defaults to reports/YYYY-MM-DD when writing reports.")
+    parser.add_argument("--notify-dry-run", action="store_true", help="Run notification adapters in dry-run placeholder mode only.")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
     result = run_etf_daily_pipeline(trade_date=args.trade_date, symbols=symbols or None, dry_run=True)
     print(result.report_text)
+
+    artifacts = []
+    if args.write_reports:
+        from qmt_ai_trading.reporting.writer import write_pipeline_reports
+
+        artifacts = write_pipeline_reports(result, args.report_dir)
+        print("\nReports written:")
+        for artifact in artifacts:
+            print(f"- {artifact.format}: {artifact.path}")
+
+    if args.notify_dry_run:
+        from qmt_ai_trading.reporting.notifier import notify_report
+
+        notification_results = notify_report(artifacts, dry_run=True)
+        print("\nNotification dry-run results:")
+        for item in notification_results:
+            print(f"- {item.channel}: success={item.success} dry_run={item.dry_run} message={item.message}")
+
     return 0 if result.success else 1
 
 

@@ -87,3 +87,7 @@ instance/*.sqlite
 .mypy_cache/
 
 **pycache**/
+*.report.json
+daily_report.json
+daily_report.html
+daily_report.md
