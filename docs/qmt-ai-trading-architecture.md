@@ -471,3 +471,9 @@ Stage 11 新增 `qmt_ai_trading.scheduler` 本地调度层，用于生成 Window
 ## 阶段十四：QMT Historical Provider 实机联调与字段校准
 
 阶段十四新增 `qmt_ai_trading/datahub/qmt_diagnostics.py` 与 `qmt_ai_trading/datahub/qmt_field_mapping.py`，用于在本机 MiniQMT / `xtquant.xtdata` 环境中诊断运行时可用性、校准历史行情字段别名，并生成数据质量报告。新增 `scripts/qmt_fetch_sample_calibrate.py` 用于小范围样本拉取与缓存校验；`scripts/check_qmt_data_provider.py` 增加 `--diagnose`、`--print-functions`、`--fetch-sample`、`--cache-root`、`--write-report`、`--report-path` 参数。当前阶段仍只读取历史行情并写入被忽略的本地缓存目录，不导入 `xttrader`，不查询交易信息，不下单。
+
+## Stage 15: Scheduled historical cache warmup
+
+Stage 15 adds an optional historical bar cache warmup step before the scheduled dry-run ETF daily pipeline. When `--warmup-cache` is enabled, the scheduler checks the ETF universe local bar cache first, fetches missing historical bars through the selected historical provider, and saves them through `LocalBarStore` before continuing to the existing dry-run pipeline.
+
+The default warmup provider is `mock` so local tests and scheduler previews work without QMT. `provider=qmt` is supported through the QMT historical provider only; when `xtquant.xtdata` is unavailable, the warmup records a skipped/failed item with a readable warning and keeps the scheduled dry-run pipeline safe. This stage does not call `xttrader`, does not place orders, and does not query account, position, order, or trade data.
