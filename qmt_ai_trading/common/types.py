@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Optional
 
 
 @dataclass(slots=True)
@@ -21,7 +21,7 @@ class TradeIntent:
     target_percent: float = 0.0
     price_type: str = "LATEST"
     reason: str = ""
-    source: str = "unknown"
+    source: str = ""
     dry_run: bool = True
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -41,10 +41,10 @@ class AgentDecision:
     """Structured analysis output from an agent."""
 
     symbol: str
-    signal: str = "HOLD"
-    confidence: float = 0.0
-    score: float = 0.0
-    max_position_pct: float = 0.0
+    signal: str
+    confidence: float
+    score: float
+    max_position_pct: float
     reasons: list[str] = field(default_factory=list)
     risk_flags: list[str] = field(default_factory=list)
 
@@ -56,4 +56,4 @@ class OrderResult:
     success: bool
     order_id: Optional[str] = None
     message: str = ""
-    raw: Any = None
+    raw: Optional[dict] = None

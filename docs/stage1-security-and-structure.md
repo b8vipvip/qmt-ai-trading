@@ -24,6 +24,13 @@
 
 系统配置默认 `LIVE_TRADING_ENABLED=False`。当该配置没有显式开启时，实盘委托必须被拒绝或只返回 dry-run 结果。任何模块都不得绕过 Risk Gate 调用 QMT 实盘下单。
 
+
+## 安全边界
+
+- Risk Gate 是实盘前最后一道门，所有真实委托都必须先经过结构化校验和风控批准。
+- Agent 不能直接下单，只能输出 `AgentDecision` 等结构化建议。
+- LLM 不能生成后自动执行 Python 代码；任何模型输出都必须先结构化、审查、回测或人工确认。
+
 ## 后续如何接 TradingAgents / Qlib / vn.py
 
 - TradingAgents：只借鉴多 Agent 投研流程，输出结构化 `AgentDecision`，不复制 UI，不允许 Agent 直接下单。
