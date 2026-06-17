@@ -404,3 +404,16 @@ Agent 只能输出建议，不得直接下单。
 ## 阶段五进度：Data Hub 标准化
 
 阶段五已追加 Data Hub 标准化基线：`datahub.symbols` 统一 A 股/ETF 代码到 `510300.SH` / `159915.SZ` 格式；`datahub.models` 提供轻量 dataclass 数据契约；`datahub.market_data` 通过 QMT 只读 gateway adapter 懒加载行情，在无真实数据时返回 `None` 或空列表；`datahub.etf_universe` 提供离线默认 ETF 候选池；`datahub.cache` 保留本地缓存接口占位但不写入敏感路径。ETF Rotation Strategy Engine 新增从 Data Hub ETF universe 构造候选的 adapter，Strategy、Research、Agent 后续应通过 Data Hub 统一取数。
+
+## 阶段六进度：Research 层标准化
+
+阶段六新增轻量 Research 层接口，覆盖因子计算、研究评分、研究报告和 ETF 轮动策略适配。当前实现只消费 Data Hub 已提供的 `MarketBar` 数据，不连接网络、不连接 QMT、不生成订单。
+
+新增能力包括：
+
+- `qmt_ai_trading.research.factors`：提供动量、波动率、成交量因子和因子结果排序。
+- `qmt_ai_trading.research.scoring`：提供 `ResearchScore`、单标的评分和 ETF universe 批量评分。
+- `qmt_ai_trading.research.report`：提供结构化研究报告和可读文本摘要。
+- ETF Rotation Strategy 新增 ResearchScore 到 ETFCandidate 的只读 adapter，后续 TradeIntent 仍走原有策略流程。
+
+阶段六仍不接完整 Qlib / vn.py 依赖，不做 UI，不接实盘；下单链路继续要求经过 Risk Gate + QMT Gateway。
