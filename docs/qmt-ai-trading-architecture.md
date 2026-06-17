@@ -1,4 +1,4 @@
-﻿# qmt-ai-trading 长期架构说明
+# qmt-ai-trading 长期架构说明
 
 本项目继续使用原有 qmt-ai-trading 作为主系统，不再使用 DeltaFStation / cn-trader 作为底座。
 
@@ -393,3 +393,10 @@ Agent 只能输出建议，不得直接下单。
 不能把 .env、密钥、Token、数据库、账号密码提交到 GitHub。
 修改后必须运行基础检查，再提交。
 
+
+
+## 阶段四进度：ETF Rotation Strategy Engine
+
+阶段四已建立 ETF Rotation Strategy Engine 标准接口：现有 ETF universe、评分、shadow replay 和 dry-run 研究逻辑继续保留，策略层新增标准化候选、选择和信号生成入口。ETF 轮动策略只输出 `TradeIntent` 或 `list[TradeIntent]`，默认 dry-run，不直接下单，不调用真实 QMT `order_stock`。
+
+下单职责仍保持在 `TradeIntent -> Risk Gate -> QMT Gateway` 链路中：Strategy Engine 负责生成结构化意图，Risk Gate 负责风控校验，QMT Gateway 负责受控执行。
