@@ -20,7 +20,7 @@ DEFAULT_SOURCE = "etf_rotation"
 LOT_SIZE = 100
 
 
-@dataclass(slots=True)
+@dataclass
 class ETFCandidate:
     """Normalized ETF candidate consumed by the Strategy Engine."""
 
@@ -34,7 +34,7 @@ class ETFCandidate:
     metrics: dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
+@dataclass
 class ETFRotationDecision:
     """Selection decision before conversion to one or more TradeIntents."""
 

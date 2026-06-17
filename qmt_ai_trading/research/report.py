@@ -9,7 +9,7 @@ from typing import Any, Iterable
 from qmt_ai_trading.research.scoring import ResearchScore
 
 
-@dataclass(slots=True)
+@dataclass
 class ResearchReport:
     title: str
     scores: list[ResearchScore] = field(default_factory=list)

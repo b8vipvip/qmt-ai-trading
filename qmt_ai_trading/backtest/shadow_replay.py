@@ -10,7 +10,7 @@ from qmt_ai_trading.backtest.simulator import run_simple_backtest
 from qmt_ai_trading.common.types import TradeIntent
 
 
-@dataclass(slots=True)
+@dataclass
 class ShadowReplayEvent:
     intent: TradeIntent | None = None
     datetime: Any = None
@@ -19,7 +19,7 @@ class ShadowReplayEvent:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
+@dataclass
 class ShadowReplayResult:
     events: list[ShadowReplayEvent] = field(default_factory=list)
     backtest_result: BacktestResult | None = None

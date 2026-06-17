@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Any
 
 
-@dataclass(slots=True)
+@dataclass
 class MarketBar:
     symbol: str
     datetime: datetime | str | None
@@ -20,7 +20,7 @@ class MarketBar:
     source: str = ""
 
 
-@dataclass(slots=True)
+@dataclass
 class LatestPrice:
     symbol: str
     price: float
@@ -28,7 +28,7 @@ class LatestPrice:
     source: str = ""
 
 
-@dataclass(slots=True)
+@dataclass
 class ETFUniverseItem:
     symbol: str
     name: str = ""
@@ -38,7 +38,7 @@ class ETFUniverseItem:
     source: str = "datahub_default"
 
 
-@dataclass(slots=True)
+@dataclass
 class DataSnapshot:
     symbol: str
     latest_price: LatestPrice | None = None

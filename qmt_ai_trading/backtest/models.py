@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
-@dataclass(slots=True)
+@dataclass
 class BacktestOrder:
     symbol: str
     side: str
@@ -17,7 +17,7 @@ class BacktestOrder:
     reason: str = ""
 
 
-@dataclass(slots=True)
+@dataclass
 class BacktestTrade:
     symbol: str
     side: str
@@ -30,7 +30,7 @@ class BacktestTrade:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
+@dataclass
 class BacktestPosition:
     symbol: str
     quantity: int = 0
@@ -40,7 +40,7 @@ class BacktestPosition:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
+@dataclass
 class BacktestAccount:
     cash: float
     total_asset: float | None = None
@@ -48,7 +48,7 @@ class BacktestAccount:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
+@dataclass
 class BacktestResult:
     initial_cash: float
     final_cash: float

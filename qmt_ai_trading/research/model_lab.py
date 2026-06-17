@@ -13,7 +13,7 @@ from qmt_ai_trading.research.dataset import ResearchDataset, split_dataset_by_ra
 from qmt_ai_trading.research.metrics import ModelEvaluationResult, evaluate_predictions
 
 
-@dataclass(slots=True)
+@dataclass
 class ModelPrediction:
     symbol: str
     datetime: Any
@@ -21,7 +21,7 @@ class ModelPrediction:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
+@dataclass
 class ModelLabResult:
     success: bool
     reason: str = ""

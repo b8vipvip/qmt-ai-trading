@@ -13,7 +13,7 @@ from typing import Any
 from qmt_ai_trading.config.settings import get_settings
 
 
-@dataclass(slots=True)
+@dataclass
 class QmtClientManager:
     """Lazy QMT client manager for future gateway adapters."""
 

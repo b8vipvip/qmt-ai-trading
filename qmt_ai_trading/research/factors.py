@@ -15,7 +15,7 @@ from qmt_ai_trading.datahub.models import MarketBar
 from qmt_ai_trading.datahub.symbols import normalize_symbol
 
 
-@dataclass(slots=True)
+@dataclass
 class FactorValue:
     """Single factor observation for one symbol."""
 
@@ -26,7 +26,7 @@ class FactorValue:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
+@dataclass
 class FactorResult:
     """Structured factor calculation result for one symbol."""
 
