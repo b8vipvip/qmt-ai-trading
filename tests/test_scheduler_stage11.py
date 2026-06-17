@@ -25,8 +25,9 @@ def test_schedule_config_instantiates() -> None:
 def test_build_daily_pipeline_command_defaults() -> None:
     command = build_daily_pipeline_command()
     display = command.metadata["display"]
+    normalized_display = display.replace("\\", "/")
     assert command.command == "py"
-    assert "scripts/run_daily_pipeline.py" in display
+    assert "scripts/run_daily_pipeline.py" in normalized_display
     assert "--write-reports" in command.arguments
     assert "--report-dir" in command.arguments
     assert "reports" in command.arguments
