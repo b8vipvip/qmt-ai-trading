@@ -467,3 +467,7 @@ Stage 11 新增 `qmt_ai_trading.scheduler` 本地调度层，用于生成 Window
 阶段十三新增可选的 QMT 历史行情 provider，将阶段十二的 `LocalBarStore` 缓存层与本机 MiniQMT / QMT 的 `xtquant.xtdata` 历史行情读取能力连接起来。默认 provider 仍为 mock；只有显式选择 `provider="qmt"` 或创建 `QmtHistoricalDataProvider` 时才延迟导入 `xtquant.xtdata`。
 
 本阶段流程保持 local-cache-first：先查本地缓存，cache hit 直接返回；cache miss 才通过 `xtdata.download_history_data` 与 `xtdata.get_market_data_ex` / `get_market_data` 读取历史行情，转换为 Data Hub `MarketBar` 后保存到 `market_data/`。阶段十三不导入 `xttrader`，不调用下单、撤单、资金或持仓等交易接口。
+
+## 阶段十四：QMT Historical Provider 实机联调与字段校准
+
+阶段十四新增 `qmt_ai_trading/datahub/qmt_diagnostics.py` 与 `qmt_ai_trading/datahub/qmt_field_mapping.py`，用于在本机 MiniQMT / `xtquant.xtdata` 环境中诊断运行时可用性、校准历史行情字段别名，并生成数据质量报告。新增 `scripts/qmt_fetch_sample_calibrate.py` 用于小范围样本拉取与缓存校验；`scripts/check_qmt_data_provider.py` 增加 `--diagnose`、`--print-functions`、`--fetch-sample`、`--cache-root`、`--write-report`、`--report-path` 参数。当前阶段仍只读取历史行情并写入被忽略的本地缓存目录，不导入 `xttrader`，不查询交易信息，不下单。
