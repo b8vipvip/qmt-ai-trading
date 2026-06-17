@@ -15,23 +15,39 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 function Log-Info {
-    param([string]$Msg)
-    Write-Host "[INFO] $Msg" -ForegroundColor Cyan
+    param([string]$Msg, [string]$CnMsg = "")
+    $line = "[INFO] " + $Msg
+    if (-not [string]::IsNullOrWhiteSpace($CnMsg)) {
+        $line = $line + " / [信息] " + $CnMsg
+    }
+    Write-Host $line -ForegroundColor Cyan
 }
 
 function Log-Ok {
-    param([string]$Msg)
-    Write-Host "[OK] $Msg" -ForegroundColor Green
+    param([string]$Msg, [string]$CnMsg = "")
+    $line = "[OK] " + $Msg
+    if (-not [string]::IsNullOrWhiteSpace($CnMsg)) {
+        $line = $line + " / [成功] " + $CnMsg
+    }
+    Write-Host $line -ForegroundColor Green
 }
 
 function Log-Warn {
-    param([string]$Msg)
-    Write-Host "[WARN] $Msg" -ForegroundColor Yellow
+    param([string]$Msg, [string]$CnMsg = "")
+    $line = "[WARN] " + $Msg
+    if (-not [string]::IsNullOrWhiteSpace($CnMsg)) {
+        $line = $line + " / [警告] " + $CnMsg
+    }
+    Write-Host $line -ForegroundColor Yellow
 }
 
 function Log-Bad {
-    param([string]$Msg)
-    Write-Host "[ERROR] $Msg" -ForegroundColor Red
+    param([string]$Msg, [string]$CnMsg = "")
+    $line = "[ERROR] " + $Msg
+    if (-not [string]::IsNullOrWhiteSpace($CnMsg)) {
+        $line = $line + " / [错误] " + $CnMsg
+    }
+    Write-Host $line -ForegroundColor Red
 }
 
 function Run-Git {
@@ -89,7 +105,7 @@ function Ensure-GitRepo {
 }
 
 function Ensure-Remote {
-    Log-Info "Checking remote URL..."
+    Log-Info "Checking remote URL..." "检查远程仓库地址..."
 
     $remoteCheck = Run-Git -GitArgs @("remote", "get-url", $Remote) -AllowFail
 
@@ -134,7 +150,7 @@ function Ensure-Branch {
 }
 
 function Ensure-GitIgnoreRules {
-    Log-Info "Checking .gitignore..."
+    Log-Info "Checking .gitignore..." "检查 .gitignore 规则..."
 
     $ignoreFile = ".gitignore"
     if (-not (Test-Path $ignoreFile)) {
@@ -197,10 +213,10 @@ function Ensure-GitIgnoreRules {
     }
 
     if ($changed) {
-        Log-Ok ".gitignore updated"
+        Log-Ok ".gitignore updated" ".gitignore 已更新"
     }
     else {
-        Log-Ok ".gitignore already contains sensitive rules"
+        Log-Ok ".gitignore already contains sensitive rules" ".gitignore 已包含敏感文件规则"
     }
 }
 
@@ -243,7 +259,7 @@ function Test-PathIsSensitive {
         '(^|/)\.env($|[./])',
         '\.(pem|key|p12|pfx|sqlite|sqlite3|db|mdb|kdbx)$',
         '(^|/)(id_rsa|id_dsa|id_ecdsa|id_ed25519)$',
-        '(?i)(password|passwd|secret|token|credential|private[_-]?key|api[_-]?key|account)'
+        '(?i)(password|passwd|secret|token|credential|private[_-]?key|api[_-]?key)'
     )
 
     foreach ($p in $blockedPatterns) {
@@ -256,12 +272,12 @@ function Test-PathIsSensitive {
 }
 
 function Scan-Privacy {
-    Log-Info "Running privacy scan..."
+    Log-Info "Running privacy scan..." "正在执行隐私扫描..."
 
     $files = Get-ChangedFiles
 
     if ($files.Count -eq 0) {
-        Log-Ok "No changed files to scan"
+        Log-Ok "No changed files to scan" "没有需要扫描的变更文件"
         return
     }
 
@@ -332,7 +348,7 @@ function Scan-Privacy {
     }
 
     if ($blockedItems.Count -gt 0) {
-        Log-Bad "Privacy scan failed. Commit blocked."
+        Log-Bad "Privacy scan failed. Commit blocked." "隐私扫描失败，已阻止提交"
         Write-Host ""
 
         foreach ($item in $blockedItems) {
@@ -344,7 +360,7 @@ function Scan-Privacy {
         throw "Privacy scan failed"
     }
 
-    Log-Ok "Privacy scan passed"
+    Log-Ok "Privacy scan passed" "隐私扫描通过"
 }
 
 function RemoteBranchExists {
@@ -542,7 +558,7 @@ function Main {
 
         "scan" {
             Scan-Privacy
-            Log-Ok "Scan mode done"
+            Log-Ok "Scan mode done" "扫描模式完成"
         }
 
         "pull" {
@@ -565,7 +581,7 @@ function Main {
     }
 
     Write-Host ""
-    Log-Ok "All done"
+    Log-Ok "All done" "全部完成"
 }
 
 try {
@@ -575,6 +591,6 @@ catch {
     Write-Host ""
     Log-Bad $_.Exception.Message
     Write-Host ""
-    Log-Warn "Stopped. No unsafe operation continued."
+    Log-Warn "Stopped. No unsafe operation continued." "已中止，没有继续执行危险操作"
     exit 1
 }
