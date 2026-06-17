@@ -400,3 +400,7 @@ Agent 只能输出建议，不得直接下单。
 阶段四已建立 ETF Rotation Strategy Engine 标准接口：现有 ETF universe、评分、shadow replay 和 dry-run 研究逻辑继续保留，策略层新增标准化候选、选择和信号生成入口。ETF 轮动策略只输出 `TradeIntent` 或 `list[TradeIntent]`，默认 dry-run，不直接下单，不调用真实 QMT `order_stock`。
 
 下单职责仍保持在 `TradeIntent -> Risk Gate -> QMT Gateway` 链路中：Strategy Engine 负责生成结构化意图，Risk Gate 负责风控校验，QMT Gateway 负责受控执行。
+
+## 阶段五进度：Data Hub 标准化
+
+阶段五已追加 Data Hub 标准化基线：`datahub.symbols` 统一 A 股/ETF 代码到 `510300.SH` / `159915.SZ` 格式；`datahub.models` 提供轻量 dataclass 数据契约；`datahub.market_data` 通过 QMT 只读 gateway adapter 懒加载行情，在无真实数据时返回 `None` 或空列表；`datahub.etf_universe` 提供离线默认 ETF 候选池；`datahub.cache` 保留本地缓存接口占位但不写入敏感路径。ETF Rotation Strategy Engine 新增从 Data Hub ETF universe 构造候选的 adapter，Strategy、Research、Agent 后续应通过 Data Hub 统一取数。
