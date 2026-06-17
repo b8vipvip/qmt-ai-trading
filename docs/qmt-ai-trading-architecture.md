@@ -417,3 +417,15 @@ Agent 只能输出建议，不得直接下单。
 - ETF Rotation Strategy 新增 ResearchScore 到 ETFCandidate 的只读 adapter，后续 TradeIntent 仍走原有策略流程。
 
 阶段六仍不接完整 Qlib / vn.py 依赖，不做 UI，不接实盘；下单链路继续要求经过 Risk Gate + QMT Gateway。
+
+## 阶段七：Research Model Lab（已完成）
+
+阶段七新增轻量 Research Model Lab，覆盖 ETF / 指数研究所需的样本构造、特征矩阵、forward return 标签、train/test 切分、IC / RankIC / directional accuracy 和简单 baseline 模型评价。
+
+新增模块包括：
+
+- `qmt_ai_trading.research.dataset`：提供 `FeatureRow`、`LabelRow`、`ResearchDataset`、`TrainTestSplit` 以及从 `MarketBar` 构造样本和标签的纯 Python helper。
+- `qmt_ai_trading.research.metrics`：提供 Pearson IC、Spearman RankIC、方向准确率和统一评价结果结构。
+- `qmt_ai_trading.research.model_lab`：提供轻量 baseline 训练、预测和 `run_model_lab(...)` 入口。
+
+Research Score 新增 Model Lab prediction adapter，ETF Rotation Strategy 可选接入 Model Lab 结果，但输出仍保持为 `ETFCandidate` 或 dry-run `TradeIntent`。Model Lab 不连接网络、不连接 QMT、不直接下单；Strategy 使用其结果时仍必须经过 Risk Gate + QMT Gateway。

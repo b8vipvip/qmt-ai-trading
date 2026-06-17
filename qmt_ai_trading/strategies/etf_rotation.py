@@ -189,6 +189,27 @@ def build_candidates_from_research_scores(
     return candidates
 
 
+def build_candidates_from_model_predictions(
+    predictions: Iterable[Any],
+    *,
+    target_percent: float | None = None,
+    min_score: float | None = None,
+) -> list[ETFCandidate]:
+    """Adapt Model Lab predictions into ETF candidates via ResearchScore.
+
+    This keeps Model Lab optional and research-only. Returned candidates still
+    use the normal ETF rotation path before any dry-run TradeIntent is emitted.
+    """
+
+    from qmt_ai_trading.research.scoring import research_scores_from_model_predictions
+
+    return build_candidates_from_research_scores(
+        research_scores_from_model_predictions(predictions),
+        target_percent=target_percent,
+        min_score=min_score,
+    )
+
+
 def score_etf_candidates(
     candidates: Iterable[ETFCandidate | Mapping[str, Any]],
     *,
