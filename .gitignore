@@ -55,3 +55,31 @@ shadow_replay_batch/
 
 # research artifacts
 research/
+# qmt-ai-trading sensitive files
+.env.*
+!.env.example
+*.p12
+*.pfx
+*.crt
+*.sqlite
+*.sqlite3
+*.db
+*.mdb
+*.kdbx
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+*password*
+*passwd*
+*secret*
+*token*
+*credential*
+data/*.db
+data/**/*.db
+data/*.sqlite
+data/**/*.sqlite
+instance/*.db
+instance/*.sqlite
+.pytest_cache/
+.mypy_cache/
