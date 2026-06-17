@@ -44,7 +44,7 @@ def _env_symbol_set(name: str) -> set[str]:
     return {item.strip().upper() for item in value.split(",") if item.strip()}
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class Settings:
     """Safe runtime configuration for the application.
 
