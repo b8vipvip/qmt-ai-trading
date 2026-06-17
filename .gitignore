@@ -91,3 +91,5 @@ instance/*.sqlite
 daily_report.json
 daily_report.html
 daily_report.md
+reports_test_stage10/
+*.log
