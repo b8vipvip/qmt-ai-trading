@@ -55,6 +55,8 @@ shadow_replay_batch/
 
 # research artifacts
 research/
+!qmt_ai_trading/research/
+!qmt_ai_trading/research/**
 # qmt-ai-trading sensitive files
 .env.*
 !.env.example
@@ -83,3 +85,5 @@ instance/*.db
 instance/*.sqlite
 .pytest_cache/
 .mypy_cache/
+
+**pycache**/

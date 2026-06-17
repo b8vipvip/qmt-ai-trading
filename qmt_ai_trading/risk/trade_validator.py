@@ -20,6 +20,9 @@ def validate_trade_intent(intent: TradeIntent) -> RiskDecision:
     if intent.quantity < 0:
         reasons.append("quantity cannot be negative")
 
+    if intent.target_percent < 0:
+        reasons.append("target_percent cannot be negative")
+
     if side == "BUY" and intent.quantity > 0 and intent.quantity % 100 != 0:
         reasons.append("A-share buy quantity must be a multiple of 100 shares")
 

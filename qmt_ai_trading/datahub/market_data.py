@@ -9,7 +9,8 @@ def get_market_snapshot(symbol: str) -> dict[str, Any]:
     """Return a market data placeholder.
 
     TODO: Route market data through a unified Data Hub while preserving existing
-    working QMT market data scripts.
+    working QMT market data scripts. Future adapters may connect QMT local market
+    data, AkShare, Tushare, and BaoStock behind this interface.
     """
 
     return {"symbol": symbol, "data": None, "status": "not_implemented"}
