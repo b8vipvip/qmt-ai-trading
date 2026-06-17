@@ -15,39 +15,27 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 function Log-Info {
-    param([string]$Msg, [string]$CnMsg = "")
-    $line = "[INFO] " + $Msg
-    if (-not [string]::IsNullOrWhiteSpace($CnMsg)) {
-        $line = $line + " / [信息] " + $CnMsg
-    }
-    Write-Host $line -ForegroundColor Cyan
+    param([string]$Msg, [string]$Zh = "")
+    Write-Host "[INFO] $Msg" -ForegroundColor Cyan
+    if ($Zh -ne "") { Write-Host "[信息] $Zh" -ForegroundColor Cyan }
 }
 
 function Log-Ok {
-    param([string]$Msg, [string]$CnMsg = "")
-    $line = "[OK] " + $Msg
-    if (-not [string]::IsNullOrWhiteSpace($CnMsg)) {
-        $line = $line + " / [成功] " + $CnMsg
-    }
-    Write-Host $line -ForegroundColor Green
+    param([string]$Msg, [string]$Zh = "")
+    Write-Host "[OK] $Msg" -ForegroundColor Green
+    if ($Zh -ne "") { Write-Host "[成功] $Zh" -ForegroundColor Green }
 }
 
 function Log-Warn {
-    param([string]$Msg, [string]$CnMsg = "")
-    $line = "[WARN] " + $Msg
-    if (-not [string]::IsNullOrWhiteSpace($CnMsg)) {
-        $line = $line + " / [警告] " + $CnMsg
-    }
-    Write-Host $line -ForegroundColor Yellow
+    param([string]$Msg, [string]$Zh = "")
+    Write-Host "[WARN] $Msg" -ForegroundColor Yellow
+    if ($Zh -ne "") { Write-Host "[警告] $Zh" -ForegroundColor Yellow }
 }
 
 function Log-Bad {
-    param([string]$Msg, [string]$CnMsg = "")
-    $line = "[ERROR] " + $Msg
-    if (-not [string]::IsNullOrWhiteSpace($CnMsg)) {
-        $line = $line + " / [错误] " + $CnMsg
-    }
-    Write-Host $line -ForegroundColor Red
+    param([string]$Msg, [string]$Zh = "")
+    Write-Host "[ERROR] $Msg" -ForegroundColor Red
+    if ($Zh -ne "") { Write-Host "[错误] $Zh" -ForegroundColor Red }
 }
 
 function Run-Git {
@@ -79,7 +67,7 @@ function Run-Git {
     $text = $lines -join "`n"
 
     if ($code -ne 0 -and -not $AllowFail) {
-        Log-Bad ("git " + ($GitArgs -join " ") + " failed")
+        Log-Bad ("git " + ($GitArgs -join " ") + " failed") "Git 命令执行失败"
         foreach ($line in $lines) {
             Write-Host $line
         }
@@ -101,7 +89,7 @@ function Ensure-GitRepo {
 
     $root = (Run-Git -GitArgs @("rev-parse", "--show-toplevel")).Text.Trim()
     Set-Location $root
-    Log-Info "Repository root: $root"
+    Log-Info "Repository root: $root" "当前仓库目录：$root"
 }
 
 function Ensure-Remote {
@@ -111,15 +99,15 @@ function Ensure-Remote {
 
     if ($remoteCheck.Code -ne 0 -or [string]::IsNullOrWhiteSpace($remoteCheck.Text)) {
         Run-Git -GitArgs @("remote", "add", $Remote, $RemoteUrl) | Out-Null
-        Log-Ok "Added remote: $RemoteUrl"
+        Log-Ok "Added remote: $RemoteUrl" "已添加远程仓库：$RemoteUrl"
     }
     else {
         $url = $remoteCheck.Text.Trim()
 
         if ($url -ne $RemoteUrl) {
-            Log-Warn "Remote URL is not expected. Updating remote URL."
-            Log-Warn "Old: $url"
-            Log-Warn "New: $RemoteUrl"
+            Log-Warn "Remote URL is not expected. Updating remote URL." "远程仓库地址不是预期地址，正在更新。"
+            Log-Warn "Old: $url" "旧地址：$url"
+            Log-Warn "New: $RemoteUrl" "新地址：$RemoteUrl"
             Run-Git -GitArgs @("remote", "set-url", $Remote, $RemoteUrl) | Out-Null
         }
     }
@@ -127,26 +115,26 @@ function Ensure-Remote {
     $finalUrl = (Run-Git -GitArgs @("remote", "get-url", $Remote)).Text.Trim()
 
     if ($finalUrl -notlike "git@github.com:*/*.git") {
-        Log-Bad "Remote must use GitHub SSH URL. Current: $finalUrl"
+        Log-Bad "Remote must use GitHub SSH URL. Current: $finalUrl" "远程仓库必须使用 GitHub SSH 地址。当前地址：$finalUrl"
         throw "SSH remote required"
     }
 
-    Log-Ok "Remote uses SSH: $finalUrl"
+    Log-Ok "Remote uses SSH: $finalUrl" "远程仓库已使用 SSH：$finalUrl"
 }
 
 function Ensure-Branch {
     $current = (Run-Git -GitArgs @("branch", "--show-current") -AllowFail).Text.Trim()
 
     if ([string]::IsNullOrWhiteSpace($current)) {
-        Log-Warn "No branch detected. Creating branch: $Branch"
+        Log-Warn "No branch detected. Creating branch: $Branch" "未检测到分支，正在创建分支：$Branch"
         Run-Git -GitArgs @("checkout", "-B", $Branch) | Out-Null
     }
     elseif ($current -ne $Branch) {
-        Log-Warn "Current branch is [$current]. Renaming to [$Branch]."
+        Log-Warn "Current branch is [$current]. Renaming to [$Branch]." "当前分支是 [$current]，正在切换/重命名为 [$Branch]。"
         Run-Git -GitArgs @("branch", "-M", $Branch) | Out-Null
     }
 
-    Log-Ok "Current branch: $Branch"
+    Log-Ok "Current branch: $Branch" "当前分支：$Branch"
 }
 
 function Ensure-GitIgnoreRules {
@@ -226,8 +214,8 @@ function Get-RepoStatus {
 }
 
 function Has-WorkingChanges {
-    $status = Get-RepoStatus
-    return ($status.Count -gt 0)
+    $status = @(Get-RepoStatus)
+    return (@($status).Count -gt 0)
 }
 
 function Get-ChangedFiles {
@@ -243,7 +231,7 @@ function Get-ChangedFiles {
         }
     }
 
-    return @($set)
+    return @($set | ForEach-Object { $_ })
 }
 
 function Test-PathIsSensitive {
@@ -274,10 +262,10 @@ function Test-PathIsSensitive {
 function Scan-Privacy {
     Log-Info "Running privacy scan..." "正在执行隐私扫描..."
 
-    $files = Get-ChangedFiles
+    $files = @(Get-ChangedFiles)
 
-    if ($files.Count -eq 0) {
-        Log-Ok "No changed files to scan" "没有需要扫描的变更文件"
+    if (@($files).Count -eq 0) {
+        Log-Ok "No changed files to scan" "没有需要扫描的本地改动文件"
         return
     }
 
@@ -320,7 +308,7 @@ function Scan-Privacy {
         }
 
         if ($item.Length -gt 2097152) {
-            Log-Warn "Skip large file content scan: $file"
+            Log-Warn "Skip large file content scan: $file" "跳过大文件内容扫描：$file"
             continue
         }
 
@@ -335,7 +323,7 @@ function Scan-Privacy {
             $content = Get-Content -Path $file -Raw -ErrorAction Stop
         }
         catch {
-            Log-Warn "Cannot read file. Skip content scan: $file"
+            Log-Warn "Cannot read file. Skip content scan: $file" "无法读取文件，跳过内容扫描：$file"
             continue
         }
 
@@ -347,8 +335,8 @@ function Scan-Privacy {
         }
     }
 
-    if ($blockedItems.Count -gt 0) {
-        Log-Bad "Privacy scan failed. Commit blocked." "隐私扫描失败，已阻止提交"
+    if (@($blockedItems).Count -gt 0) {
+        Log-Bad "Privacy scan failed. Commit blocked." "隐私扫描失败，已阻止提交。"
         Write-Host ""
 
         foreach ($item in $blockedItems) {
@@ -356,7 +344,7 @@ function Scan-Privacy {
         }
 
         Write-Host ""
-        Log-Warn "Move real keys, tokens, passwords, database files, and account files to local ignored files."
+        Log-Warn "Move real keys, tokens, passwords, database files, and account files to local ignored files." "请把真实密钥、Token、密码、数据库文件、账号文件移到本地忽略文件中。"
         throw "Privacy scan failed"
     }
 
@@ -370,13 +358,13 @@ function RemoteBranchExists {
 
 function Fetch-Remote {
     if (-not (RemoteBranchExists)) {
-        Log-Warn "Remote branch does not exist yet. This may be the first push."
+        Log-Warn "Remote branch does not exist yet. This may be the first push." "远程分支还不存在，可能是首次推送。"
         return $false
     }
 
-    Log-Info "Fetching remote branch..."
+    Log-Info "Fetching remote branch..." "正在拉取远程分支信息..."
     Run-Git -GitArgs @("fetch", "--prune", $Remote, $Branch) | Out-Null
-    Log-Ok "Fetch done"
+    Log-Ok "Fetch done" "远程信息获取完成"
     return $true
 }
 
@@ -393,7 +381,7 @@ function Get-AheadBehind {
     $result = Run-Git -GitArgs @("rev-list", "--left-right", "--count", "HEAD...$remoteRef") -AllowFail
 
     if ($result.Code -ne 0) {
-        Log-Bad "Cannot compare local branch with remote branch."
+        Log-Bad "Cannot compare local branch with remote branch." "无法比较本地分支和远程分支。"
         foreach ($line in $result.Lines) {
             Write-Host $line
         }
@@ -413,14 +401,14 @@ function Safe-Pull {
     $hasRemote = Fetch-Remote
 
     if (-not $hasRemote) {
-        Log-Ok "Skip pull because remote branch does not exist"
+        Log-Ok "Skip pull because remote branch does not exist" "远程分支不存在，跳过拉取"
         return
     }
 
     $ab = Get-AheadBehind
 
     if ($ab.Ahead -gt 0 -and $ab.Behind -gt 0) {
-        Log-Bad "Local and remote branches have diverged."
+        Log-Bad "Local and remote branches have diverged." "本地和远程分支已经分叉。"
         Write-Host "Ahead:  $($ab.Ahead)"
         Write-Host "Behind: $($ab.Behind)"
         Write-Host ""
@@ -432,67 +420,67 @@ function Safe-Pull {
     }
 
     if ($ab.Behind -eq 0) {
-        Log-Ok "No remote updates"
+        Log-Ok "No remote updates" "远程没有新提交"
         return
     }
 
-    Log-Warn "Remote has $($ab.Behind) new commit(s). Pulling safely..."
+    Log-Warn "Remote has $($ab.Behind) new commit(s). Pulling safely..." "远程有 $($ab.Behind) 个新提交，正在安全拉取..."
 
     $hadChanges = Has-WorkingChanges
 
     if ($hadChanges) {
-        Log-Warn "Local changes detected. Scanning and stashing before pull..."
+        Log-Warn "Local changes detected. Scanning and stashing before pull..." "检测到本地改动，拉取前先扫描并临时保存。"
         Scan-Privacy
         Run-Git -GitArgs @("stash", "push", "-u", "-m", "qmt-ai-trading-auto-stash-before-pull") | Out-Null
     }
 
     try {
         Run-Git -GitArgs @("pull", "--ff-only", $Remote, $Branch) | Out-Null
-        Log-Ok "Pull done"
+        Log-Ok "Pull done" "拉取完成"
     }
     finally {
         if ($hadChanges) {
-            Log-Warn "Restoring local changes from stash..."
+            Log-Warn "Restoring local changes from stash..." "正在恢复本地临时保存的改动..."
             $pop = Run-Git -GitArgs @("stash", "pop") -AllowFail
 
             if ($pop.Code -ne 0) {
-                Log-Bad "stash pop failed. Please run git status and resolve conflicts."
+                Log-Bad "stash pop failed. Please run git status and resolve conflicts." "恢复本地改动失败，请运行 git status 并解决冲突。"
                 foreach ($line in $pop.Lines) {
                     Write-Host $line
                 }
                 throw "Stash pop failed"
             }
 
-            Log-Ok "Local changes restored"
+            Log-Ok "Local changes restored" "本地改动已恢复"
         }
     }
 }
 
 function Commit-LocalChanges {
     if (-not (Has-WorkingChanges)) {
-        Log-Ok "No local changes to commit"
+        Log-Ok "No local changes to commit" "没有本地改动需要提交"
         return
     }
 
-    Log-Info "Local changes detected. Running privacy scan before commit..."
+    Log-Info "Local changes detected. Running privacy scan before commit..." "检测到本地改动，提交前执行隐私扫描..."
     Scan-Privacy
 
-    Log-Info "Running git add -A..."
+    Log-Info "Running git add -A..." "正在执行 git add -A..."
     Run-Git -GitArgs @("add", "-A") | Out-Null
 
-    Log-Info "Running privacy scan again after staging..."
+    Log-Info "Running privacy scan again after staging..." "暂存后再次执行隐私扫描..."
     Scan-Privacy
 
     $staged = Run-Git -GitArgs @("diff", "--cached", "--name-only") -AllowFail
 
     if (@($staged.Lines).Count -eq 0) {
-        Log-Ok "No staged changes to commit"
+        Log-Ok "No staged changes to commit" "没有已暂存的改动需要提交"
         return
     }
 
-    Log-Info "Committing changes..."
+    Log-Info "Committing changes..." "正在提交改动..."
     Run-Git -GitArgs @("commit", "-m", $Message) | Out-Null
-    Log-Ok "Commit done"
+    Log-Ok "Commit done" "提交完成"
 }
 
 function Push-Remote {
@@ -501,21 +489,21 @@ function Push-Remote {
     $ab = Get-AheadBehind
 
     if ($ab.HasRemote -and $ab.Ahead -gt 0 -and $ab.Behind -gt 0) {
-        Log-Bad "Local and remote branches diverged before push."
+        Log-Bad "Local and remote branches diverged before push." "推送前发现本地和远程分支分叉。"
         Write-Host "Manual fix recommended:"
         Write-Host "  git pull --rebase origin main"
         throw "Branch diverged before push"
     }
 
     if ($ab.HasRemote -and $ab.Behind -gt 0) {
-        Log-Warn "Remote has updates before push. Pulling first..."
+        Log-Warn "Remote has updates before push. Pulling first..." "推送前发现远程有新提交，先拉取。"
         Safe-Pull
         Fetch-Remote | Out-Null
     }
 
-    Log-Info "Pushing to GitHub..."
+    Log-Info "Pushing to GitHub..." "正在推送到 GitHub..."
     Run-Git -GitArgs @("push", "-u", $Remote, $Branch) | Out-Null
-    Log-Ok "Push done"
+    Log-Ok "Push done" "推送完成"
 }
 
 function Show-Status {
@@ -542,6 +530,7 @@ function Show-Status {
 function Main {
     Write-Host ""
     Write-Host "========== qmt-ai-trading GitHub sync ==========" -ForegroundColor Cyan
+    Write-Host "========== qmt-ai-trading GitHub 同步 ==========" -ForegroundColor Cyan
     Write-Host "Mode:   $Mode"
     Write-Host "Branch: $Branch"
     Write-Host ""
@@ -563,20 +552,20 @@ function Main {
 
         "pull" {
             Safe-Pull
-            Log-Ok "Pull mode done"
+            Log-Ok "Pull mode done" "拉取模式完成"
         }
 
         "push" {
             Commit-LocalChanges
             Push-Remote
-            Log-Ok "Push mode done"
+            Log-Ok "Push mode done" "推送模式完成"
         }
 
         "sync" {
             Safe-Pull
             Commit-LocalChanges
             Push-Remote
-            Log-Ok "Sync mode done"
+            Log-Ok "Sync mode done" "同步模式完成"
         }
     }
 
@@ -589,8 +578,8 @@ try {
 }
 catch {
     Write-Host ""
-    Log-Bad $_.Exception.Message
+    Log-Bad $_.Exception.Message "执行失败"
     Write-Host ""
-    Log-Warn "Stopped. No unsafe operation continued." "已中止，没有继续执行危险操作"
+    Log-Warn "Stopped. No unsafe operation continued." "已中止，没有继续执行危险操作。"
     exit 1
 }
