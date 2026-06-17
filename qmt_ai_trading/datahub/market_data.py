@@ -7,7 +7,7 @@ from typing import Any, Mapping
 
 from qmt_ai_trading.datahub.local_store import BarQuery, LocalBarStore
 from qmt_ai_trading.datahub.models import LatestPrice, MarketBar
-from qmt_ai_trading.datahub.providers import MockHistoricalDataProvider, fetch_historical_bars
+from qmt_ai_trading.datahub.providers import create_historical_provider, fetch_historical_bars
 from qmt_ai_trading.datahub.symbols import normalize_symbol
 
 SOURCE_QMT = "qmt_market_adapter"
@@ -115,8 +115,9 @@ def get_historical_bars_cached(
     end_date: str,
     frequency: str = "1d",
     cache_root: str = "market_data",
-    provider: Any | None = None,
+    provider: Any | None = "mock",
     adjust: str | None = None,
+    **provider_kwargs: Any,
 ) -> list[MarketBar]:
     """Return historical bars using a local JSONL cache and mock provider by default."""
 
@@ -127,11 +128,11 @@ def get_historical_bars_cached(
         end_date=end_date,
         frequency=frequency,
         adjust=adjust,
-        provider=getattr(provider, "name", "mock"),
+        provider=getattr(provider, "name", provider or "mock"),
     )
     result = fetch_historical_bars(
         query=query,
         store=LocalBarStore(cache_root),
-        provider=provider or MockHistoricalDataProvider(),
+        provider=create_historical_provider(provider or "mock", **provider_kwargs),
     )
     return result.bars
