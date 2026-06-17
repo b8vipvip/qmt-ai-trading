@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 
 _TRUE_VALUES = {"1", "true", "yes", "on"}
@@ -25,6 +25,25 @@ def _env_bool(name: str, default: bool) -> bool:
     return default
 
 
+def _env_float(name: str, default: float) -> float:
+    """Read a float environment variable, falling back on invalid input."""
+
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return float(value.strip())
+    except ValueError:
+        return default
+
+
+def _env_symbol_set(name: str) -> set[str]:
+    """Read a comma-separated symbol list into normalized symbol strings."""
+
+    value = os.getenv(name, "")
+    return {item.strip().upper() for item in value.split(",") if item.strip()}
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     """Safe runtime configuration for the application.
@@ -41,6 +60,12 @@ class Settings:
     openai_api_key: str = ""
     tushare_token: str = ""
     akshare_enabled: bool = True
+    max_position_pct: float = 0.2
+    require_live_confirm: bool = True
+    live_confirm_token: str = ""
+    symbol_blacklist: set[str] = field(default_factory=set)
+    allow_stock_buy: bool = True
+    allow_etf_buy: bool = True
 
 
 @lru_cache(maxsize=1)
@@ -56,4 +81,10 @@ def get_settings() -> Settings:
         openai_api_key=os.getenv("OPENAI_API_KEY", ""),
         tushare_token=os.getenv("TUSHARE_TOKEN", ""),
         akshare_enabled=_env_bool("AKSHARE_ENABLED", True),
+        max_position_pct=_env_float("MAX_POSITION_PCT", 0.2),
+        require_live_confirm=_env_bool("REQUIRE_LIVE_CONFIRM", True),
+        live_confirm_token=os.getenv("LIVE_CONFIRM_TOKEN", ""),
+        symbol_blacklist=_env_symbol_set("SYMBOL_BLACKLIST"),
+        allow_stock_buy=_env_bool("ALLOW_STOCK_BUY", True),
+        allow_etf_buy=_env_bool("ALLOW_ETF_BUY", True),
     )
