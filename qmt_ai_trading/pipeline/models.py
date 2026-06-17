@@ -9,7 +9,7 @@ from typing import Any
 from qmt_ai_trading.common.types import RiskDecision, TradeIntent
 
 
-@dataclass(slots=True)
+@dataclass
 class PipelineContext:
     """Execution context for one dry-run/shadow pipeline run."""
 
@@ -20,7 +20,7 @@ class PipelineContext:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
+@dataclass
 class PipelineStepResult:
     """Structured status for one pipeline orchestration step."""
 
@@ -31,7 +31,7 @@ class PipelineStepResult:
     errors: list[str] = field(default_factory=list)
 
 
-@dataclass(slots=True)
+@dataclass
 class PipelineResult:
     """End-to-end output of the daily signal pipeline."""
 

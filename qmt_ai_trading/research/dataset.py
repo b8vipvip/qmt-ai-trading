@@ -14,7 +14,7 @@ from qmt_ai_trading.datahub.models import MarketBar
 from qmt_ai_trading.datahub.symbols import normalize_symbol
 
 
-@dataclass(slots=True)
+@dataclass
 class FeatureRow:
     symbol: str
     datetime: Any
@@ -22,7 +22,7 @@ class FeatureRow:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
+@dataclass
 class LabelRow:
     symbol: str
     datetime: Any
@@ -31,7 +31,7 @@ class LabelRow:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
+@dataclass
 class ResearchDataset:
     features: list[FeatureRow] = field(default_factory=list)
     labels: list[LabelRow] = field(default_factory=list)
@@ -39,7 +39,7 @@ class ResearchDataset:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
+@dataclass
 class TrainTestSplit:
     train: ResearchDataset
     test: ResearchDataset

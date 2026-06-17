@@ -7,14 +7,14 @@ from math import sqrt
 from typing import Any, Sequence
 
 
-@dataclass(slots=True)
+@dataclass
 class EvaluationMetric:
     name: str
     value: float
     reason: str = ""
 
 
-@dataclass(slots=True)
+@dataclass
 class ModelEvaluationResult:
     metrics: list[EvaluationMetric] = field(default_factory=list)
     ic: float = 0.0

@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 
-@dataclass(slots=True)
+@dataclass
 class TradeIntent:
     """Structured trade request generated before risk validation."""
 
@@ -26,7 +26,7 @@ class TradeIntent:
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-@dataclass(slots=True)
+@dataclass
 class RiskDecision:
     """Risk gate decision for a TradeIntent."""
 
@@ -36,7 +36,7 @@ class RiskDecision:
     risk_level: str = "LOW"
 
 
-@dataclass(slots=True)
+@dataclass
 class AgentDecision:
     """Structured analysis output from an agent."""
 
@@ -49,7 +49,7 @@ class AgentDecision:
     risk_flags: list[str] = field(default_factory=list)
 
 
-@dataclass(slots=True)
+@dataclass
 class OrderResult:
     """Gateway order submission result."""
 

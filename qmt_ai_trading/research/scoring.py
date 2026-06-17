@@ -19,7 +19,7 @@ from qmt_ai_trading.research.factors import (
 )
 
 
-@dataclass(slots=True)
+@dataclass
 class ResearchScore:
     symbol: str
     score: float | None = None

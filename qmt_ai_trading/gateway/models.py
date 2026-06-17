@@ -31,7 +31,7 @@ def _raw_dict(raw: Any) -> dict[str, Any]:
     return {"value": raw}
 
 
-@dataclass(slots=True)
+@dataclass
 class QmtAsset:
     cash: float = 0.0
     market_value: float = 0.0
@@ -39,7 +39,7 @@ class QmtAsset:
     raw: dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
+@dataclass
 class QmtPosition:
     symbol: str = ""
     volume: int = 0
@@ -48,7 +48,7 @@ class QmtPosition:
     raw: dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
+@dataclass
 class QmtOrder:
     order_id: str = ""
     symbol: str = ""
@@ -59,7 +59,7 @@ class QmtOrder:
     raw: dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
+@dataclass
 class QmtTrade:
     trade_id: str = ""
     order_id: str = ""
