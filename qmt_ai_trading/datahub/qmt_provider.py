@@ -11,6 +11,7 @@ from datetime import date, datetime
 from typing import Any, Mapping
 
 from qmt_ai_trading.datahub.local_store import BarQuery
+from qmt_ai_trading.datahub.qmt_field_mapping import QMT_REQUIRED_BAR_FIELDS, map_qmt_record_fields
 from qmt_ai_trading.datahub.models import MarketBar
 from qmt_ai_trading.datahub.symbols import normalize_symbol
 
@@ -96,19 +97,44 @@ def _extract_symbol_payload(raw: Any, symbol: str) -> Any:
     return raw
 
 
-def _bar_from_row(symbol: str, row: Mapping[str, Any]) -> MarketBar:
-    normalized = normalize_symbol(symbol)
+def qmt_record_to_bar(record: Mapping[str, Any], symbol: str, frequency: str) -> MarketBar:
+    """Convert one raw QMT record into a canonical ``MarketBar``."""
+
+    if not isinstance(record, Mapping):
+        raise QmtProviderError(f"QMT record must be a mapping, got {type(record).__name__}")
+    mapped = map_qmt_record_fields(record)
+    missing = [field for field in QMT_REQUIRED_BAR_FIELDS if mapped.get(field) is None]
+    if missing:
+        raise QmtProviderError(f"QMT record missing required bar fields {missing}; raw columns={list(record.keys())}")
+    normalized = normalize_symbol(str(mapped.get("symbol") or symbol))
     return MarketBar(
-        symbol=normalize_symbol(str(row.get("symbol") or normalized)),
-        datetime=row.get("datetime") or row.get("date") or row.get("time") or row.get("stime"),
-        open=_to_float(row.get("open")),
-        high=_to_float(row.get("high")),
-        low=_to_float(row.get("low")),
-        close=_to_float(row.get("close")),
-        volume=_to_float(row.get("volume") or row.get("vol")),
-        amount=_to_float(row.get("amount") or row.get("turnover")),
+        symbol=normalized,
+        datetime=mapped.get("datetime"),
+        open=_to_float(mapped.get("open")),
+        high=_to_float(mapped.get("high")),
+        low=_to_float(mapped.get("low")),
+        close=_to_float(mapped.get("close")),
+        volume=_to_float(mapped.get("volume")),
+        amount=_to_float(mapped.get("amount")),
         source="qmt",
     )
+
+
+def normalize_qmt_raw_records(raw_data: Any, symbol: str, frequency: str) -> list[MarketBar]:
+    """Normalize QMT raw data shapes into ``MarketBar`` records."""
+
+    payload = _extract_symbol_payload(raw_data, symbol)
+    records = _records_from_frame(payload)
+    if not records:
+        return []
+    bars: list[MarketBar] = []
+    for record in records:
+        bars.append(qmt_record_to_bar(record, symbol, frequency))
+    return bars
+
+
+def _bar_from_row(symbol: str, row: Mapping[str, Any]) -> MarketBar:
+    return qmt_record_to_bar(row, symbol, "1d")
 
 
 @dataclass
@@ -164,7 +190,7 @@ class QmtHistoricalDataProvider:
             download(normalized, period, start_time=start_time, end_time=end_time)
             raw = self._get_market_data(xtdata, normalized, period, start_time, end_time)
             payload = _extract_symbol_payload(raw, normalized)
-            bars.extend(_bar_from_row(normalized, row) for row in _records_from_frame(payload))
+            bars.extend(normalize_qmt_raw_records(payload, normalized, period))
         return bars
 
     def get_bars(self, query: BarQuery) -> list[MarketBar]:
