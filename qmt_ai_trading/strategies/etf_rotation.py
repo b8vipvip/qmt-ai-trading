@@ -329,3 +329,30 @@ def generate_etf_rotation_intents(
             )
         )
     return intents
+
+
+def run_etf_rotation_backtest(
+    candidates: Iterable[ETFCandidate | Mapping[str, Any]],
+    prices: Mapping[str, float] | None = None,
+    *,
+    top_n: int = 1,
+    min_score: float | None = None,
+    capital: float | None = None,
+    initial_cash: float = 1_000_000.0,
+):
+    """Generate dry-run ETF intents and pass them to the lightweight backtest.
+
+    This is an adapter only: it does not place orders and does not bypass the
+    Risk Gate/QMT Gateway required by real trading.
+    """
+
+    from qmt_ai_trading.backtest.simulator import run_simple_backtest
+
+    intents = generate_etf_rotation_intents(
+        candidates,
+        top_n=top_n,
+        min_score=min_score,
+        dry_run=True,
+        capital=capital or initial_cash,
+    )
+    return run_simple_backtest(intents, prices=prices, initial_cash=initial_cash)
