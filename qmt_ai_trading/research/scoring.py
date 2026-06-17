@@ -99,3 +99,36 @@ def score_etf_universe(bars_by_symbol: Mapping[str, Iterable[MarketBar] | None])
     """Score multiple ETF symbols from caller-provided bars."""
 
     return [score_symbol_from_bars(symbol, bars) for symbol, bars in (bars_by_symbol or {}).items()]
+
+
+def research_scores_from_model_predictions(
+    predictions: Iterable[Any],
+    *,
+    lower: float = -0.05,
+    upper: float = 0.05,
+) -> list[ResearchScore]:
+    """Adapt Model Lab predictions into ResearchScore objects.
+
+    The adapter is deliberately read-only: it converts model output into the
+    Stage 6 scoring contract and never creates orders or bypasses strategy,
+    Risk Gate, or QMT Gateway layers.
+    """
+
+    scores: list[ResearchScore] = []
+    for prediction in predictions or []:
+        symbol = normalize_symbol(str(getattr(prediction, "symbol", "")))
+        raw_value = getattr(prediction, "prediction", None)
+        normalized = normalize_score(float(raw_value), lower=lower, upper=upper) if raw_value is not None else None
+        metadata = dict(getattr(prediction, "metadata", {}) or {})
+        metadata["model_prediction"] = raw_value
+        metadata["prediction_datetime"] = getattr(prediction, "datetime", None)
+        scores.append(
+            ResearchScore(
+                symbol=symbol,
+                score=normalized,
+                eligible=normalized is not None and bool(symbol),
+                reason="" if normalized is not None else "model prediction unavailable",
+                metrics=metadata,
+            )
+        )
+    return scores
