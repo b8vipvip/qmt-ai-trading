@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet("sync", "push", "pull", "scan", "status")]
     [string]$Mode = "sync",
 
@@ -499,12 +499,6 @@ function Push-Remote {
         Log-Warn "Remote has updates before push. Pulling first..." "推送前发现远程有新提交，先拉取。"
         Safe-Pull
         Fetch-Remote | Out-Null
-        $ab = Get-AheadBehind
-    }
-
-    if ($ab.HasRemote -and $ab.Ahead -eq 0) {
-        Log-Ok "No local commits to push" "没有本地提交需要推送"
-        return
     }
 
     Log-Info "Pushing to GitHub..." "正在推送到 GitHub..."
