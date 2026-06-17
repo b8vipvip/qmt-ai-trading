@@ -147,6 +147,48 @@ def build_candidates_from_universe(
     return candidates
 
 
+def build_candidates_from_research_scores(
+    scores: Iterable[Any],
+    *,
+    target_percent: float | None = None,
+    min_score: float | None = None,
+) -> list[ETFCandidate]:
+    """Adapt ResearchScore objects into ETF candidates without placing orders.
+
+    This adapter keeps Stage 6 Research output read-only. The returned
+    candidates still flow through the existing ETF rotation selection and
+    TradeIntent generation path, and execution remains behind Risk Gate and QMT
+    Gateway.
+    """
+
+    candidates: list[ETFCandidate] = []
+    for score in scores or []:
+        symbol = normalize_symbol(str(getattr(score, "symbol", "")))
+        raw_score = getattr(score, "score", None)
+        numeric_score = float(raw_score) if raw_score is not None else 0.0
+        eligible = bool(getattr(score, "eligible", True)) and bool(symbol)
+        reason = str(getattr(score, "reason", "") or "")
+        if raw_score is None:
+            eligible = False
+            reason = reason or "research score unavailable"
+        if min_score is not None and numeric_score < float(min_score):
+            eligible = False
+            reason = reason or f"research score below min_score {float(min_score):.2f}"
+        metrics = dict(getattr(score, "metrics", {}) or {})
+        metrics["research_score"] = raw_score
+        candidates.append(
+            ETFCandidate(
+                symbol=symbol,
+                score=numeric_score,
+                target_percent=target_percent,
+                eligible=eligible,
+                reason=reason,
+                metrics=metrics,
+            )
+        )
+    return candidates
+
+
 def score_etf_candidates(
     candidates: Iterable[ETFCandidate | Mapping[str, Any]],
     *,
