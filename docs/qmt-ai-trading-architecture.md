@@ -429,3 +429,9 @@ Agent 只能输出建议，不得直接下单。
 - `qmt_ai_trading.research.model_lab`：提供轻量 baseline 训练、预测和 `run_model_lab(...)` 入口。
 
 Research Score 新增 Model Lab prediction adapter，ETF Rotation Strategy 可选接入 Model Lab 结果，但输出仍保持为 `ETFCandidate` 或 dry-run `TradeIntent`。Model Lab 不连接网络、不连接 QMT、不直接下单；Strategy 使用其结果时仍必须经过 Risk Gate + QMT Gateway。
+
+## Stage 8: Backtest / Shadow Replay 标准化
+
+阶段八新增轻量级 Backtest / Shadow Replay 层，用于把 ETF Strategy、Research、Model Lab 产生的 dry-run `TradeIntent` 输入到历史回放和模拟成交流程中，输出 `BacktestResult` / `ShadowReplayResult`、交易日志、equity curve 以及 total_return / max_drawdown / win_rate 等基础指标。
+
+该层仅处理模拟订单、模拟成交和模拟资产，不连接真实 QMT，不调用真实下单接口，不绕过 Risk Gate + QMT Gateway 的真实交易边界。当前实现是 baseline，不是完整撮合引擎，后续可继续接入现有 shadow replay / dry-run 日志 adapter。
