@@ -12,6 +12,9 @@ from typing import Any, Iterable, Mapping, Sequence
 
 from qmt_ai_trading.common.types import TradeIntent
 from qmt_ai_trading.config.settings import get_settings
+from qmt_ai_trading.datahub.etf_universe import get_default_etf_universe
+from qmt_ai_trading.datahub.models import ETFUniverseItem
+from qmt_ai_trading.datahub.symbols import normalize_symbol
 
 DEFAULT_SOURCE = "etf_rotation"
 LOT_SIZE = 100
@@ -100,6 +103,48 @@ def _adapter_score_candidate(candidate: ETFCandidate, score_adapter: Any | None)
     if scored is None:
         return candidate
     return _normalize_candidate(scored)
+
+
+def build_candidates_from_universe(
+    universe: Iterable[ETFUniverseItem | Mapping[str, Any]] | None = None,
+    *,
+    score_by_symbol: Mapping[str, float] | None = None,
+    default_score: float = 0.0,
+    target_percent: float | None = None,
+) -> list[ETFCandidate]:
+    """Build Strategy Engine ETF candidates from the Data Hub ETF universe.
+
+    The adapter is offline/read-only: it does not connect to QMT and does not
+    place orders. External research layers may pass ``score_by_symbol`` to reuse
+    their own scoring while keeping universe access behind Data Hub.
+    """
+
+    items = list(universe) if universe is not None else get_default_etf_universe()
+    scores = {normalize_symbol(key): float(value) for key, value in (score_by_symbol or {}).items()}
+    candidates: list[ETFCandidate] = []
+    for item in items:
+        if isinstance(item, ETFUniverseItem):
+            symbol = normalize_symbol(item.symbol)
+            enabled = item.enabled
+            name = item.name
+            metrics = {"category": item.category, "weight": item.weight, "universe_source": item.source}
+        else:
+            symbol = normalize_symbol(str(item.get("symbol") or item.get("code") or item.get("stock_code") or ""))
+            enabled = bool(item.get("enabled", True))
+            name = str(item.get("name") or item.get("stock_name") or "")
+            metrics = {key: value for key, value in item.items() if key not in {"symbol", "code", "stock_code", "enabled", "name", "stock_name"}}
+        candidates.append(
+            ETFCandidate(
+                symbol=symbol,
+                score=scores.get(symbol, float(default_score)),
+                target_percent=target_percent,
+                name=name,
+                eligible=enabled,
+                reason="" if enabled else "disabled in Data Hub ETF universe",
+                metrics=metrics,
+            )
+        )
+    return candidates
 
 
 def score_etf_candidates(

@@ -17,6 +17,11 @@ class QmtDataClient(object):
             return getattr(self._client(), name)(*args, **kwargs)
         except Exception as exc:
             raise RuntimeError("QMT行情读取失败[%s]: %s" % (name, exc))
+    def safe_call(self, name, *args, **kwargs):
+        try:
+            return self._call(name, *args, **kwargs)
+        except RuntimeError:
+            return None
     def get_stock_list_in_sector(self, sector_name):
         return self._call("get_stock_list_in_sector", sector_name)
     def get_instrument_detail(self, stock_code):
