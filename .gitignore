@@ -100,3 +100,8 @@ data_cache/
 *.bars.jsonl
 *.bars.csv
 *.bars.parquet
+
+# stage 13 QMT provider local check cache
+market_data_test_stage12/
+market_data_qmt_check/
+market_data_test_stage13/

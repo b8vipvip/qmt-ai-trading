@@ -461,3 +461,9 @@ Stage 11 新增 `qmt_ai_trading.scheduler` 本地调度层，用于生成 Window
 本阶段缓存逻辑遵循本地优先：如果本地已经覆盖 `symbol / frequency / start_date / end_date`，则直接返回 cache hit；如果缺少区间，则通过 mock provider 生成稳定模拟数据并保存，后续再次查询会命中本地缓存。当前不接真实 QMT historical 下载，不调用外部行情 API，不实盘，不下单，不发送通知。
 
 `market_data/`、`data_cache/` 和本地 bar 缓存文件已被 `.gitignore` 排除，避免提交真实行情缓存或本地运行数据。后续可在保持 Data Hub 契约不变的前提下接入 QMT 只读 historical provider，并按需要升级到 SQLite、DuckDB 或 PostgreSQL。
+
+## 阶段十三：QMT Historical Provider Adapter
+
+阶段十三新增可选的 QMT 历史行情 provider，将阶段十二的 `LocalBarStore` 缓存层与本机 MiniQMT / QMT 的 `xtquant.xtdata` 历史行情读取能力连接起来。默认 provider 仍为 mock；只有显式选择 `provider="qmt"` 或创建 `QmtHistoricalDataProvider` 时才延迟导入 `xtquant.xtdata`。
+
+本阶段流程保持 local-cache-first：先查本地缓存，cache hit 直接返回；cache miss 才通过 `xtdata.download_history_data` 与 `xtdata.get_market_data_ex` / `get_market_data` 读取历史行情，转换为 Data Hub `MarketBar` 后保存到 `market_data/`。阶段十三不导入 `xttrader`，不调用下单、撤单、资金或持仓等交易接口。

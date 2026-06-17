@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
-from typing import Protocol
+from typing import Any, Protocol
 
 from qmt_ai_trading.datahub.local_store import BarCacheResult, BarQuery, LocalBarStore
 from qmt_ai_trading.datahub.models import MarketBar
@@ -49,17 +49,33 @@ class MockHistoricalDataProvider:
         return bars
 
 
-def fetch_historical_bars(query: BarQuery, store: LocalBarStore | None = None, provider: HistoricalDataProvider | None = None) -> BarCacheResult:
+def create_historical_provider(provider: str | HistoricalDataProvider = "mock", **kwargs: Any) -> HistoricalDataProvider:
+    """Create a historical data provider by name without importing optional QMT eagerly."""
+
+    if not isinstance(provider, str):
+        return provider
+    normalized = provider.lower().strip()
+    if normalized == "mock":
+        return MockHistoricalDataProvider()
+    if normalized == "qmt":
+        from qmt_ai_trading.datahub.qmt_provider import QmtHistoricalDataProvider
+
+        return QmtHistoricalDataProvider(**kwargs)
+    raise ValueError(f"unsupported historical provider: {provider}")
+
+
+def fetch_historical_bars(query: BarQuery, store: LocalBarStore | None = None, provider: HistoricalDataProvider | str | None = None, **provider_kwargs: Any) -> BarCacheResult:
     """Fetch historical bars with local-cache-first behavior."""
 
     store = store or LocalBarStore()
-    provider = provider or MockHistoricalDataProvider()
+    provider = create_historical_provider(provider or query.provider or "mock", **provider_kwargs)
     cached = store.query_bars(query)
     if cached.hit:
         cached.message = "cache hit"
         return cached
 
-    fetched = provider.get_bars(query)
+    fetch = getattr(provider, "fetch_bars", None) or getattr(provider, "get_bars")
+    fetched = fetch(query)
     metadata = []
     for symbol in query.symbols:
         symbol_bars = [bar for bar in fetched if normalize_symbol(bar.symbol) == normalize_symbol(symbol)]
