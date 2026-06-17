@@ -19,6 +19,12 @@ class ScheduleConfig:
     report_dir: Path = Path("reports")
     write_reports: bool = True
     notify_dry_run: bool = True
+    warmup_cache: bool = False
+    warmup_provider: str = "mock"
+    warmup_start: str | None = None
+    warmup_end: str | None = None
+    warmup_frequency: str = "1d"
+    cache_root: Path = Path("market_data")
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

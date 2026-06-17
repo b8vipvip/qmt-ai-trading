@@ -33,10 +33,25 @@ def build_daily_pipeline_command(
     report_dir: str | Path = Path("reports"),
     write_reports: bool = True,
     notify_dry_run: bool = True,
+    warmup_cache: bool = False,
+    warmup_provider: str = "mock",
+    warmup_start: str | None = None,
+    warmup_end: str | None = None,
+    warmup_frequency: str = "1d",
+    cache_root: str | Path = Path("market_data"),
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
     args = [str(script_path)]
+    if warmup_cache:
+        args.append("--warmup-cache")
+        args.extend(["--warmup-provider", str(warmup_provider)])
+        if warmup_start:
+            args.extend(["--warmup-start", str(warmup_start)])
+        if warmup_end:
+            args.extend(["--warmup-end", str(warmup_end)])
+        args.extend(["--warmup-frequency", str(warmup_frequency)])
+        args.extend(["--cache-root", str(cache_root)])
     if write_reports:
         args.append("--write-reports")
     args.extend(["--report-dir", str(report_dir)])
@@ -67,6 +82,12 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         report_dir=cfg.report_dir,
         write_reports=cfg.write_reports,
         notify_dry_run=cfg.notify_dry_run,
+        warmup_cache=cfg.warmup_cache,
+        warmup_provider=cfg.warmup_provider,
+        warmup_start=cfg.warmup_start,
+        warmup_end=cfg.warmup_end,
+        warmup_frequency=cfg.warmup_frequency,
+        cache_root=cfg.cache_root,
     )
     task_run = pipeline.metadata["display"]
     args = ["/Create", "/F", "/SC", "DAILY", "/TN", cfg.task_name, "/TR", task_run, "/ST", cfg.run_time]
