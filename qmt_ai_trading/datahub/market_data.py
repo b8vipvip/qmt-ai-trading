@@ -5,7 +5,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
+from qmt_ai_trading.datahub.local_store import BarQuery, LocalBarStore
 from qmt_ai_trading.datahub.models import LatestPrice, MarketBar
+from qmt_ai_trading.datahub.providers import MockHistoricalDataProvider, fetch_historical_bars
 from qmt_ai_trading.datahub.symbols import normalize_symbol
 
 SOURCE_QMT = "qmt_market_adapter"
@@ -105,3 +107,31 @@ def get_market_snapshot(symbol: str) -> dict[str, Any]:
         "bars": get_bars(normalized),
         "source": SOURCE_QMT,
     }
+
+
+def get_historical_bars_cached(
+    symbols: list[str] | str,
+    start_date: str,
+    end_date: str,
+    frequency: str = "1d",
+    cache_root: str = "market_data",
+    provider: Any | None = None,
+    adjust: str | None = None,
+) -> list[MarketBar]:
+    """Return historical bars using a local JSONL cache and mock provider by default."""
+
+    symbol_list = [symbols] if isinstance(symbols, str) else list(symbols)
+    query = BarQuery(
+        symbols=[normalize_symbol(symbol) for symbol in symbol_list],
+        start_date=start_date,
+        end_date=end_date,
+        frequency=frequency,
+        adjust=adjust,
+        provider=getattr(provider, "name", "mock"),
+    )
+    result = fetch_historical_bars(
+        query=query,
+        store=LocalBarStore(cache_root),
+        provider=provider or MockHistoricalDataProvider(),
+    )
+    return result.bars

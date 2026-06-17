@@ -93,3 +93,10 @@ daily_report.html
 daily_report.md
 reports_test_stage10/
 *.log
+
+# stage 12 local market data cache
+market_data/
+data_cache/
+*.bars.jsonl
+*.bars.csv
+*.bars.parquet

@@ -453,3 +453,11 @@ Stage 10 新增 `qmt_ai_trading.reporting` 输出层，将 Daily Pipeline 的 `P
 Stage 11 新增 `qmt_ai_trading.scheduler` 本地调度层，用于生成 Windows Task Scheduler 注册、删除和查询命令，并提供默认 dry-run 保护。默认任务名为 `QmtAiTradingDailyDryRun`，默认 15:30 运行，计划任务入口为 `scripts/run_scheduled_daily_pipeline.py`。
 
 该阶段默认执行 dry-run / shadow daily pipeline，生成 `reports/` 本地报告并写入 `logs/daily_pipeline/` 日志；注册和删除脚本在不传 `--execute` 时只打印 `schtasks` 预览命令，不实际修改系统计划任务。Stage 11 不真实下单、不真实发送通知、不连接真实 QMT 下单链路，后续可继续接 UI 或手动确认流程。
+
+## 阶段十二进度：Historical Data Cache / Local Market Data Store
+
+阶段十二新增 Data Hub 本地历史行情缓存层。当前实现以 `market_data/` 下的 JSONL 文件和 metadata index 为默认存储形式，提供 `LocalBarStore`、`BarQuery`、`BarCacheMetadata`、`BarCacheResult` 以及 mock historical provider。
+
+本阶段缓存逻辑遵循本地优先：如果本地已经覆盖 `symbol / frequency / start_date / end_date`，则直接返回 cache hit；如果缺少区间，则通过 mock provider 生成稳定模拟数据并保存，后续再次查询会命中本地缓存。当前不接真实 QMT historical 下载，不调用外部行情 API，不实盘，不下单，不发送通知。
+
+`market_data/`、`data_cache/` 和本地 bar 缓存文件已被 `.gitignore` 排除，避免提交真实行情缓存或本地运行数据。后续可在保持 Data Hub 契约不变的前提下接入 QMT 只读 historical provider，并按需要升级到 SQLite、DuckDB 或 PostgreSQL。
