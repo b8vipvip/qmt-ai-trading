@@ -27,3 +27,8 @@ def format_monitoring_markdown(report: MonitoringReport) -> str:
         for alert in report.alerts:
             lines.append(f"- {alert.get('path')}")
     return "\n".join(lines) + "\n"
+
+
+def format_monitoring_report_markdown(report: MonitoringReport) -> str:
+    """Backward-compatible report formatter alias for Stage 28 acceptance tests."""
+    return format_monitoring_markdown(report)

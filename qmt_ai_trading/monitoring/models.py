@@ -72,8 +72,13 @@ class MonitoringConfig:
     risk_reject_count: int = 0
     scheduler_exit_code: int = 0
     max_drawdown: float = 0.0
+    cache_coverage: float | None = None
+    min_cache_coverage: float = 0.8
+    critical_cache_coverage: float = 0.5
     max_risk_reject_count: int = 2
+    critical_risk_reject_count: int = 3
     max_allowed_drawdown: float = -0.10
+    critical_max_drawdown: float = -0.10
     dry_run_alerts: bool = True
     alert_output_dir: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
