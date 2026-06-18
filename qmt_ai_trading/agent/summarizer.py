@@ -1,0 +1,49 @@
+"""Deterministic local summarizer for Agent Research."""
+from __future__ import annotations
+from dataclasses import dataclass, field
+from typing import Any
+from uuid import uuid4
+from .models import AgentResearchContext, AgentResearchMemo, AgentResearchMode, AgentResearchSection
+SAFETY_NOTE = "Agent Research is read-only. It is not an order instruction, does not submit orders, and cannot bypass Risk Gate or Human Approval."
+@dataclass
+class AgentSummarizerConfig:
+    mode: str = AgentResearchMode.LOCAL_RULES.value
+    max_sections: int = 8
+    include_candidate_comparison: bool = True
+    include_human_checklist: bool = True
+    include_monitoring: bool = True
+    include_backtest: bool = True
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+def build_candidate_comparison(context: AgentResearchContext) -> str:
+    if not context.candidates: return "No candidates available for comparison."
+    rows=sorted(context.candidates, key=lambda x: float(x.get("score") or 0), reverse=True)
+    return "\n".join(f"- {r.get('symbol','')}: score={float(r.get('score') or 0):.6f}, eligible={r.get('eligible', '')}, reason={r.get('reason','')}" for r in rows)
+
+def build_human_review_checklist(context: AgentResearchContext) -> list[str]:
+    return ["Confirm Risk Gate decisions before any downstream action.", "Confirm Human Approval remains required and has not been bypassed.", "Confirm Paper Trading is dry-run only and no live order is submitted.", "Review cache quality, fallback status, and monitoring warnings.", "Review portfolio concentration and backtest drawdown before manual decisions."]
+
+def build_risk_summary(context: AgentResearchContext) -> str:
+    total=len(context.risk_decisions); blocked=sum(1 for r in context.risk_decisions if not r.get("allowed", False))
+    return f"Risk Gate reviewed {total} decision(s); blocked={blocked}. Agent output does not alter RiskDecision objects."
+
+def build_signal_explanation(context: AgentResearchContext) -> str:
+    return f"Pipeline produced {len(context.candidates)} candidate(s) and {len(context.trade_intents)} dry-run TradeIntent object(s). These are summarized for review only, not converted into orders."
+
+def build_monitoring_summary(context: AgentResearchContext) -> str:
+    if not context.monitoring_summary: return "No monitoring report was provided."
+    return f"Monitoring summary: events={context.monitoring_summary.get('event_count', 0)}, alerts={context.monitoring_summary.get('alerts', 0)}, decision={context.monitoring_summary.get('decision', '')}."
+
+def build_backtest_summary(context: AgentResearchContext) -> str:
+    source = context.long_backtest_summary or context.backtest_summary
+    if not source: return "No backtest summary was provided."
+    return "; ".join(f"{k}={v}" for k,v in source.items())
+
+def summarize_with_local_rules(context: AgentResearchContext, config: AgentSummarizerConfig | None = None) -> AgentResearchMemo:
+    config = config or AgentSummarizerConfig()
+    if str(config.mode) == AgentResearchMode.EXTERNAL_LLM_DISABLED.value:
+        return AgentResearchMemo(memo_id=f"agent-memo-{uuid4().hex[:8]}", run_id=context.run_id, mode=AgentResearchMode.EXTERNAL_LLM_DISABLED.value, title="Agent Research Memo (External LLM Disabled)", executive_summary="External LLM mode is disabled in Stage 29; no external API was called.", safety_note=SAFETY_NOTE, success=True, message="external LLM disabled by policy")
+    signal=build_signal_explanation(context); risk=build_risk_summary(context); mon=build_monitoring_summary(context) if config.include_monitoring else "Monitoring summary disabled by config."; bt=build_backtest_summary(context) if config.include_backtest else "Backtest summary disabled by config."; comp=build_candidate_comparison(context) if config.include_candidate_comparison else "Candidate comparison disabled by config."; checklist=build_human_review_checklist(context) if config.include_human_checklist else []
+    executive=f"Read-only Agent Research memo for run {context.run_id or 'unknown'}: candidates={len(context.candidates)}, trade_intents={len(context.trade_intents)}, warnings={len(context.warnings)}."
+    sections=[AgentResearchSection("signal","Signal explanation",signal),AgentResearchSection("risk","Risk summary",risk),AgentResearchSection("monitoring","Monitoring summary",mon),AgentResearchSection("backtest","Backtest summary",bt),AgentResearchSection("candidates","Candidate comparison",comp)]
+    return AgentResearchMemo(memo_id=f"agent-memo-{uuid4().hex[:8]}", run_id=context.run_id, mode=str(config.mode), executive_summary=executive, signal_explanation=signal, risk_summary=risk, portfolio_summary=f"Portfolio summary: {context.portfolio_plan_summary or 'No portfolio plan provided.'}", monitoring_summary=mon, backtest_summary=bt, candidate_comparison=comp, human_review_checklist=checklist, safety_note=SAFETY_NOTE, sections=sections[:config.max_sections], success=True, message="generated by deterministic local_rules summarizer", metadata={"warnings": context.warnings})

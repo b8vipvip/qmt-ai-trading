@@ -78,6 +78,12 @@ def build_daily_pipeline_command(
     enable_monitoring: bool = False,
     monitoring_output_dir: str | Path = Path("monitoring_reports"),
     monitoring_dry_run_alerts: bool = False,
+    enable_agent_research: bool = False,
+    agent_research_output_dir: str | Path = Path("agent_reports"),
+    agent_research_mode: str = "local_rules",
+    agent_include_monitoring: bool = True,
+    agent_include_backtest: bool = True,
+    agent_include_human_checklist: bool = True,
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -150,6 +156,15 @@ def build_daily_pipeline_command(
         args.extend(["--monitoring-output-dir", str(monitoring_output_dir)])
         if monitoring_dry_run_alerts:
             args.append("--monitoring-dry-run-alerts")
+    if enable_agent_research:
+        args.append("--enable-agent-research")
+        args.extend(["--agent-research-output-dir", str(agent_research_output_dir), "--agent-research-mode", str(agent_research_mode)])
+        if agent_include_monitoring:
+            args.append("--agent-include-monitoring")
+        if agent_include_backtest:
+            args.append("--agent-include-backtest")
+        if agent_include_human_checklist:
+            args.append("--agent-include-human-checklist")
     if use_cached_research or data_source_mode in {"cached", "auto", "cached_real_first"}:
         if use_cached_research:
             args.append("--use-cached-research")
@@ -240,6 +255,12 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         enable_monitoring=cfg.enable_monitoring,
         monitoring_output_dir=cfg.monitoring_output_dir,
         monitoring_dry_run_alerts=cfg.monitoring_dry_run_alerts,
+        enable_agent_research=cfg.enable_agent_research,
+        agent_research_output_dir=cfg.agent_research_output_dir,
+        agent_research_mode=cfg.agent_research_mode,
+        agent_include_monitoring=cfg.agent_include_monitoring,
+        agent_include_backtest=cfg.agent_include_backtest,
+        agent_include_human_checklist=cfg.agent_include_human_checklist,
     )
     task_run = pipeline.metadata["display"]
     args = ["/Create", "/F", "/SC", "DAILY", "/TN", cfg.task_name, "/TR", task_run, "/ST", cfg.run_time]

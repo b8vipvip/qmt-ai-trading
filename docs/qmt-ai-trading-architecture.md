@@ -598,3 +598,13 @@ Pipeline / Backtest / Scheduler
 Monitoring 只读取数据质量、cache coverage、fallback/mock 使用、Risk Gate 拒绝数量、调度退出码和最大回撤等指标，生成本地 Markdown / JSON 报告、dry-run alert 文件和 Circuit Breaker 建议。Alert 默认 dry-run，只写本地文件，不真实发送邮件、Telegram、企业微信或其他外部通知。
 
 Circuit Breaker 只能作为阻断 paper/live 推进和触发人工复核的安全信号，不能开启实盘，不能绕过 Risk Gate、Human Approval、Paper Trading 或 Live Readiness Audit。阶段二十八仍不调用 QMT 交易接口、不调用 `xttrader`、不真实下单、不查询真实资金、持仓、订单或成交。
+
+## 阶段二十九进度：Agent Research Layer
+
+阶段二十九新增 `qmt_ai_trading.agent` 只读 Agent Research Layer。该层位于 Reporting / Monitoring / Backtest / Portfolio 之后，用于解释信号、总结风险、复盘回测、整理监控结论和辅助人工审核。
+
+Agent Research 输入包括 Daily Pipeline 输出、Monitoring Report、Long Backtest Result、Portfolio Plan、RiskDecision 和 Cache Quality 信息；输出包括 Markdown / JSON Research Memo、Signal Explanation、Risk Summary、Monitoring Summary、Backtest Summary、Candidate Comparison 和 Human Review Checklist。
+
+安全边界：Agent 不生成订单，不提交订单，不触发 Approval / Paper / Live，不改变 TradeIntent / RiskDecision / Approval / PaperOrder，不绕过 Risk Gate / Human Approval。
+
+阶段二十九默认使用 deterministic `local_rules` summarizer；`external_llm_disabled` 仅输出禁用说明。当前阶段不调用外部 LLM API、不调用 QMT 交易接口、不调用 `xttrader`、不真实发送通知、不下单。

@@ -180,3 +180,15 @@ alert_test_stage28/
 *.monitoring.json
 *.monitoring.md
 market_data_test_stage28/
+
+# stage 29 Agent Research runtime outputs
+agent_reports/
+agent_reports_stage29/
+research_memos/
+market_data_test_stage29/
+monitoring_reports_stage29/
+alerts/
+*.agent_research.json
+*.agent_research.md
+*.research_memo.json
+*.research_memo.md

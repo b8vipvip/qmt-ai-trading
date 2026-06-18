@@ -60,6 +60,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--enable-monitoring", action="store_true", help="Run Stage 28 dry-run monitoring checks after the pipeline.")
     parser.add_argument("--monitoring-output-dir", default="monitoring_reports")
     parser.add_argument("--monitoring-dry-run-alerts", action="store_true", default=False)
+    parser.add_argument("--enable-agent-research", action="store_true", help="Generate Stage 29 read-only Agent Research memo.")
+    parser.add_argument("--agent-research-output-dir", default="agent_reports")
+    parser.add_argument("--agent-research-mode", default="local_rules", choices=["mock", "local_rules", "external_llm_disabled"])
+    parser.add_argument("--agent-include-monitoring", action="store_true", default=True)
+    parser.add_argument("--agent-include-backtest", action="store_true", default=True)
+    parser.add_argument("--agent-include-human-checklist", action="store_true", default=True)
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -97,6 +103,12 @@ def main(argv: list[str] | None = None) -> int:
         portfolio_total_asset=args.portfolio_total_asset,
         portfolio_current_cash=args.portfolio_current_cash,
         portfolio_snapshot_path=args.portfolio_snapshot_path,
+        enable_agent_research=args.enable_agent_research,
+        agent_research_output_dir=args.agent_research_output_dir,
+        agent_research_mode=args.agent_research_mode,
+        agent_include_monitoring=args.agent_include_monitoring,
+        agent_include_backtest=args.agent_include_backtest,
+        agent_include_human_checklist=args.agent_include_human_checklist,
     )
     print(result.report_text)
 
