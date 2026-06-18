@@ -39,8 +39,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cached-strategy-top-n", type=int, default=1)
     parser.add_argument("--cached-strategy-min-score", type=float, default=None)
     parser.add_argument("--cached-strategy-min-bars", type=int, default=20)
-    parser.add_argument("--data-source-mode", default="legacy", choices=["legacy", "cached", "auto", "mock"])
+    parser.add_argument("--data-source-mode", default="cached_real_first", choices=["legacy", "cached", "auto", "mock", "cached_real_first"])
     parser.add_argument("--allow-mock-fallback", action="store_true")
+    parser.add_argument("--quality-report-dir", default="qmt_data_quality_reports")
+    parser.add_argument("--require-quality-report", action="store_true")
+    parser.add_argument("--allow-unknown-quality-for-dry-run", action="store_true", default=True)
+    parser.add_argument("--allow-mock-cache", action="store_true")
+    parser.add_argument("--min-quality-level", default="UNKNOWN", choices=["UNKNOWN", "LOW", "MEDIUM", "HIGH", "UNAVAILABLE"])
     parser.add_argument("--min-coverage-ratio", type=float, default=0.8)
     parser.add_argument("--min-loaded-symbols", type=int, default=1)
     parser.add_argument("--require-cached-research", action="store_true")
@@ -78,6 +83,11 @@ def main(argv: list[str] | None = None) -> int:
         cached_strategy_min_bars=args.cached_strategy_min_bars,
         data_source_mode=args.data_source_mode,
         allow_mock_fallback=args.allow_mock_fallback,
+        quality_report_dir=args.quality_report_dir,
+        require_quality_report=args.require_quality_report,
+        allow_unknown_quality_for_dry_run=args.allow_unknown_quality_for_dry_run,
+        allow_mock_cache=args.allow_mock_cache,
+        min_quality_level=args.min_quality_level,
         min_coverage_ratio=args.min_coverage_ratio,
         min_loaded_symbols=args.min_loaded_symbols,
         require_cached_research=args.require_cached_research,
@@ -96,10 +106,10 @@ def main(argv: list[str] | None = None) -> int:
     elif args.warmup_cache:
         print(f"Warmup: provider={args.warmup_provider} start={args.warmup_start} end={args.warmup_end} frequency={args.warmup_frequency} cache_root={args.cache_root}")
     if args.data_source_mode != "legacy":
-        print(f"Data source: mode={args.data_source_mode} allow_mock_fallback={args.allow_mock_fallback} min_coverage_ratio={args.min_coverage_ratio} min_loaded_symbols={args.min_loaded_symbols}")
+        print(f"Data source: mode={args.data_source_mode} allow_mock_fallback={args.allow_mock_fallback} min_coverage_ratio={args.min_coverage_ratio} min_loaded_symbols={args.min_loaded_symbols} quality_report_dir={args.quality_report_dir} min_quality_level={args.min_quality_level}")
     if args.create_approval:
         print(f"Human approval: create_approval=True approval_root={args.approval_root} expires_hours={args.approval_expires_hours} no_order_submitted=True")
-    if args.use_cached_research or args.data_source_mode in {"cached", "auto"}:
+    if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:
         print(f"Cached research: start={args.research_start} end={args.research_end} frequency={args.research_frequency} min_bars={args.min_bars} cache_root={args.cache_root}")
         print(f"Cached ETF rotation: top_n={args.cached_strategy_top_n} min_score={args.cached_strategy_min_score} min_bars={args.cached_strategy_min_bars}")
     print(f"Result: {result.message}")

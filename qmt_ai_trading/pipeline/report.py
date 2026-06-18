@@ -21,9 +21,14 @@ def format_pipeline_report(result: PipelineResult) -> str:
     ]
     ds = result.metadata.get("data_source") or result.context.metadata.get("data_source") or {}
     if ds:
-        lines.extend(["", "## Data Source", f"- selected_source: {ds.get('selected_source', '')}", f"- coverage_ratio: {float(ds.get('coverage_ratio', 0.0) or 0.0):.4f}", f"- confidence: {ds.get('confidence', '')}", f"- fallback_used: {ds.get('fallback_used', False)}", f"- allow_trade_intents: {ds.get('allow_trade_intents', False)}", f"- message: {ds.get('message', '')}"])
+        quality = str(ds.get("quality_level") or "")
+        lines.extend(["", "## Data Source", f"- selected_source: {ds.get('selected_source', '')}", f"- cache_root: {(ds.get('metadata') or {}).get('cache_root', '')}", f"- coverage_ratio: {float(ds.get('coverage_ratio', 0.0) or 0.0):.4f}", f"- confidence: {ds.get('confidence', '')}", f"- quality_level: {quality}", f"- selected_cache_type: {ds.get('selected_cache_type', '')}", f"- quality_report_path: {ds.get('quality_report_path') or ''}", f"- quality_report_decision: {ds.get('quality_report_decision') or ''}", f"- fallback_used: {ds.get('fallback_used', False)}", f"- allow_trade_intents: {ds.get('allow_trade_intents', False)}", f"- remediation: {ds.get('remediation', '')}", f"- message: {ds.get('message', '')}"])
         if ds.get("fallback_used") or ds.get("selected_source") == "mock_fallback":
             lines.append(f"- WARNING: {MOCK_FALLBACK_WARNING}")
+        if quality in {"UNKNOWN", "LOW", "UNAVAILABLE"} or ds.get("selected_source") in {"cached_unknown_quality", "blocked_missing_quality"}:
+            lines.append("- WARNING: Cache quality is not high enough for live trading decisions.")
+        if ds.get("selected_source") == "cached_real_data":
+            lines.append("- NOTICE: This is still dry-run/shadow output and not an order instruction.")
         lines.append("")
     for step in result.steps:
         status = "OK" if step.success else "FAILED"

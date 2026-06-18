@@ -60,7 +60,12 @@ def run_daily_signal_pipeline(
     cached_strategy_top_n: int = 1,
     cached_strategy_min_score: float | None = None,
     cached_strategy_min_bars: int = 20,
-    data_source_mode: str = "legacy",
+    data_source_mode: str = "cached_real_first",
+    quality_report_dir: str = "qmt_data_quality_reports",
+    require_quality_report: bool = False,
+    allow_unknown_quality_for_dry_run: bool = True,
+    allow_mock_cache: bool = False,
+    min_quality_level: str = "UNKNOWN",
     allow_mock_fallback: bool = False,
     min_coverage_ratio: float = 0.8,
     min_loaded_symbols: int = 1,
@@ -78,12 +83,16 @@ def run_daily_signal_pipeline(
 
     if data_source_mode == "legacy" and use_cached_research:
         data_source_mode = "cached"
-    data_source_policy = build_data_source_policy(mode=data_source_mode, allow_mock_fallback=allow_mock_fallback, min_coverage_ratio=min_coverage_ratio, min_loaded_symbols=min_loaded_symbols, require_cached_research=require_cached_research, cache_root=cache_root, start_date=research_start_date, end_date=research_end_date or str(ctx.trade_date), frequency=research_frequency, min_bars=min_bars)
+    if candidates is not None and data_source_mode == "cached_real_first":
+        data_source_mode = "legacy"
+    data_source_policy = build_data_source_policy(mode=data_source_mode, allow_mock_fallback=allow_mock_fallback, min_coverage_ratio=min_coverage_ratio, min_loaded_symbols=min_loaded_symbols, require_cached_research=require_cached_research, quality_report_dir=quality_report_dir, require_quality_report=require_quality_report, allow_unknown_quality_for_dry_run=allow_unknown_quality_for_dry_run, allow_mock_cache=allow_mock_cache, min_quality_level=min_quality_level, cache_root=cache_root, start_date=research_start_date, end_date=research_end_date or str(ctx.trade_date), frequency=research_frequency, min_bars=min_bars)
     decision = choose_pipeline_data_source(data_source_policy, ctx.symbols)
     ctx.metadata["data_source"] = decision.__dict__.copy()
     result.metadata["data_source"] = decision.__dict__.copy()
     _record_step(steps, "data_source_decision", True, decision.message, decision.__dict__)
     _record_step(steps, "data_source_coverage", True, f"coverage={decision.coverage_ratio:.2%} loaded={decision.loaded_symbols}/{decision.total_symbols}", decision.__dict__)
+    if data_source_mode == "cached_real_first":
+        _record_step(steps, "cache_quality_gate", True, decision.message, decision.__dict__)
     required = data_source_confidence_required.upper() if data_source_confidence_required else None
     if required and CONFIDENCE_ORDER.get(decision.confidence, 0) < CONFIDENCE_ORDER.get(required, 0):
         decision.allow_trade_intents = False
@@ -99,7 +108,7 @@ def run_daily_signal_pipeline(
         ctx.metadata["cached_research"] = {"enabled": True, "success": False, "message": decision.message, "cache_root": str(cache_root)}
         _record_step(steps, "cached_research_load", True, f"warning: {decision.message}", dict(ctx.metadata["cached_research"]))
         _record_step(steps, "cached_research", True, f"warning: {decision.message}", dict(ctx.metadata["cached_research"]))
-    if decision.selected_source in {"cached_research"} and candidates is None:
+    if decision.selected_source in {"cached_research", "cached_real_data", "cached_unknown_quality"} and candidates is None:
         try:
             from qmt_ai_trading.research.cache_scoring import score_etf_universe_from_cache
             from qmt_ai_trading.strategies.cached_etf_rotation import CachedETFSignalConfig, generate_cached_etf_rotation_signal
@@ -209,7 +218,12 @@ def run_etf_daily_pipeline(
     cached_strategy_top_n: int = 1,
     cached_strategy_min_score: float | None = None,
     cached_strategy_min_bars: int = 20,
-    data_source_mode: str = "legacy",
+    data_source_mode: str = "cached_real_first",
+    quality_report_dir: str = "qmt_data_quality_reports",
+    require_quality_report: bool = False,
+    allow_unknown_quality_for_dry_run: bool = True,
+    allow_mock_cache: bool = False,
+    min_quality_level: str = "UNKNOWN",
     allow_mock_fallback: bool = False,
     min_coverage_ratio: float = 0.8,
     min_loaded_symbols: int = 1,
@@ -223,7 +237,9 @@ def run_etf_daily_pipeline(
     if symbol_filter:
         universe = [item for item in universe if normalize_symbol(item.symbol) in symbol_filter]
     context = build_pipeline_context(trade_date, dry_run=dry_run, symbols=symbol_filter or [item.symbol for item in universe], metadata={"pipeline": "etf_daily", "simulated_only": True})
-    effective_cached = use_cached_research or data_source_mode in {"cached", "auto"}
+    if use_cached_research and data_source_mode == "cached_real_first":
+        data_source_mode = "cached"
+    effective_cached = use_cached_research or data_source_mode in {"cached", "auto", "cached_real_first"}
     candidates = None if effective_cached else build_candidates_from_universe(universe, score_by_symbol=score_by_symbol, default_score=0.0, target_percent=None)
     return run_daily_signal_pipeline(
         context=context,
@@ -235,6 +251,11 @@ def run_etf_daily_pipeline(
         initial_cash=initial_cash,
         use_cached_research=use_cached_research,
         data_source_mode=data_source_mode,
+        quality_report_dir=quality_report_dir,
+        require_quality_report=require_quality_report,
+        allow_unknown_quality_for_dry_run=allow_unknown_quality_for_dry_run,
+        allow_mock_cache=allow_mock_cache,
+        min_quality_level=min_quality_level,
         allow_mock_fallback=allow_mock_fallback,
         min_coverage_ratio=min_coverage_ratio,
         min_loaded_symbols=min_loaded_symbols,

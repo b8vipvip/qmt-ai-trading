@@ -12,8 +12,9 @@ from qmt_ai_trading.datahub.symbols import normalize_symbol
 from qmt_ai_trading.research.cache_reader import CachedResearchDataset, CachedResearchRequest, load_cached_research_dataset
 from qmt_ai_trading.research.cache_scoring import score_symbols_from_cache
 from qmt_ai_trading.strategies.cached_etf_rotation import CachedETFSignalConfig, generate_cached_etf_rotation_signal
+from qmt_ai_trading.pipeline.cache_quality_gate import build_cache_quality_gate_policy, evaluate_cache_quality_gate
 
-MODES = {"legacy", "cached", "auto", "mock"}
+MODES = {"legacy", "cached", "auto", "mock", "cached_real_first"}
 CONFIDENCE_ORDER = {"LOW": 1, "MEDIUM": 2, "HIGH": 3}
 MOCK_FALLBACK_WARNING = "mock/fallback data is for dry-run validation only and should not be used for live trading decisions."
 
@@ -33,6 +34,12 @@ class PipelineDataSourcePolicy:
     end_date: str | None = None
     frequency: str = "1d"
     min_bars: int = 20
+    prefer_real_cache: bool = True
+    quality_report_dir: str | Path = "qmt_data_quality_reports"
+    require_quality_report: bool = False
+    allow_unknown_quality_for_dry_run: bool = True
+    allow_mock_cache: bool = False
+    min_quality_level: str = "UNKNOWN"
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -53,6 +60,11 @@ class PipelineDataSourceDecision:
     confidence: str = "LOW"
     allow_trade_intents: bool = True
     message: str = ""
+    quality_level: str = ""
+    selected_cache_type: str = ""
+    quality_report_path: str | None = None
+    quality_report_decision: str | None = None
+    remediation: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -126,6 +138,44 @@ def choose_pipeline_data_source(policy: PipelineDataSourcePolicy, symbols: Itera
         return PipelineDataSourceDecision("mock_fallback", "mock_fallback", True, "explicit mock mode", confidence="LOW", allow_trade_intents=True, message=f"explicit mock/default dry-run data source selected; {MOCK_FALLBACK_WARNING}", metadata={"mode": "mock"})
     coverage, _dataset = evaluate_cache_coverage(policy, symbols)
     enough = coverage.coverage_ratio >= policy.min_coverage_ratio and coverage.loaded_symbols >= policy.min_loaded_symbols
+    if policy.mode == "cached_real_first":
+        if enough:
+            gate_policy = build_cache_quality_gate_policy(require_quality_report=policy.require_quality_report, min_quality_level=policy.min_quality_level, allow_unknown_quality_for_dry_run=policy.allow_unknown_quality_for_dry_run, allow_mock_cache=policy.allow_mock_cache, min_coverage_ratio=policy.min_coverage_ratio)
+            gate = evaluate_cache_quality_gate(coverage_ratio=coverage.coverage_ratio, quality_report_dir=policy.quality_report_dir, policy=gate_policy, cache_available=True)
+            coverage.quality_level = gate.quality_level
+            coverage.selected_cache_type = gate.selected_cache_type
+            coverage.quality_report_path = gate.quality_report_path
+            coverage.quality_report_decision = gate.quality_report_decision
+            coverage.remediation = gate.remediation
+            coverage.metadata.update({"cache_quality_gate": gate.__dict__, "quality_report_dir": str(policy.quality_report_dir)})
+            coverage.allow_trade_intents = gate.allow_trade_intents
+            coverage.confidence = "HIGH" if gate.quality_level == "HIGH" else ("LOW" if gate.quality_level in {"LOW", "UNAVAILABLE"} else "MEDIUM")
+            if gate.selected_cache_type == "cached_real_data":
+                coverage.selected_source = "cached_real_data"
+            elif gate.selected_cache_type == "blocked_missing_quality":
+                coverage.selected_source = "blocked_missing_quality"
+            else:
+                coverage.selected_source = "cached_unknown_quality"
+            coverage.message = gate.message
+            return coverage
+        if policy.allow_mock_fallback:
+            coverage.selected_source = "mock_fallback"
+            coverage.fallback_used = True
+            coverage.fallback_reason = "cache missing and explicit mock fallback enabled"
+            coverage.confidence = "LOW"
+            coverage.quality_level = "LOW"
+            coverage.selected_cache_type = "mock_fallback"
+            coverage.allow_trade_intents = True
+            coverage.message = f"mock fallback selected because cache is insufficient and explicitly enabled; {MOCK_FALLBACK_WARNING}"
+            return coverage
+        coverage.selected_source = "blocked_missing_quality"
+        coverage.confidence = "LOW"
+        coverage.quality_level = "UNAVAILABLE"
+        coverage.selected_cache_type = "cache_unavailable"
+        coverage.allow_trade_intents = False
+        coverage.message = f"cache unavailable or insufficient: coverage={coverage.coverage_ratio:.2%}, loaded={coverage.loaded_symbols}/{coverage.total_symbols}; no fallback enabled"
+        coverage.remediation = "Warm up local cache or explicitly enable mock fallback for dry-run only."
+        return coverage
     if enough:
         coverage.selected_source = "cached_research"
         coverage.allow_trade_intents = True
@@ -151,7 +201,7 @@ def load_pipeline_research_data(policy: PipelineDataSourcePolicy, symbols: Itera
     dataset = None
     scores: list[Any] = []
     candidates: list[Any] = []
-    if decision.selected_source == "cached_research":
+    if decision.selected_source in {"cached_research", "cached_real_data", "cached_unknown_quality"}:
         start, end = _dates(policy)
         scores, dataset = score_symbols_from_cache(_symbols(symbols), start, end, frequency=policy.frequency, cache_root=policy.cache_root, min_bars=policy.min_bars, allow_partial=True)
         signal = generate_cached_etf_rotation_signal(scores, CachedETFSignalConfig(top_n=top_n, min_score=min_score, min_bars=cached_strategy_min_bars or policy.min_bars), capital=capital)
@@ -168,6 +218,10 @@ def format_data_source_decision(decision: PipelineDataSourceDecision) -> str:
         f"loaded_symbols={decision.loaded_symbols}/{decision.total_symbols}",
         f"hit={decision.hit_count} miss={decision.miss_count} fetched={decision.fetched_count} skipped={decision.skipped_count} failed={decision.failed_count}",
         f"confidence={decision.confidence}",
+        f"quality_level={decision.quality_level}",
+        f"selected_cache_type={decision.selected_cache_type}",
+        f"quality_report_path={decision.quality_report_path or ''}",
+        f"quality_report_decision={decision.quality_report_decision or ''}",
         f"fallback_used={decision.fallback_used}",
         f"allow_trade_intents={decision.allow_trade_intents}",
         f"message={decision.message}",

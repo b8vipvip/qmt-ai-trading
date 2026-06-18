@@ -51,8 +51,13 @@ def build_daily_pipeline_command(
     cached_strategy_top_n: int = 1,
     cached_strategy_min_score: float | None = None,
     cached_strategy_min_bars: int = 20,
-    data_source_mode: str = "legacy",
+    data_source_mode: str = "cached_real_first",
     allow_mock_fallback: bool = False,
+    quality_report_dir: str | Path = Path("qmt_data_quality_reports"),
+    require_quality_report: bool = False,
+    allow_unknown_quality_for_dry_run: bool = True,
+    allow_mock_cache: bool = False,
+    min_quality_level: str = "UNKNOWN",
     min_coverage_ratio: float = 0.8,
     min_loaded_symbols: int = 1,
     require_cached_research: bool = False,
@@ -91,6 +96,16 @@ def build_daily_pipeline_command(
         args.extend(["--data-source-mode", str(data_source_mode)])
     if allow_mock_fallback:
         args.append("--allow-mock-fallback")
+    if data_source_mode != "legacy" or str(quality_report_dir) != "qmt_data_quality_reports":
+        args.extend(["--quality-report-dir", str(quality_report_dir)])
+    if require_quality_report:
+        args.append("--require-quality-report")
+    if allow_unknown_quality_for_dry_run and data_source_mode != "legacy":
+        args.append("--allow-unknown-quality-for-dry-run")
+    if allow_mock_cache:
+        args.append("--allow-mock-cache")
+    if data_source_mode != "legacy" or str(min_quality_level) != "UNKNOWN":
+        args.extend(["--min-quality-level", str(min_quality_level)])
     if data_source_mode != "legacy" or min_coverage_ratio != 0.8:
         args.extend(["--min-coverage-ratio", str(min_coverage_ratio)])
     if data_source_mode != "legacy" or min_loaded_symbols != 1:
@@ -105,7 +120,7 @@ def build_daily_pipeline_command(
         args.extend(["--approval-root", str(approval_root)])
     if create_approval or float(approval_expires_hours) != 24.0:
         args.extend(["--approval-expires-hours", str(approval_expires_hours)])
-    if use_cached_research or data_source_mode in {"cached", "auto"}:
+    if use_cached_research or data_source_mode in {"cached", "auto", "cached_real_first"}:
         if use_cached_research:
             args.append("--use-cached-research")
         if "--cache-root" not in args:
@@ -170,6 +185,11 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         cached_strategy_min_bars=cfg.cached_strategy_min_bars,
         data_source_mode=cfg.data_source_mode,
         allow_mock_fallback=cfg.allow_mock_fallback,
+        quality_report_dir=cfg.quality_report_dir,
+        require_quality_report=cfg.require_quality_report,
+        allow_unknown_quality_for_dry_run=cfg.allow_unknown_quality_for_dry_run,
+        allow_mock_cache=cfg.allow_mock_cache,
+        min_quality_level=cfg.min_quality_level,
         min_coverage_ratio=cfg.min_coverage_ratio,
         min_loaded_symbols=cfg.min_loaded_symbols,
         require_cached_research=cfg.require_cached_research,
