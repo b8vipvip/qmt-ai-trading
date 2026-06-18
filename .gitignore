@@ -312,3 +312,26 @@ market_data_test_stage36/
 !qmt_ai_trading/gray_decision/
 !qmt_ai_trading/gray_decision/*.py
 qmt_ai_trading/gray_decision/__pycache__/
+# Stage 37 live manual prep runtime artifacts
+live_manual_prep/
+live_manual_prep_stage37/
+gray_decision_stage37/
+gray_rehearsal_stage37/
+notification_dryrun_stage37/
+data_quality_tracking_stage37/
+dashboard_stage37/
+agent_reports_stage37/
+monitoring_reports_stage37/
+live_gray_reports_stage37/
+reports/
+logs/
+approvals/
+paper_orders/
+market_data/
+data_cache/
+*.live_manual_prep.json
+*.live_manual_prep.md
+!qmt_ai_trading/live_manual_prep/
+!qmt_ai_trading/live_manual_prep/*.py
+qmt_ai_trading/live_manual_prep/__pycache__/
+market_data_test_stage37/

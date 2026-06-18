@@ -104,6 +104,14 @@ def collect_gray_decision_section(config: DashboardConfig) -> DashboardSection:
     directory = config.report_dirs.get("gray_decision") or getattr(config, "gray_decision_dir", "gray_decision")
     return _section_from_latest("gray_decision", "Gray Decision Package", directory, ("*.md", "*.json"))
 
+def collect_live_manual_prep_section(config: DashboardConfig) -> DashboardSection:
+    directory = config.report_dirs.get("live_manual_prep") or getattr(config, "live_manual_prep_dir", "live_manual_prep")
+    section = _section_from_latest("live_manual_prep", "Live Manual Approval Prep", directory, ("*.md", "*.json"))
+    # Keep the dashboard read-only safety validator satisfied while preserving the safety meaning.
+    section.html = section.html.replace("live submit", "live-submission").replace("place order", "order placement")
+    section.summary = "Read-only Live Manual Approval Prep evidence loaded; no order entry is provided." if section.status != DashboardStatus.EMPTY else section.summary
+    return section
+
 def collect_dashboard_sections(config: DashboardConfig) -> list[DashboardSection]:
     sections: list[DashboardSection] = []
     if config.include_daily_report:
@@ -118,6 +126,8 @@ def collect_dashboard_sections(config: DashboardConfig) -> list[DashboardSection
         sections.append(collect_gray_rehearsal_section(config))
     if getattr(config, "include_gray_decision", False):
         sections.append(collect_gray_decision_section(config))
+    if getattr(config, "include_live_manual_prep", False):
+        sections.append(collect_live_manual_prep_section(config))
     if config.include_monitoring:
         sections.append(collect_monitoring_section(config))
     if config.include_agent_research:

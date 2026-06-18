@@ -664,3 +664,11 @@ Gray Decision Package 位于 Gray Rehearsal 之后，是人工决策证据包层
 该层不启用实盘，只生成人工复核材料。`READY_FOR_MANUAL_DECISION` 不等于交易授权，不等于自动 GO，不等于允许 paper submit 或 live submit；它只代表证据足以让人工在未来单独阶段讨论。
 
 安全边界：Gray Decision Package 不调用 QMT 交易接口、不调用 `xttrader`、不查询账户/资金/持仓/订单/成交、不真实发送通知、不下单、不读取 `.env`、token、key、password、secret。若证据或 package 文本出现 live flag、real-send、下单、账户查询、Risk bypass、CRITICAL 或 Circuit Breaker OPEN，则必须 BLOCKED 或 NEED_MORE_EVIDENCE，不能 READY。
+
+## 阶段三十七架构进度：Live Manual Approval Prep
+
+Live Manual Approval Prep 位于 Gray Decision Package 之后，是面向未来极小资金灰度实盘的人工审批准备包。它只读取本地证据文件，生成 preparation-only package、人工 checklist、禁止事项页、残余风险页和签字占位。
+
+该模块不启用实盘，不改变 TradeIntent，不改变 RiskDecision，不触发 Approval，不触发 Paper，不触发 Live。`READY_FOR_SIGNOFF` 仅表示材料可以交给人工审阅签字，不等于交易授权，不等于自动 GO，不等于实盘开关。
+
+阶段三十七明确不调用 QMT 交易接口、不调用 xttrader、不查询账户/资金/持仓/订单/成交、不真实发送通知、不下单。Dashboard 只读展示 Live Manual Prep section，不提供任何下单入口。

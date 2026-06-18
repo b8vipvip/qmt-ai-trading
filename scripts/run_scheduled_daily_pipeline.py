@@ -115,6 +115,16 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--gray-decision-max-portfolio-weight", type=float, default=0.2)
     parser.add_argument("--gray-decision-operator-name", default="")
     parser.add_argument("--gray-decision-reviewer-name", default="")
+    parser.add_argument("--enable-live-manual-prep", action="store_true")
+    parser.add_argument("--live-manual-prep-output-dir", default="live_manual_prep")
+    parser.add_argument("--live-manual-prep-allowed-symbols", default="")
+    parser.add_argument("--live-manual-prep-max-total-capital", type=float, default=5000.0)
+    parser.add_argument("--live-manual-prep-max-single-order-value", type=float, default=1000.0)
+    parser.add_argument("--live-manual-prep-max-symbol-weight", type=float, default=0.1)
+    parser.add_argument("--live-manual-prep-max-portfolio-weight", type=float, default=0.2)
+    parser.add_argument("--live-manual-prep-operator-name", default="")
+    parser.add_argument("--live-manual-prep-reviewer-name", default="")
+    parser.add_argument("--live-manual-prep-risk-owner-name", default="")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -211,6 +221,13 @@ def main(argv: list[str] | None = None) -> int:
             args.extend(["--gray-decision-operator-name", parsed.gray_decision_operator_name])
         if parsed.gray_decision_reviewer_name:
             args.extend(["--gray-decision-reviewer-name", parsed.gray_decision_reviewer_name])
+    if parsed.enable_live_manual_prep:
+        args.append("--enable-live-manual-prep")
+        args.extend(["--live-manual-prep-output-dir", parsed.live_manual_prep_output_dir])
+        if parsed.live_manual_prep_allowed_symbols:
+            args.extend(["--live-manual-prep-allowed-symbols", parsed.live_manual_prep_allowed_symbols])
+        args.extend(["--live-manual-prep-max-total-capital", str(parsed.live_manual_prep_max_total_capital), "--live-manual-prep-max-single-order-value", str(parsed.live_manual_prep_max_single_order_value)])
+        args.extend(["--live-manual-prep-max-symbol-weight", str(parsed.live_manual_prep_max_symbol_weight), "--live-manual-prep-max-portfolio-weight", str(parsed.live_manual_prep_max_portfolio_weight)])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])

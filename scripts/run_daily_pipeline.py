@@ -106,6 +106,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--gray-decision-max-portfolio-weight", type=float, default=0.2)
     parser.add_argument("--gray-decision-operator-name", default="")
     parser.add_argument("--gray-decision-reviewer-name", default="")
+    parser.add_argument("--enable-live-manual-prep", action="store_true")
+    parser.add_argument("--live-manual-prep-output-dir", default="live_manual_prep")
+    parser.add_argument("--live-manual-prep-allowed-symbols", default="")
+    parser.add_argument("--live-manual-prep-max-total-capital", type=float, default=5000.0)
+    parser.add_argument("--live-manual-prep-max-single-order-value", type=float, default=1000.0)
+    parser.add_argument("--live-manual-prep-max-symbol-weight", type=float, default=0.1)
+    parser.add_argument("--live-manual-prep-max-portfolio-weight", type=float, default=0.2)
+    parser.add_argument("--live-manual-prep-operator-name", default="")
+    parser.add_argument("--live-manual-prep-reviewer-name", default="")
+    parser.add_argument("--live-manual-prep-risk-owner-name", default="")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -185,6 +195,16 @@ def main(argv: list[str] | None = None) -> int:
         gray_decision_max_portfolio_weight=args.gray_decision_max_portfolio_weight,
         gray_decision_operator_name=args.gray_decision_operator_name,
         gray_decision_reviewer_name=args.gray_decision_reviewer_name,
+        enable_live_manual_prep=args.enable_live_manual_prep,
+        live_manual_prep_output_dir=args.live_manual_prep_output_dir,
+        live_manual_prep_allowed_symbols=[x.strip() for x in args.live_manual_prep_allowed_symbols.split(",") if x.strip()] or None,
+        live_manual_prep_max_total_capital=args.live_manual_prep_max_total_capital,
+        live_manual_prep_max_single_order_value=args.live_manual_prep_max_single_order_value,
+        live_manual_prep_max_symbol_weight=args.live_manual_prep_max_symbol_weight,
+        live_manual_prep_max_portfolio_weight=args.live_manual_prep_max_portfolio_weight,
+        live_manual_prep_operator_name=args.live_manual_prep_operator_name,
+        live_manual_prep_reviewer_name=args.live_manual_prep_reviewer_name,
+        live_manual_prep_risk_owner_name=args.live_manual_prep_risk_owner_name,
     )
     print(result.report_text)
 
@@ -254,6 +274,8 @@ def main(argv: list[str] | None = None) -> int:
             include_gray_rehearsal=args.enable_gray_rehearsal,
             gray_decision_dir=args.gray_decision_output_dir,
             include_gray_decision=args.enable_gray_decision_package,
+            live_manual_prep_dir=args.live_manual_prep_output_dir,
+            include_live_manual_prep=args.enable_live_manual_prep,
         )
         _, dashboard_path = build_and_save_dashboard(dashboard_config)
         print(f"\nRead-only dashboard written: {dashboard_path}")

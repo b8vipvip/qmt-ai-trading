@@ -33,6 +33,8 @@ def build_default_dashboard_config(
     include_gray_rehearsal: bool = False,
     gray_decision_dir: str = "gray_decision",
     include_gray_decision: bool = False,
+    live_manual_prep_dir: str = "live_manual_prep",
+    include_live_manual_prep: bool = False,
     title: str = "QMT AI Trading Dashboard",
 ) -> DashboardConfig:
     return DashboardConfig(
@@ -48,6 +50,7 @@ def build_default_dashboard_config(
             "notification_dry_run": notification_dry_run_dir,
             "gray_rehearsal": gray_rehearsal_dir,
             "gray_decision": gray_decision_dir,
+            "live_manual_prep": live_manual_prep_dir,
         },
         output_path=output_path,
         include_data_quality_tracking=include_data_quality_tracking,
@@ -58,6 +61,8 @@ def build_default_dashboard_config(
         gray_rehearsal_dir=gray_rehearsal_dir,
         include_gray_decision=include_gray_decision,
         gray_decision_dir=gray_decision_dir,
+        include_live_manual_prep=include_live_manual_prep,
+        live_manual_prep_dir=live_manual_prep_dir,
         read_only=True,
         metadata={"title": title, "stage": "stage31-ui-dashboard"},
     )

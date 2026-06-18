@@ -103,6 +103,13 @@ class ScheduleConfig:
     gray_decision_max_single_order_value: float = 1000.0
     gray_decision_max_symbol_weight: float = 0.1
     gray_decision_max_portfolio_weight: float = 0.2
+    enable_live_manual_prep: bool = False
+    live_manual_prep_output_dir: Path = Path("live_manual_prep")
+    live_manual_prep_allowed_symbols: str = ""
+    live_manual_prep_max_total_capital: float = 5000.0
+    live_manual_prep_max_single_order_value: float = 1000.0
+    live_manual_prep_max_symbol_weight: float = 0.1
+    live_manual_prep_max_portfolio_weight: float = 0.2
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
