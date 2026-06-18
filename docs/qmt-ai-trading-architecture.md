@@ -500,3 +500,9 @@ The default warmup provider is `mock` so local tests and scheduler previews work
 阶段十九在 Pipeline 层增加 `qmt_ai_trading.pipeline.data_source`，作为 Daily Pipeline 的统一数据源决策层。该层只评估本地缓存覆盖率、模式配置与 fallback 策略，不下载数据、不调用 QMT、不调用 `xttrader`、不下单。Daily Pipeline 报告新增 Data Source 区块，显示 selected_source、cache coverage、confidence、fallback 和 TradeIntent 生成许可。
 
 后续开发前必须先阅读 docs/qmt-ai-trading-project-roadmap.md。
+
+## 阶段二十进度：项目路线总文档重审与阶段计划对齐
+
+`docs/qmt-ai-trading-project-roadmap.md` 是当前项目最高优先级路线文档。后续阶段开发前必须先阅读 `docs/qmt-ai-trading-project-roadmap.md`，再阅读本文档，再阅读最近一个已完成阶段文档，并确认当前阶段目标与总路线一致；如不一致，必须优先更新路线文档或说明原因。
+
+阶段二十不开发交易功能、不接实盘、不调用 QMT 下单、不调用 `xttrader`、不查询资金/持仓/订单/成交、不真实发送通知。阶段二十只完成 roadmap 重写、阶段计划对齐、文档测试和后续开发规则固化。Human Approval 顺延为阶段二十一。
