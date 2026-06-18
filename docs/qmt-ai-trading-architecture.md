@@ -536,3 +536,16 @@ Live Readiness Audit 只做静态安全检查和报告生成：检查 roadmap / 
 Audit report 不是交易授权，不是实盘开关，不是人工审批替代物。当前阶段默认 NO_GO；即使所有检查通过，只要 `LiveReadinessPolicy.allow_go=False`，审计结论仍为 `NO_GO` 并说明 `GO disabled by policy`。
 
 当前阶段不调用 QMT、不调用 xttrader、不真实下单、不查询资金/持仓/订单/成交、不真实发送通知。未来若进入更接近实盘的阶段，仍必须保留 Risk Gate、Human Approval、Paper Trading 和 QMT Gateway 边界。
+
+## 阶段二十四进度：QMT 实机数据联调与真实缓存质量验证
+
+阶段二十四在 Data Hub 层增加真实 QMT 行情小范围联调能力和缓存质量报告能力。该阶段只使用 `xtquant.xtdata` 历史行情模块，不使用 `xtquant.xttrader`，不查询资金、持仓、订单、成交，不下单。
+
+新增边界如下：
+
+- `qmt_ai_trading.datahub.qmt_quality` 只评估 bars 与 `LocalBarStore` roundtrip，不连接交易接口。
+- `qmt_ai_trading.datahub.qmt_realdata_plan` 默认限制小范围样本，避免误拉大规模数据。
+- `scripts/qmt_realdata_smoke_test.py` 在 `xtdata` 可用时拉取小范围 ETF 历史 K 线并生成质量报告；无 `xtquant` 时输出 `UNAVAILABLE` / `SKIPPED`。
+- `scripts/check_qmt_cache_quality.py` 只读本地缓存并输出质量报告，不调用 QMT。
+
+阶段二十四只校验真实行情和缓存质量，不下单，不改变 Risk Gate、Human Approval、Paper Trading 或 live trading 默认关闭边界。只有阶段二十四真实缓存质量验证通过后，才考虑阶段二十五 Daily Pipeline 真实缓存数据默认化。

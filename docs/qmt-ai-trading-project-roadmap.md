@@ -268,3 +268,22 @@ ETF Universe
 阶段二十四确认：阶段二十四是“QMT 实机数据联调与真实缓存质量验证”。目标是在真实 MiniQMT / xtquant 环境中小范围拉取 ETF 历史数据，校验字段、日期、复权、成交量、缺失值、重复值和缓存质量。阶段二十四仍不实盘、不调用 `xttrader`、不真实下单。
 
 后续开发前必须继续先读 `docs/qmt-ai-trading-project-roadmap.md`，再读 `docs/qmt-ai-trading-architecture.md`，再读最近一个已完成阶段文档；不得越级接实盘，不得为了测试绕过风控。
+
+## 阶段二十四：QMT 实机数据联调与真实缓存质量验证
+
+阶段二十四确认名称为“QMT 实机数据联调与真实缓存质量验证”。本阶段目标是在真实 MiniQMT / `xtquant.xtdata` 环境可用时，小范围拉取 ETF 历史 K 线样本，保存到 `market_data_qmt_stage24/`，再从 `LocalBarStore` 读取验证 cache hit，并生成 Markdown / JSON 数据质量报告。
+
+阶段二十四完成状态说明：
+
+- 新增 `qmt_ai_trading.datahub.qmt_quality`，提供 `QmtDataQualityReport`、质量检查、cache roundtrip 和 Markdown / JSON 格式化。
+- 新增 `qmt_ai_trading.datahub.qmt_realdata_plan`，默认限制 `max_symbols=5`、`max_days=90`，防止误拉大规模真实行情。
+- 扩展 QMT runtime diagnostics，输出 `xtdata` 可用性、行情函数支持情况、连接状态和默认不导入交易接口的风险说明。
+- 新增 `scripts/qmt_realdata_smoke_test.py` 和 `scripts/check_qmt_cache_quality.py`；前者只使用 `xtdata` 行情模块，后者只读本地缓存。
+- 无 `xtquant` 环境下默认输出 `UNAVAILABLE` / `SKIPPED` 并生成报告，不导致项目测试崩溃。
+- 当前阶段仍不实盘、不调用 `xttrader`、不查询资金/持仓/订单/成交、不下单。
+
+## 阶段二十五：Daily Pipeline 真实缓存数据默认化
+
+阶段二十五确认名称为“Daily Pipeline 真实缓存数据默认化”。阶段二十五将在阶段二十四真实缓存质量验证通过后，把 Daily Pipeline 的默认数据源从 legacy/mock 逐步切换为 cached_real_data 优先；mock fallback 必须显式开启，并在报告中展示真实缓存覆盖率、数据质量等级和信号可信度。阶段二十五仍不实盘、不调用 `xttrader`、不真实下单。
+
+后续开发仍必须先阅读本 roadmap，再阅读 architecture 和最近阶段文档，确认阶段目标与路线一致后再开始开发。

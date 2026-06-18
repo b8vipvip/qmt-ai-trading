@@ -18,6 +18,11 @@ class QmtRuntimeInfo:
     connect_success: bool | None = None
     connect_message: str = ""
     supported_functions: list[str] = field(default_factory=list)
+    qmt_connect_status: str = "unknown"
+    has_download_history_data: bool = False
+    has_get_market_data_ex: bool = False
+    has_get_market_data: bool = False
+    xttrader_import_risk_detected: bool = False
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -84,18 +89,21 @@ def inspect_qmt_runtime(try_connect: bool = False, xtdata_module: Any = None) ->
         return QmtRuntimeInfo(False, connect_message=f"xtquant.xtdata unavailable: {message}", metadata={"trading_api_used": False})
     funcs = sorted(name for name in dir(xtdata) if not name.startswith("_") and callable(getattr(xtdata, name, None)))
     connect = getattr(xtdata, "connect", None)
-    info = QmtRuntimeInfo(True, getattr(xtdata, "__file__", None), callable(connect), supported_functions=funcs, connect_message="connect not attempted", metadata={"trading_api_used": False})
+    info = QmtRuntimeInfo(True, getattr(xtdata, "__file__", None), callable(connect), supported_functions=funcs, connect_message="connect not attempted", qmt_connect_status="not_attempted", has_download_history_data=callable(getattr(xtdata, "download_history_data", None)), has_get_market_data_ex=callable(getattr(xtdata, "get_market_data_ex", None)), has_get_market_data=callable(getattr(xtdata, "get_market_data", None)), xttrader_import_risk_detected=False, metadata={"trading_api_used": False, "xttrader_imported": False})
     if try_connect and callable(connect):
         try:
             result = connect()
             info.connect_success = True if result is None else bool(result)
             info.connect_message = f"xtdata.connect() returned {result!r}"
+            info.qmt_connect_status = "connected" if info.connect_success else "unavailable"
         except Exception as exc:  # pragma: no cover
             info.connect_success = False
             info.connect_message = f"xtdata.connect() failed: {exc}"
+            info.qmt_connect_status = "error"
     elif try_connect:
         info.connect_success = True
         info.connect_message = "xtdata.connect() not available; import succeeded"
+        info.qmt_connect_status = "available_no_connect_function"
     return info
 
 
@@ -161,6 +169,11 @@ def format_qmt_runtime_info(info: QmtRuntimeInfo) -> str:
         f"connect_success={info.connect_success}",
         f"connect_message={info.connect_message}",
         f"supported_functions_count={len(info.supported_functions)}",
+        f"qmt_connect_status={info.qmt_connect_status}",
+        f"has_download_history_data={info.has_download_history_data}",
+        f"has_get_market_data_ex={info.has_get_market_data_ex}",
+        f"has_get_market_data={info.has_get_market_data}",
+        f"xttrader_import_risk_detected={info.xttrader_import_risk_detected}",
         "trading APIs: not used; xttrader is not imported",
     ])
 
