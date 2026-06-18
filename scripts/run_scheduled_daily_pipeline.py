@@ -55,6 +55,17 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--create-approval", action="store_true")
     parser.add_argument("--approval-root", default="approvals")
     parser.add_argument("--approval-expires-hours", type=float, default=24.0)
+
+    parser.add_argument("--enable-portfolio-plan", action="store_true", help="Generate dry-run/paper portfolio plan before Risk Gate.")
+    parser.add_argument("--portfolio-method", default="score_weight", choices=["equal_weight", "score_weight", "risk_adjusted_weight"])
+    parser.add_argument("--portfolio-top-n", type=int, default=2)
+    parser.add_argument("--portfolio-cash-reserve-ratio", type=float, default=0.2)
+    parser.add_argument("--portfolio-max-symbol-weight", type=float, default=0.3)
+    parser.add_argument("--portfolio-max-weight", type=float, default=0.8)
+    parser.add_argument("--portfolio-rebalance-threshold", type=float, default=0.05)
+    parser.add_argument("--portfolio-total-asset", type=float, default=1000000.0)
+    parser.add_argument("--portfolio-current-cash", type=float, default=1000000.0)
+    parser.add_argument("--portfolio-snapshot-path", default=None)
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -84,6 +95,15 @@ def main(argv: list[str] | None = None) -> int:
         args.extend(["--data-source-confidence-required", parsed.data_source_confidence_required])
     if parsed.create_approval:
         args.append("--create-approval")
+
+    if parsed.enable_portfolio_plan:
+        args.append("--enable-portfolio-plan")
+    args.extend(["--portfolio-method", parsed.portfolio_method, "--portfolio-top-n", str(parsed.portfolio_top_n)])
+    args.extend(["--portfolio-cash-reserve-ratio", str(parsed.portfolio_cash_reserve_ratio), "--portfolio-max-symbol-weight", str(parsed.portfolio_max_symbol_weight)])
+    args.extend(["--portfolio-max-weight", str(parsed.portfolio_max_weight), "--portfolio-rebalance-threshold", str(parsed.portfolio_rebalance_threshold)])
+    args.extend(["--portfolio-total-asset", str(parsed.portfolio_total_asset), "--portfolio-current-cash", str(parsed.portfolio_current_cash)])
+    if parsed.portfolio_snapshot_path:
+        args.extend(["--portfolio-snapshot-path", parsed.portfolio_snapshot_path])
     args.extend(["--approval-root", parsed.approval_root, "--approval-expires-hours", str(parsed.approval_expires_hours)])
     if parsed.use_cached_research or parsed.data_source_mode in {"cached", "auto", "cached_real_first"}:
         if parsed.use_cached_research:

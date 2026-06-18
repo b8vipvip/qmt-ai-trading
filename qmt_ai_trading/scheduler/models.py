@@ -51,6 +51,16 @@ class ScheduleConfig:
     create_approval: bool = False
     approval_root: Path = Path("approvals")
     approval_expires_hours: float = 24.0
+    enable_portfolio_plan: bool = False
+    portfolio_method: str = "score_weight"
+    portfolio_top_n: int = 2
+    portfolio_cash_reserve_ratio: float = 0.2
+    portfolio_max_symbol_weight: float = 0.3
+    portfolio_max_weight: float = 0.8
+    portfolio_rebalance_threshold: float = 0.05
+    portfolio_total_asset: float = 1000000.0
+    portfolio_current_cash: float = 1000000.0
+    portfolio_snapshot_path: str | None = None
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

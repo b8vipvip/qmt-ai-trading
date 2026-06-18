@@ -297,3 +297,15 @@ ETF Universe
 ## 阶段二十六：组合与资金管理层（下一阶段）
 
 阶段二十六目标是在当前单一 ETF top_n 信号基础上，增加组合级权重、最大仓位、现金保留、调仓阈值、持仓计划和组合风险约束。阶段二十六仍 dry-run / paper，不调用 `xttrader`、不真实下单。
+
+## 阶段二十六：组合与资金管理层（已完成）
+
+阶段二十六确认路线为“组合与资金管理层”。本阶段在 Cached ETF Rotation / Strategy 之后、TradeIntent / Risk Gate 之前增加 Portfolio 层，支持 `equal_weight`、`score_weight`、`risk_adjusted_weight`、最大单标的仓位、组合最大仓位、现金保留比例、最小调仓阈值、本地 mock/snapshot 当前持仓输入、`PortfolioPlan` 输出和 dry-run TradeIntent 调整计划。
+
+完成状态：已新增 `qmt_ai_trading/portfolio/`，扩展 Daily Pipeline、pipeline report、scheduled pipeline 与 task registration 参数，并新增 `scripts/run_portfolio_plan.py`。Portfolio plan is dry-run/paper only and is not an order instruction. 阶段二十六不查询真实账户、不调用 QMT 交易接口、不调用 `xttrader`、不真实下单；所有 Portfolio 生成的 TradeIntent 仍必须经过 Risk Gate，进入 paper/live 前仍必须 Human Approval。
+
+## 阶段二十七：长期回测与绩效归因（下一阶段）
+
+阶段二十七确认为“长期回测与绩效归因”。目标是对 `cached_real_first + portfolio plan` 的 dry-run 策略进行多周期回测，输出收益、回撤、换手、胜率、调仓次数、因子贡献和组合归因报告。阶段二十七仍不实盘、不调用 `xttrader`、不真实下单。
+
+后续开发仍必须先阅读本 roadmap，再阅读 architecture 和最近阶段文档，不能越级接实盘，不能为了测试绕过风控。

@@ -50,6 +50,11 @@ def format_pipeline_report(result: PipelineResult) -> str:
     else:
         lines.append(f"- No trade intents generated. Reason: {result.metadata.get('no_intent_reason', 'no eligible candidates or empty input')}")
 
+    plan = result.metadata.get("portfolio_plan")
+    if plan is not None:
+        from qmt_ai_trading.portfolio.formatters import format_portfolio_plan_markdown
+        lines.extend(["", format_portfolio_plan_markdown(plan), ""])
+
     lines.extend(["", "## RiskDecision"])
     if result.risk_decisions:
         for decision in result.risk_decisions:

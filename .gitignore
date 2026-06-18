@@ -151,3 +151,11 @@ qmt_data_quality_reports/
 
 # stage 25 cached real default runtime outputs
 market_data_test_stage25/
+
+# stage 26 portfolio management runtime outputs
+portfolio_plans/
+portfolio_snapshots/
+portfolio_test_stage26/
+market_data_test_stage26/
+*.portfolio_plan.json
+*.portfolio_snapshot.json
