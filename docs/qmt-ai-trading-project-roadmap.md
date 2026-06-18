@@ -309,3 +309,11 @@ ETF Universe
 阶段二十七确认为“长期回测与绩效归因”。目标是对 `cached_real_first + portfolio plan` 的 dry-run 策略进行多周期回测，输出收益、回撤、换手、胜率、调仓次数、因子贡献和组合归因报告。阶段二十七仍不实盘、不调用 `xttrader`、不真实下单。
 
 后续开发仍必须先阅读本 roadmap，再阅读 architecture 和最近阶段文档，不能越级接实盘，不能为了测试绕过风控。
+
+## 阶段二十七完成状态：长期回测与绩效归因
+
+阶段二十七确认为“长期回测与绩效归因”。本阶段新增 `qmt_ai_trading.performance` 与 `qmt_ai_trading.backtest.long_portfolio_backtest`，用于对 cached_real_first + cached ETF rotation + portfolio plan 的 dry-run 策略做多周期本地缓存回测，输出收益、最大回撤、波动率、Sharpe、胜率、换手、调仓次数、因子贡献、标的归因和 Risk Gate 拦截归因。
+
+阶段二十七只读取 `LocalBarStore` 本地缓存，不调用 QMT 交易接口，不调用 `xttrader`，不真实下单，不查询真实资金、持仓、订单或成交。Risk Gate 拒绝的模拟 TradeIntent 会单独记录，不计入 risk-executable performance。
+
+阶段二十八确认为“异常监控、告警、熔断”。阶段二十八将在长期回测之后，对数据缺失、缓存异常、信号异常、Risk Gate 连续拒绝、回测异常和调度失败建立监控事件、告警等级和熔断规则。后续开发前仍必须先读本 roadmap、architecture 和最近阶段文档。
