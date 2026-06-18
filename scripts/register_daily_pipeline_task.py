@@ -99,6 +99,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--gray-rehearsal-allowed-symbols", default="")
     parser.add_argument("--gray-rehearsal-max-total-capital", type=float, default=5000.0)
     parser.add_argument("--gray-rehearsal-max-single-order-value", type=float, default=1000.0)
+    parser.add_argument("--enable-gray-decision-package", action="store_true")
+    parser.add_argument("--gray-decision-output-dir", default="gray_decision")
+    parser.add_argument("--gray-decision-allowed-symbols", default="")
+    parser.add_argument("--gray-decision-max-total-capital", type=float, default=5000.0)
+    parser.add_argument("--gray-decision-max-single-order-value", type=float, default=1000.0)
+    parser.add_argument("--gray-decision-max-symbol-weight", type=float, default=0.1)
+    parser.add_argument("--gray-decision-max-portfolio-weight", type=float, default=0.2)
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -186,6 +193,13 @@ def main(argv: list[str] | None = None) -> int:
         gray_rehearsal_allowed_symbols=args.gray_rehearsal_allowed_symbols,
         gray_rehearsal_max_total_capital=args.gray_rehearsal_max_total_capital,
         gray_rehearsal_max_single_order_value=args.gray_rehearsal_max_single_order_value,
+        enable_gray_decision_package=args.enable_gray_decision_package,
+        gray_decision_output_dir=Path(args.gray_decision_output_dir),
+        gray_decision_allowed_symbols=args.gray_decision_allowed_symbols,
+        gray_decision_max_total_capital=args.gray_decision_max_total_capital,
+        gray_decision_max_single_order_value=args.gray_decision_max_single_order_value,
+        gray_decision_max_symbol_weight=args.gray_decision_max_symbol_weight,
+        gray_decision_max_portfolio_weight=args.gray_decision_max_portfolio_weight,
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -212,6 +226,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Data Quality Tracking: enable_data_quality_tracking=True output_dir={args.data_quality_tracking_output_dir} report_dir={args.data_quality_tracking_report_dir} read_only=True")
     if args.enable_gray_rehearsal:
         print(f"Gray Rehearsal: enable_gray_rehearsal=True output_dir={args.gray_rehearsal_output_dir} allowed_symbols={args.gray_rehearsal_allowed_symbols} dry_run_only=True")
+    if args.enable_gray_decision_package:
+        print(f"Gray Decision Package: enable_gray_decision_package=True output_dir={args.gray_decision_output_dir} allowed_symbols={args.gray_decision_allowed_symbols} manual_only=True")
     if args.build_dashboard:
         print(f"Dashboard: build_dashboard=True output={args.dashboard_output} title={args.dashboard_title} read_only=True no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:

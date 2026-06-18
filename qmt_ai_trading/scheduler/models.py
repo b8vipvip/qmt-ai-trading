@@ -96,6 +96,13 @@ class ScheduleConfig:
     gray_rehearsal_allowed_symbols: str = ""
     gray_rehearsal_max_total_capital: float = 5000.0
     gray_rehearsal_max_single_order_value: float = 1000.0
+    enable_gray_decision_package: bool = False
+    gray_decision_output_dir: Path = Path("gray_decision")
+    gray_decision_allowed_symbols: str = ""
+    gray_decision_max_total_capital: float = 5000.0
+    gray_decision_max_single_order_value: float = 1000.0
+    gray_decision_max_symbol_weight: float = 0.1
+    gray_decision_max_portfolio_weight: float = 0.2
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

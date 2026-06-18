@@ -405,3 +405,15 @@ Dashboard 只生成单文件 HTML；`scripts/build_dashboard.py` 可从本地报
 阶段三十六目标是在不启用真实实盘的前提下，把阶段三十五演练结果整理成一份人工决策包，用于人工判断是否有资格在未来单独阶段进入极小资金灰度。阶段三十六仍默认 dry-run，不真实下单，不调用 `xttrader`，不真实发送通知。
 
 后续开发前必须继续先读 roadmap，再读 architecture，再读最近阶段文档。
+
+## 阶段三十六：小资金灰度准入复核 / 人工决策包（已完成）
+
+阶段三十六确认阶段名称为“小资金灰度准入复核 / 人工决策包”。本阶段新增 `qmt_ai_trading.gray_decision` manual-only 决策包层，汇总 Risk Gate、Human Approval、Paper Trading、Live Readiness Audit、Monitoring、Data Quality Tracking、Agent Research、Live Gray Readiness、Notification Dry Run、Dashboard、Gray Rehearsal 和 Final Acceptance 本地证据，输出 Markdown / JSON 人工决策包、Checklist、人工签字占位和 NOT_ELIGIBLE / NEED_MORE_EVIDENCE / READY_FOR_MANUAL_DECISION / BLOCKED 结论。
+
+完成状态：支持 `scripts/run_gray_decision_package.py` 独立运行；支持 `run_daily_pipeline.py --enable-gray-decision-package` 可选输出 Gray Decision Package 区块；支持 scheduled pipeline 与 register task 透传 gray decision package 参数；Dashboard 支持只读 Gray Decision Package section。阶段三十六不启用实盘、不调用 QMT 交易接口、不调用 `xttrader`、不查询账户/资金/持仓/订单/成交、不真实发送通知、不下单。
+
+## 阶段三十七：极小资金灰度实盘人工审批准备（仍默认关闭）（下一阶段）
+
+阶段三十七确认路线为“极小资金灰度实盘人工审批准备（仍默认关闭）”。目标是在不启用真实实盘的前提下，准备未来极小资金灰度实盘所需的人工审批材料、开关说明、只读配置检查和最终人工确认流程。阶段三十七仍默认关闭实盘，不真实下单，不调用 `xttrader`，不真实发送通知。
+
+后续开发前必须继续先读 roadmap，再读 architecture，再读最近阶段文档；不得越级接实盘，不得为了测试绕过风控。
