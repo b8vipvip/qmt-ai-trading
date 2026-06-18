@@ -74,7 +74,11 @@ class ApprovalStore:
         for path in sorted(self.root_dir.glob("approval_*.json")):
             if path.name.endswith(".decision.json"):
                 continue
-            approval_id = path.stem.removeprefix("approval_")
+            stem = path.stem
+            if stem.startswith("approval_"):
+                approval_id = stem[len("approval_"):]
+            else:
+                approval_id = stem
             req = self.load_request(approval_id)
             if expected is None or _coerce_status(req.status) == expected:
                 requests.append(req)
