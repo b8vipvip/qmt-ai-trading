@@ -37,12 +37,20 @@ def evaluate_monitoring_rules(config: MonitoringConfig) -> list[MonitoringEvent]
                 "QUALITY",
             )
         )
+    if config.cache_coverage is not None:
+        coverage = float(config.cache_coverage)
+        if coverage < float(config.critical_cache_coverage):
+            events.append(MonitoringEvent("cache_coverage_critical", "ERROR", f"Cache coverage {coverage:.2%} is below critical threshold {config.critical_cache_coverage:.2%}.", "cache_coverage", coverage, config.critical_cache_coverage, "CACHE"))
+        elif coverage < float(config.min_cache_coverage):
+            events.append(MonitoringEvent("cache_coverage_low", "WARNING", f"Cache coverage {coverage:.2%} is below threshold {config.min_cache_coverage:.2%}.", "cache_coverage", coverage, config.min_cache_coverage, "CACHE"))
     if config.fallback_used:
         events.append(MonitoringEvent("fallback_used", "WARNING", "Fallback/mock data path was used; do not treat the signal as live-ready.", "fallback_used", True, False, "DATA"))
     if int(config.risk_reject_count) > int(config.max_risk_reject_count):
-        events.append(MonitoringEvent("risk_reject_spike", "CRITICAL", f"Risk Gate rejected {config.risk_reject_count} intents, above threshold {config.max_risk_reject_count}.", "risk_reject_count", config.risk_reject_count, config.max_risk_reject_count, "RISK"))
+        severity = "CRITICAL" if int(config.risk_reject_count) >= int(config.critical_risk_reject_count) else "ERROR"
+        events.append(MonitoringEvent("risk_reject_spike", severity, f"Risk Gate rejected {config.risk_reject_count} intents, above threshold {config.max_risk_reject_count}.", "risk_reject_count", config.risk_reject_count, config.max_risk_reject_count, "RISK"))
     if int(config.scheduler_exit_code) != 0:
         events.append(MonitoringEvent("scheduler_failure", "CRITICAL", f"Scheduled pipeline exited with code {config.scheduler_exit_code}.", "scheduler_exit_code", config.scheduler_exit_code, 0, "SCHEDULER"))
     if float(config.max_drawdown) <= float(config.max_allowed_drawdown):
-        events.append(MonitoringEvent("drawdown_breach", "CRITICAL", f"Max drawdown {config.max_drawdown:.2%} breached threshold {config.max_allowed_drawdown:.2%}.", "max_drawdown", config.max_drawdown, config.max_allowed_drawdown, "BACKTEST"))
+        severity = "CRITICAL" if float(config.max_drawdown) <= float(config.critical_max_drawdown) else "WARNING"
+        events.append(MonitoringEvent("drawdown_breach", severity, f"Max drawdown {config.max_drawdown:.2%} breached threshold {config.max_allowed_drawdown:.2%}.", "max_drawdown", config.max_drawdown, config.max_allowed_drawdown, "BACKTEST"))
     return events

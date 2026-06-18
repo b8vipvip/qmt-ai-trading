@@ -321,6 +321,13 @@ ETF Universe
 
 ## 阶段二十八完成状态：异常监控、告警、熔断
 
-阶段二十八确认为“异常监控、告警、熔断”。本阶段新增 `qmt_ai_trading.monitoring` 与 `scripts/run_monitoring_check.py`，用于对数据质量、fallback/mock 使用、Risk Gate 拒绝数量、调度退出码和最大回撤做本地 dry-run 监控，输出 Markdown / JSON 报告、本地 dry-run alert 文件和 circuit-breaker 建议。
+阶段二十八确认为“异常监控、告警、熔断”（已完成）。本阶段新增 `qmt_ai_trading.monitoring` 与 `scripts/run_monitoring_check.py`，用于对数据质量、fallback/mock 使用、Risk Gate 拒绝数量、调度退出码和最大回撤做本地 dry-run 监控，输出 Markdown / JSON 报告、本地 dry-run alert 文件和 circuit-breaker 建议。
 
 阶段二十八不发送真实通知、不调用 QMT 交易接口、不调用 `xttrader`、不真实下单、不查询真实资金、持仓、订单或成交。Circuit breaker 是阻断建议和人工复核信号，不是自动实盘控制。阶段二十九确认为“Agent Research Layer”，Agent 仍只能做研究解释和风险提示，不能下单，不能绕过 Risk Gate。
+
+
+## 阶段二十九：Agent Research Layer（下一阶段）
+
+阶段二十九确认为“Agent Research Layer”。下一阶段只允许在 Research / Reporting / Monitoring 产物之上做研究解释、因子归因摘要、异常原因分析和风险提示；Agent 不得下单，不得调用 `xttrader`，不得查询真实资金、持仓、订单或成交，不得绕过 Risk Gate、Human Approval、Paper Trading、Live Readiness Audit 或阶段二十八 Circuit Breaker。
+
+后续任何开发前必须先读本 roadmap，再读 architecture 和最近阶段文档；不能越级接实盘，不能为了测试绕过风控，不能把 dry-run alert 或 circuit-breaker 建议解释为交易授权。
