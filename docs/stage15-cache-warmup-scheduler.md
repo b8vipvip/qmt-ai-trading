@@ -93,3 +93,6 @@ py scripts/register_daily_pipeline_task.py --warmup-cache --warmup-provider mock
 ## 后续阶段
 
 后续可在真实 QMT 环境中把每日 ETF universe 的增量行情补齐接入生产级本地数据维护流程，并继续保持交易接口与行情缓存流程隔离。
+
+
+后续开发应先阅读 `docs/qmt-ai-trading-project-roadmap.md`。

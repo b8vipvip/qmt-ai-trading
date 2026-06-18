@@ -20,6 +20,10 @@ class ScheduleConfig:
     write_reports: bool = True
     notify_dry_run: bool = True
     warmup_cache: bool = False
+    warmup_universe: bool = False
+    universe_name: str = "default_etf"
+    universe_lookback_days: int | None = None
+    universe_lookback_years: int | None = None
     warmup_provider: str = "mock"
     warmup_start: str | None = None
     warmup_end: str | None = None

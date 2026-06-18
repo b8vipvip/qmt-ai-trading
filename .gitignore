@@ -112,3 +112,6 @@ qmt_sample_calibration_report.md
 
 # stage 15 scheduler cache warmup
 market_data_test_stage15/
+
+# stage 16 ETF universe warmup local cache
+market_data_test_stage16/

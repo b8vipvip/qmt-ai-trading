@@ -16,12 +16,17 @@ if str(ROOT) not in sys.path:
 
 from qmt_ai_trading.datahub.cache_warmup import build_default_warmup_request, format_cache_warmup_result, warmup_history_cache
 from qmt_ai_trading.datahub.etf_universe import get_default_etf_universe
+from qmt_ai_trading.datahub.universe_warmup import build_universe_warmup_request, format_universe_warmup_result, warmup_etf_universe_history
 from scripts.run_daily_pipeline import main as run_daily_pipeline_main
 
 
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Scheduled dry-run daily pipeline with optional historical cache warmup.")
     parser.add_argument("--warmup-cache", action="store_true", help="Warm historical bar cache before running the dry-run pipeline.")
+    parser.add_argument("--warmup-universe", action="store_true", help="Warm ETF universe historical cache before running the dry-run pipeline.")
+    parser.add_argument("--universe-name", default="default_etf")
+    parser.add_argument("--universe-lookback-days", type=int, default=None)
+    parser.add_argument("--universe-lookback-years", type=int, default=None)
     parser.add_argument("--warmup-provider", default="mock", choices=["mock", "qmt"], help="Historical provider for cache warmup.")
     parser.add_argument("--warmup-start", default=None, help="Warmup start date, e.g. 2024-01-01.")
     parser.add_argument("--warmup-end", default=None, help="Warmup end date, e.g. 2024-01-10.")
@@ -45,7 +50,22 @@ def main(argv: list[str] | None = None) -> int:
         log_file.write(f"Arguments: {' '.join(args)}\n\n")
         try:
             with contextlib.redirect_stdout(log_file), contextlib.redirect_stderr(log_file):
-                if parsed.warmup_cache:
+                if parsed.warmup_universe:
+                    request = build_universe_warmup_request(
+                        universe_name=parsed.universe_name,
+                        start_date=parsed.warmup_start,
+                        end_date=parsed.warmup_end,
+                        lookback_days=parsed.universe_lookback_days,
+                        lookback_years=parsed.universe_lookback_years,
+                        frequency=parsed.warmup_frequency,
+                        provider=parsed.warmup_provider,
+                        cache_root=parsed.cache_root,
+                        fail_fast=parsed.warmup_fail_fast,
+                        metadata={"entrypoint": "run_scheduled_daily_pipeline", "mode": "universe"},
+                    )
+                    universe_result = warmup_etf_universe_history(request)
+                    print(format_universe_warmup_result(universe_result))
+                elif parsed.warmup_cache:
                     if not parsed.warmup_start or not parsed.warmup_end:
                         raise ValueError("--warmup-start and --warmup-end are required when --warmup-cache is used")
                     symbols = [item.symbol for item in get_default_etf_universe()]
