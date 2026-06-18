@@ -172,3 +172,11 @@ market_data/
 data_cache/
 *.long_backtest.json
 *.long_backtest.md
+
+# stage 28 monitoring runtime outputs
+monitoring_reports/
+monitoring_reports_stage28/
+alert_test_stage28/
+*.monitoring.json
+*.monitoring.md
+market_data_test_stage28/

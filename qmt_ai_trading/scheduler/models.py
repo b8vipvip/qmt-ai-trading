@@ -61,6 +61,9 @@ class ScheduleConfig:
     portfolio_total_asset: float = 1000000.0
     portfolio_current_cash: float = 1000000.0
     portfolio_snapshot_path: str | None = None
+    enable_monitoring: bool = False
+    monitoring_output_dir: Path = Path("monitoring_reports")
+    monitoring_dry_run_alerts: bool = False
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

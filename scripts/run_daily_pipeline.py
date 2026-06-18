@@ -56,6 +56,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--portfolio-total-asset", type=float, default=1000000.0)
     parser.add_argument("--portfolio-current-cash", type=float, default=1000000.0)
     parser.add_argument("--portfolio-snapshot-path", default=None)
+
+    parser.add_argument("--enable-monitoring", action="store_true", help="Run Stage 28 dry-run monitoring checks after the pipeline.")
+    parser.add_argument("--monitoring-output-dir", default="monitoring_reports")
+    parser.add_argument("--monitoring-dry-run-alerts", action="store_true", default=False)
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -95,6 +99,28 @@ def main(argv: list[str] | None = None) -> int:
         portfolio_snapshot_path=args.portfolio_snapshot_path,
     )
     print(result.report_text)
+
+    if args.enable_monitoring:
+        from qmt_ai_trading.monitoring.service import MonitoringConfig, run_monitoring_check, save_monitoring_json
+        from qmt_ai_trading.monitoring.formatters import format_monitoring_markdown
+
+        data_source = result.metadata.get("data_source", {}) if isinstance(result.metadata, dict) else {}
+        risk_reject_count = sum(1 for item in result.risk_decisions if not getattr(item, "allowed", False))
+        monitoring_report = run_monitoring_check(MonitoringConfig(
+            quality_level=str(data_source.get("quality_level", "UNKNOWN")),
+            fallback_used=bool(data_source.get("fallback_used", False)),
+            risk_reject_count=risk_reject_count,
+            scheduler_exit_code=0,
+            max_drawdown=float((getattr(result.backtest_result, "summary", {}) or {}).get("max_drawdown", 0.0)) if isinstance(getattr(result, "backtest_result", None), object) else 0.0,
+            dry_run_alerts=args.monitoring_dry_run_alerts,
+            alert_output_dir=str(Path(args.monitoring_output_dir) / "alerts"),
+            metadata={"pipeline_run_id": result.context.run_id},
+        ))
+        out_dir = Path(args.monitoring_output_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "monitoring.md").write_text(format_monitoring_markdown(monitoring_report), encoding="utf-8")
+        save_monitoring_json(monitoring_report, out_dir / "monitoring.json")
+        print("\n" + format_monitoring_markdown(monitoring_report))
 
     if args.create_approval:
         from qmt_ai_trading.approval.service import approval_request_from_pipeline_result
