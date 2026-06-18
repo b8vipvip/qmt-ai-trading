@@ -204,3 +204,13 @@ market_data_test_stage30/
 *.live_readiness.md
 agent_reports_stage30/
 monitoring_reports_stage30/
+
+# stage 31 dashboard runtime outputs
+dashboard_stage31/
+dashboard_output/
+/dashboard/
+*.dashboard.html
+market_data_test_stage31/
+agent_reports_stage31/
+monitoring_reports_stage31/
+live_gray_reports_stage31/

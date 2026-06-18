@@ -616,3 +616,11 @@ Agent Research 输入包括 Daily Pipeline 输出、Monitoring Report、Long Bac
 本阶段只生成 readiness report，不开启实盘。`--live-enabled` 默认不使用，计划任务 dry-run 命令默认不包含 `--live-enabled`；即使误传，也不会绕过 Risk Gate、Human Approval、Live Readiness Audit、Monitoring 或 Circuit Breaker。
 
 阶段三十不调用 QMT 交易接口、不调用 `xttrader`、不查询真实资金/持仓/订单/成交、不真实发送通知、不下单。
+
+## 阶段三十一进度：UI / Dashboard
+
+阶段三十一新增 Dashboard 作为只读展示层。它位于 Reporting / Monitoring / Agent Research / Live Gray Readiness 之后，只汇总本地报告产物和状态文件，不作为交易入口。
+
+Dashboard 展示 Daily Pipeline、Data Source / Cache Quality、Candidates、TradeIntents、RiskDecision、Portfolio Plan、Monitoring Report / Alerts / Circuit Breaker、Agent Research Memo、Live Gray Readiness、Human Approval 和 Paper Trading 状态。缺少报告时只显示 EMPTY/WARNING，不崩溃。
+
+Dashboard 明确只读展示，不提供下单按钮，不触发 Approval / Paper / Live，不绕过 Risk Gate / Human Approval / Live Readiness Audit / Monitoring / Circuit Breaker。Dashboard 不调用 QMT 交易接口、不调用 `xttrader`、不真实发送通知、不下单，不读取 `.env`、token、key、password、secret，不加载外部 CDN 或外部 JS。

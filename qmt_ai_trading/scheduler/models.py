@@ -78,6 +78,9 @@ class ScheduleConfig:
     live_gray_max_symbol_weight: float = 0.1
     live_gray_max_portfolio_weight: float = 0.2
     live_gray_enabled: bool = False
+    build_dashboard: bool = False
+    dashboard_output: Path = Path("dashboard/daily_dashboard.html")
+    dashboard_title: str = "QMT AI Trading Dashboard"
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

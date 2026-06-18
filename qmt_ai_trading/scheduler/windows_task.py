@@ -92,6 +92,9 @@ def build_daily_pipeline_command(
     live_gray_max_symbol_weight: float = 0.1,
     live_gray_max_portfolio_weight: float = 0.2,
     live_gray_enabled: bool = False,
+    build_dashboard: bool = False,
+    dashboard_output: str | Path = Path("dashboard/daily_dashboard.html"),
+    dashboard_title: str = "QMT AI Trading Dashboard",
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -182,6 +185,9 @@ def build_daily_pipeline_command(
         args.extend(["--live-gray-max-symbol-weight", str(live_gray_max_symbol_weight), "--live-gray-max-portfolio-weight", str(live_gray_max_portfolio_weight)])
         if live_gray_enabled:
             args.append("--live-gray-enabled")
+    if build_dashboard:
+        args.append("--build-dashboard")
+        args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
     if use_cached_research or data_source_mode in {"cached", "auto", "cached_real_first"}:
         if use_cached_research:
             args.append("--use-cached-research")
@@ -286,6 +292,9 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         live_gray_max_symbol_weight=cfg.live_gray_max_symbol_weight,
         live_gray_max_portfolio_weight=cfg.live_gray_max_portfolio_weight,
         live_gray_enabled=cfg.live_gray_enabled,
+        build_dashboard=cfg.build_dashboard,
+        dashboard_output=cfg.dashboard_output,
+        dashboard_title=cfg.dashboard_title,
     )
     task_run = pipeline.metadata["display"]
     args = ["/Create", "/F", "/SC", "DAILY", "/TN", cfg.task_name, "/TR", task_run, "/ST", cfg.run_time]

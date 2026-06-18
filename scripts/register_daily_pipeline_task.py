@@ -81,6 +81,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-gray-max-symbol-weight", type=float, default=0.1)
     parser.add_argument("--live-gray-max-portfolio-weight", type=float, default=0.2)
     parser.add_argument("--live-gray-enabled", action="store_true")
+    parser.add_argument("--build-dashboard", action="store_true")
+    parser.add_argument("--dashboard-output", default="dashboard/daily_dashboard.html")
+    parser.add_argument("--dashboard-title", default="QMT AI Trading Dashboard")
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -150,6 +153,9 @@ def main(argv: list[str] | None = None) -> int:
         live_gray_max_symbol_weight=args.live_gray_max_symbol_weight,
         live_gray_max_portfolio_weight=args.live_gray_max_portfolio_weight,
         live_gray_enabled=args.live_gray_enabled,
+        build_dashboard=args.build_dashboard,
+        dashboard_output=Path(args.dashboard_output),
+        dashboard_title=args.dashboard_title,
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -172,6 +178,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Agent Research: enable_agent_research=True output_dir={args.agent_research_output_dir} mode={args.agent_research_mode} read_only=True")
     if args.enable_live_gray_readiness:
         print(f"Live Gray Readiness: enable_live_gray_readiness=True output_dir={args.live_gray_output_dir} allowed_symbols={args.live_gray_allowed_symbols} live_enabled_included=False preparation_only=True")
+    if args.build_dashboard:
+        print(f"Dashboard: build_dashboard=True output={args.dashboard_output} title={args.dashboard_title} read_only=True no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:
         print(f"Cached research: start={args.research_start} end={args.research_end} frequency={args.research_frequency} min_bars={args.min_bars} cache_root={args.cache_root}")
         print(f"Cached ETF rotation: top_n={args.cached_strategy_top_n} min_score={args.cached_strategy_min_score} min_bars={args.cached_strategy_min_bars}")
