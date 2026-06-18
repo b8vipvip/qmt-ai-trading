@@ -118,3 +118,6 @@ market_data_test_stage16/
 
 # stage 17 cached research local cache
 market_data_test_stage17/
+
+# stage 18 cached ETF rotation local cache
+market_data_test_stage18/

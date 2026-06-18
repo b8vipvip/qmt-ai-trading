@@ -34,6 +34,9 @@ class ScheduleConfig:
     research_end: str | None = None
     research_frequency: str = "1d"
     min_bars: int = 20
+    cached_strategy_top_n: int = 1
+    cached_strategy_min_score: float | None = None
+    cached_strategy_min_bars: int = 20
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

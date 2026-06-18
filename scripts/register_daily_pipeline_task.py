@@ -36,6 +36,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--research-end", default=None)
     parser.add_argument("--research-frequency", default="1d")
     parser.add_argument("--min-bars", type=int, default=20)
+    parser.add_argument("--cached-strategy-top-n", type=int, default=1)
+    parser.add_argument("--cached-strategy-min-score", type=float, default=None)
+    parser.add_argument("--cached-strategy-min-bars", type=int, default=20)
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -61,6 +64,9 @@ def main(argv: list[str] | None = None) -> int:
         research_end=args.research_end,
         research_frequency=args.research_frequency,
         min_bars=args.min_bars,
+        cached_strategy_top_n=args.cached_strategy_top_n,
+        cached_strategy_min_score=args.cached_strategy_min_score,
+        cached_strategy_min_bars=args.cached_strategy_min_bars,
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -73,6 +79,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Warmup: provider={args.warmup_provider} start={args.warmup_start} end={args.warmup_end} frequency={args.warmup_frequency} cache_root={args.cache_root}")
     if args.use_cached_research:
         print(f"Cached research: start={args.research_start} end={args.research_end} frequency={args.research_frequency} min_bars={args.min_bars} cache_root={args.cache_root}")
+        print(f"Cached ETF rotation: top_n={args.cached_strategy_top_n} min_score={args.cached_strategy_min_score} min_bars={args.cached_strategy_min_bars}")
     print(f"Result: {result.message}")
     if result.dry_run:
         print("DRY-RUN ONLY: no task registered. Re-run with --execute to register on Windows.")

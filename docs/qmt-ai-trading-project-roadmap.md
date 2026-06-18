@@ -76,3 +76,9 @@ qmt-ai-trading 是个人本地 A股 / ETF / QMT / AI Agent 辅助量化系统。
 阶段十七新增 Cached Research 数据源：Research 可以通过 `LocalBarStore` / `BarQuery` 只读本地 `market_data/` 历史 K 线，生成 `ResearchScore` 和 `ETFCandidate`，并接入 dry-run Daily Pipeline。缓存缺失或 bars 不足时返回 warning / 空结果，不下载数据、不调用 QMT、不调用 `xttrader`、不下单。
 
 后续开发前仍必须先读本文档，再读 `docs/qmt-ai-trading-architecture.md`，再读对应上一阶段文档。
+
+## 9. 阶段十八进度：Cached ETF Rotation 使用缓存因子生成信号
+
+阶段十八新增 `cached_etf_rotation` 策略适配层，将 Cached Research 从本地缓存计算出的 momentum / volatility / volume factor score 接入 ETF Rotation 的候选构建、过滤、排序、权重和 dry-run `TradeIntent` 生成。缓存数据足够时 Daily Pipeline 可生成至少一个 dry-run TradeIntent；缓存不足时仍输出 no eligible candidates，不下载数据、不调用 QMT、不调用 `xttrader`、不下单。
+
+后续开发前仍必须先读本文档，再读 `docs/qmt-ai-trading-architecture.md`，再读对应上一阶段文档。

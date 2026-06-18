@@ -56,6 +56,9 @@ def run_daily_signal_pipeline(
     research_frequency: str = "1d",
     min_bars: int = 20,
     allow_partial_research: bool = True,
+    cached_strategy_top_n: int = 1,
+    cached_strategy_min_score: float | None = None,
+    cached_strategy_min_bars: int = 20,
 ) -> PipelineResult:
     """Run the generic daily signal pipeline without connecting to real QMT trading."""
 
@@ -68,7 +71,8 @@ def run_daily_signal_pipeline(
 
     if use_cached_research and candidates is None:
         try:
-            from qmt_ai_trading.research.cache_scoring import build_candidates_from_cached_research, score_etf_universe_from_cache
+            from qmt_ai_trading.research.cache_scoring import score_etf_universe_from_cache
+            from qmt_ai_trading.strategies.cached_etf_rotation import CachedETFSignalConfig, generate_cached_etf_rotation_signal
 
             end_date = research_end_date or str(ctx.trade_date)
             start_date = research_start_date or (date.fromisoformat(str(end_date)) - timedelta(days=max(30, min_bars * 2))).isoformat()
@@ -82,7 +86,6 @@ def run_daily_signal_pipeline(
                 min_bars=min_bars,
                 allow_partial=allow_partial_research,
             )
-            candidates = build_candidates_from_cached_research(scores, dataset=dataset, min_score=min_score)
             ctx.metadata["cached_research"] = {
                 "enabled": True,
                 "success": dataset.success,
@@ -91,16 +94,24 @@ def run_daily_signal_pipeline(
                 "failed_symbols": dataset.failed_symbols,
                 "cache_root": str(cache_root),
             }
-            _record_step(
-                steps,
-                "cached_research",
-                True,
-                dataset.message if dataset.success else f"warning: {dataset.message}",
-                dict(ctx.metadata["cached_research"]),
+            _record_step(steps, "cached_research_load", True, dataset.message if dataset.success else f"warning: {dataset.message}", dict(ctx.metadata["cached_research"]))
+            _record_step(steps, "cached_research", True, dataset.message if dataset.success else f"warning: {dataset.message}", dict(ctx.metadata["cached_research"]))
+            _record_step(steps, "cached_research_score", True, f"scored {len(scores)} cached research symbols", {"count": len(scores)})
+            signal = generate_cached_etf_rotation_signal(
+                scores,
+                CachedETFSignalConfig(top_n=cached_strategy_top_n, min_score=cached_strategy_min_score if cached_strategy_min_score is not None else min_score, min_bars=cached_strategy_min_bars),
+                capital=capital or initial_cash,
             )
+            candidates = signal.candidates
+            result.trade_intents = signal.trade_intents
+            result.metadata["cached_etf_rotation"] = {"message": signal.message, "selected": len(signal.selected_candidates), "skipped": signal.skipped_symbols}
+            if not result.trade_intents:
+                result.metadata["no_intent_reason"] = signal.message
+            _record_step(steps, "cached_etf_rotation", True, signal.message, dict(result.metadata["cached_etf_rotation"]))
         except Exception as exc:
             candidates = []
             ctx.metadata["cached_research"] = {"enabled": True, "success": False, "message": repr(exc), "cache_root": str(cache_root)}
+            _record_step(steps, "cached_research_load", True, "warning: cached research failed; continuing with empty candidates", dict(ctx.metadata["cached_research"]))
             _record_step(steps, "cached_research", True, "warning: cached research failed; continuing with empty candidates", dict(ctx.metadata["cached_research"]))
 
     try:
@@ -111,7 +122,10 @@ def run_daily_signal_pipeline(
         _record_step(steps, "load_candidates", False, "candidate loading failed; continuing with empty input", errors=[repr(exc)])
 
     try:
-        result.trade_intents = generate_etf_rotation_intents(result.candidates, top_n=top_n, min_score=min_score, dry_run=True, capital=capital or initial_cash)
+        if result.trade_intents:
+            pass
+        else:
+            result.trade_intents = generate_etf_rotation_intents(result.candidates, top_n=top_n, min_score=min_score, dry_run=True, capital=capital or initial_cash)
         if not result.trade_intents:
             result.metadata["no_intent_reason"] = "no eligible candidates after strategy selection"
         _record_step(steps, "generate_trade_intents", True, f"generated {len(result.trade_intents)} dry-run intents", {"count": len(result.trade_intents)})
@@ -159,6 +173,9 @@ def run_etf_daily_pipeline(
     research_frequency: str = "1d",
     min_bars: int = 20,
     allow_partial_research: bool = True,
+    cached_strategy_top_n: int = 1,
+    cached_strategy_min_score: float | None = None,
+    cached_strategy_min_bars: int = 20,
 ) -> PipelineResult:
     """Run the default ETF daily pipeline using the Data Hub ETF universe."""
 
@@ -183,4 +200,7 @@ def run_etf_daily_pipeline(
         research_frequency=research_frequency,
         min_bars=min_bars,
         allow_partial_research=allow_partial_research,
+        cached_strategy_top_n=cached_strategy_top_n,
+        cached_strategy_min_score=cached_strategy_min_score,
+        cached_strategy_min_bars=cached_strategy_min_bars,
     )

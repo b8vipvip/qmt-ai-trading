@@ -28,6 +28,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--research-end", default=None, help="Cached Research end date.")
     parser.add_argument("--research-frequency", default="1d", help="Cached Research bar frequency.")
     parser.add_argument("--min-bars", type=int, default=20, help="Minimum cached bars required per symbol.")
+    parser.add_argument("--cached-strategy-top-n", type=int, default=1, help="Top N cached ETF rotation candidates to select.")
+    parser.add_argument("--cached-strategy-min-score", type=float, default=None, help="Minimum cached ETF rotation score.")
+    parser.add_argument("--cached-strategy-min-bars", type=int, default=20, help="Minimum bars required by cached ETF rotation.")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -41,6 +44,9 @@ def main(argv: list[str] | None = None) -> int:
         research_end_date=args.research_end,
         research_frequency=args.research_frequency,
         min_bars=args.min_bars,
+        cached_strategy_top_n=args.cached_strategy_top_n,
+        cached_strategy_min_score=args.cached_strategy_min_score,
+        cached_strategy_min_bars=args.cached_strategy_min_bars,
     )
     print(result.report_text)
 
