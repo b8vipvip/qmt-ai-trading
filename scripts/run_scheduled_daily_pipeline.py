@@ -47,6 +47,9 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--min-loaded-symbols", type=int, default=1)
     parser.add_argument("--require-cached-research", action="store_true")
     parser.add_argument("--data-source-confidence-required", default=None, choices=["LOW", "MEDIUM", "HIGH"])
+    parser.add_argument("--create-approval", action="store_true")
+    parser.add_argument("--approval-root", default="approvals")
+    parser.add_argument("--approval-expires-hours", type=float, default=24.0)
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -67,6 +70,9 @@ def main(argv: list[str] | None = None) -> int:
         args.append("--require-cached-research")
     if parsed.data_source_confidence_required:
         args.extend(["--data-source-confidence-required", parsed.data_source_confidence_required])
+    if parsed.create_approval:
+        args.append("--create-approval")
+    args.extend(["--approval-root", parsed.approval_root, "--approval-expires-hours", str(parsed.approval_expires_hours)])
     if parsed.use_cached_research or parsed.data_source_mode in {"cached", "auto"}:
         if parsed.use_cached_research:
             args.append("--use-cached-research")

@@ -53,7 +53,7 @@ ETF Universe
 -> Backtest / Shadow Replay
 -> Reporting
 -> Scheduler
--> Future Human Approval
+-> Human Approval
 -> Future Paper Trading
 -> Future Live Trading
 ```
@@ -71,7 +71,7 @@ ETF Universe
 - Backtest / Shadow Replay：模拟历史或影子执行过程，用于验证信号、风险和报告，不触达实盘。
 - Reporting：输出 Markdown / JSON / HTML 报告，记录数据源、信号、风控和 dry-run 结果。
 - Scheduler：本地 Windows 调度封装，默认 dry-run / preview，不越级执行实盘。
-- Future Human Approval：未来人工确认层；未批准不得进入 paper/live 执行链路。
+- Human Approval：阶段二十一人工确认层；TradeIntent / Risk Gate 之后生成本地 pending approval，未批准不得进入 paper/live 执行链路。
 - Future Paper Trading：未来 paper / QMT dry-run 订单生命周期模拟。
 - Future Live Trading：未来小资金灰度实盘；默认关闭，必须多重确认。
 
@@ -111,6 +111,8 @@ ETF Universe
 | 十七 | Research 使用缓存历史数据 | Research 只读 LocalBarStore 生成评分 | cached research | 已完成 | 缓存不足输出 warning，不下载不交易 |
 | 十八 | Cached ETF Rotation：ETF 策略从缓存历史因子生成信号 | 将 cached research 接入 ETF rotation | cached_etf_rotation | 已完成 | 缓存充足时可生成 dry-run TradeIntent |
 | 十九 | Daily Pipeline 数据源切换策略 | 为 Daily Pipeline 建立数据源选择和可信度判断 | pipeline data_source | 已完成 | selected_source、coverage、confidence、fallback warning 清晰 |
+| 二十 | 项目路线总文档重审与阶段计划对齐 | 重审路线并对齐阶段计划 | roadmap、stage20 docs | 已完成 | 阶段编号无冲突，后续提示词规则清晰 |
+| 二十一 | Human Approval 人工确认层 | 在 TradeIntent/Risk Gate 后加入人工审批文件和 CLI | approval、approval_cli | 已完成 | 默认 pending，未批准阻断 paper/live，不调用 QMT/xttrader |
 
 阶段十九：Daily Pipeline 数据源切换策略。这是“Daily Pipeline 接入真实缓存行情”的安全前置和实际工程化表达。它通过 `data_source_mode=legacy/cached/auto/mock`、cache coverage、confidence、fallback warning，确保 pipeline 知道自己使用的是什么数据源，避免把 mock/fallback 当成真实行情。
 
@@ -139,12 +141,12 @@ ETF Universe
 - cached research
 - cached ETF rotation
 - pipeline data source decision
+- Human Approval 本地审批对象、审批文件、CLI 审批和审批状态检查
 
 ## 7. 当前仍缺失的关键能力
 
 当前仍缺失：
 
-- Human Approval 人工确认层
 - Paper Trading / QMT dry-run 适配
 - 实盘前安全审计
 - QMT xtquant 实机环境校准与真实样本数据验证
@@ -167,9 +169,12 @@ ETF Universe
 
 ### 阶段二十一：Human Approval 人工确认层
 
-- 在 TradeIntent 生成后加入人工确认对象和本地审批文件。
-- 默认只生成 pending approval。
+- 在 TradeIntent 生成并通过 Risk Gate 后加入人工确认对象和本地审批文件。
+- 新增 `qmt_ai_trading.approval`、`scripts/approval_cli.py` 和 pipeline `--create-approval`。
+- 默认只生成 pending approval，不自动 approve。
 - 未批准不得进入 paper/live 执行链路。
+- Approval 不等于下单，不调用 QMT，不调用 `xttrader`。
+- 当前状态：已完成。
 
 ### 阶段二十二：Paper Trading / QMT dry-run 适配
 

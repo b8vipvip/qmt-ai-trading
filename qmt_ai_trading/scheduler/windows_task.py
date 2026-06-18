@@ -57,6 +57,9 @@ def build_daily_pipeline_command(
     min_loaded_symbols: int = 1,
     require_cached_research: bool = False,
     data_source_confidence_required: str | None = None,
+    create_approval: bool = False,
+    approval_root: str | Path = Path("approvals"),
+    approval_expires_hours: float = 24.0,
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -96,6 +99,12 @@ def build_daily_pipeline_command(
         args.append("--require-cached-research")
     if data_source_confidence_required:
         args.extend(["--data-source-confidence-required", str(data_source_confidence_required)])
+    if create_approval:
+        args.append("--create-approval")
+    if create_approval or str(approval_root) != "approvals":
+        args.extend(["--approval-root", str(approval_root)])
+    if create_approval or float(approval_expires_hours) != 24.0:
+        args.extend(["--approval-expires-hours", str(approval_expires_hours)])
     if use_cached_research or data_source_mode in {"cached", "auto"}:
         if use_cached_research:
             args.append("--use-cached-research")
@@ -165,6 +174,9 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         min_loaded_symbols=cfg.min_loaded_symbols,
         require_cached_research=cfg.require_cached_research,
         data_source_confidence_required=cfg.data_source_confidence_required,
+        create_approval=cfg.create_approval,
+        approval_root=cfg.approval_root,
+        approval_expires_hours=cfg.approval_expires_hours,
     )
     task_run = pipeline.metadata["display"]
     args = ["/Create", "/F", "/SC", "DAILY", "/TN", cfg.task_name, "/TR", task_run, "/ST", cfg.run_time]

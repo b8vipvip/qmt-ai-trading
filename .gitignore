@@ -123,3 +123,10 @@ market_data_test_stage17/
 market_data_test_stage18/
 market_data_test_stage19/
 market_data_missing_stage19/
+
+# stage 21 human approval local files
+approvals/
+approval_test_stage21/
+market_data_test_stage21/
+*.approval.json
+*.decision.json

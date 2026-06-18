@@ -45,6 +45,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--min-loaded-symbols", type=int, default=1)
     parser.add_argument("--require-cached-research", action="store_true")
     parser.add_argument("--data-source-confidence-required", default=None, choices=["LOW", "MEDIUM", "HIGH"])
+    parser.add_argument("--create-approval", action="store_true")
+    parser.add_argument("--approval-root", default="approvals")
+    parser.add_argument("--approval-expires-hours", type=float, default=24.0)
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -79,6 +82,9 @@ def main(argv: list[str] | None = None) -> int:
         min_loaded_symbols=args.min_loaded_symbols,
         require_cached_research=args.require_cached_research,
         data_source_confidence_required=args.data_source_confidence_required,
+        create_approval=args.create_approval,
+        approval_root=Path(args.approval_root),
+        approval_expires_hours=args.approval_expires_hours,
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -91,6 +97,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Warmup: provider={args.warmup_provider} start={args.warmup_start} end={args.warmup_end} frequency={args.warmup_frequency} cache_root={args.cache_root}")
     if args.data_source_mode != "legacy":
         print(f"Data source: mode={args.data_source_mode} allow_mock_fallback={args.allow_mock_fallback} min_coverage_ratio={args.min_coverage_ratio} min_loaded_symbols={args.min_loaded_symbols}")
+    if args.create_approval:
+        print(f"Human approval: create_approval=True approval_root={args.approval_root} expires_hours={args.approval_expires_hours} no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto"}:
         print(f"Cached research: start={args.research_start} end={args.research_end} frequency={args.research_frequency} min_bars={args.min_bars} cache_root={args.cache_root}")
         print(f"Cached ETF rotation: top_n={args.cached_strategy_top_n} min_score={args.cached_strategy_min_score} min_bars={args.cached_strategy_min_bars}")

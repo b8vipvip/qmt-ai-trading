@@ -43,6 +43,9 @@ class ScheduleConfig:
     min_loaded_symbols: int = 1
     require_cached_research: bool = False
     data_source_confidence_required: str | None = None
+    create_approval: bool = False
+    approval_root: Path = Path("approvals")
+    approval_expires_hours: float = 24.0
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
