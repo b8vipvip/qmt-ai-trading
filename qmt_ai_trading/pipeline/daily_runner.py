@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterable, Mapping
 from uuid import uuid4
 
@@ -49,6 +49,13 @@ def run_daily_signal_pipeline(
     min_score: float | None = None,
     capital: float | None = None,
     initial_cash: float = 1_000_000.0,
+    use_cached_research: bool = False,
+    cache_root: str = "market_data",
+    research_start_date: str | None = None,
+    research_end_date: str | None = None,
+    research_frequency: str = "1d",
+    min_bars: int = 20,
+    allow_partial_research: bool = True,
 ) -> PipelineResult:
     """Run the generic daily signal pipeline without connecting to real QMT trading."""
 
@@ -58,6 +65,43 @@ def run_daily_signal_pipeline(
         ctx.metadata["dry_run_forced"] = True
     steps: list[PipelineStepResult] = []
     result = PipelineResult(context=ctx, steps=steps)
+
+    if use_cached_research and candidates is None:
+        try:
+            from qmt_ai_trading.research.cache_scoring import build_candidates_from_cached_research, score_etf_universe_from_cache
+
+            end_date = research_end_date or str(ctx.trade_date)
+            start_date = research_start_date or (date.fromisoformat(str(end_date)) - timedelta(days=max(30, min_bars * 2))).isoformat()
+            symbols = ctx.symbols or [item.symbol for item in get_default_etf_universe()]
+            scores, dataset = score_etf_universe_from_cache(
+                symbols=symbols,
+                start_date=start_date,
+                end_date=end_date,
+                frequency=research_frequency,
+                cache_root=cache_root,
+                min_bars=min_bars,
+                allow_partial=allow_partial_research,
+            )
+            candidates = build_candidates_from_cached_research(scores, dataset=dataset, min_score=min_score)
+            ctx.metadata["cached_research"] = {
+                "enabled": True,
+                "success": dataset.success,
+                "message": dataset.message,
+                "loaded_symbols": dataset.loaded_symbols,
+                "failed_symbols": dataset.failed_symbols,
+                "cache_root": str(cache_root),
+            }
+            _record_step(
+                steps,
+                "cached_research",
+                True,
+                dataset.message if dataset.success else f"warning: {dataset.message}",
+                dict(ctx.metadata["cached_research"]),
+            )
+        except Exception as exc:
+            candidates = []
+            ctx.metadata["cached_research"] = {"enabled": True, "success": False, "message": repr(exc), "cache_root": str(cache_root)}
+            _record_step(steps, "cached_research", True, "warning: cached research failed; continuing with empty candidates", dict(ctx.metadata["cached_research"]))
 
     try:
         result.candidates = list(candidates or [])
@@ -108,6 +152,13 @@ def run_etf_daily_pipeline(
     min_score: float | None = None,
     capital: float | None = None,
     initial_cash: float = 1_000_000.0,
+    use_cached_research: bool = False,
+    cache_root: str = "market_data",
+    research_start_date: str | None = None,
+    research_end_date: str | None = None,
+    research_frequency: str = "1d",
+    min_bars: int = 20,
+    allow_partial_research: bool = True,
 ) -> PipelineResult:
     """Run the default ETF daily pipeline using the Data Hub ETF universe."""
 
@@ -116,5 +167,20 @@ def run_etf_daily_pipeline(
     if symbol_filter:
         universe = [item for item in universe if normalize_symbol(item.symbol) in symbol_filter]
     context = build_pipeline_context(trade_date, dry_run=dry_run, symbols=symbol_filter or [item.symbol for item in universe], metadata={"pipeline": "etf_daily", "simulated_only": True})
-    candidates = build_candidates_from_universe(universe, score_by_symbol=score_by_symbol, default_score=0.0, target_percent=None)
-    return run_daily_signal_pipeline(context=context, candidates=candidates, prices=prices, top_n=top_n, min_score=min_score, capital=capital, initial_cash=initial_cash)
+    candidates = None if use_cached_research else build_candidates_from_universe(universe, score_by_symbol=score_by_symbol, default_score=0.0, target_percent=None)
+    return run_daily_signal_pipeline(
+        context=context,
+        candidates=candidates,
+        prices=prices,
+        top_n=top_n,
+        min_score=min_score,
+        capital=capital,
+        initial_cash=initial_cash,
+        use_cached_research=use_cached_research,
+        cache_root=cache_root,
+        research_start_date=research_start_date,
+        research_end_date=research_end_date,
+        research_frequency=research_frequency,
+        min_bars=min_bars,
+        allow_partial_research=allow_partial_research,
+    )

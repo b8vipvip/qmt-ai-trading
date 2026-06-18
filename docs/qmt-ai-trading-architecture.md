@@ -482,3 +482,9 @@ The default warmup provider is `mock` so local tests and scheduler previews work
 ## 阶段十六进度：ETF Universe 历史数据自动补全与项目总路线
 
 后续开发前必须先阅读 `docs/qmt-ai-trading-project-roadmap.md`。阶段十六新增 ETF Universe 历史缓存自动补全能力，默认 `provider=mock`，可选 `provider=qmt`，仅处理历史行情缓存，不调用 xttrader、不下单、不查询资金/持仓/订单/成交。
+
+## 阶段十七补充：Cached Research 只读缓存数据源
+
+后续开发前必须先阅读 `docs/qmt-ai-trading-project-roadmap.md`。
+
+阶段十七在 Research 层新增 cached research 入口。该入口只通过 `LocalBarStore` 读取已由 warmup 流程写入的本地历史 K 线，不承担下载或补齐职责。Research scoring 结果可转为 ETF candidates，并继续进入 ETF Strategy、TradeIntent、Risk Gate、Backtest / Shadow Replay 和 Reporting。当前阶段仍然 dry-run / shadow，不调用 `xttrader`、不调用真实 QMT 下单、不查询资金/持仓/订单/成交。

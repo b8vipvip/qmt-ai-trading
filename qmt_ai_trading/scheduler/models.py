@@ -29,6 +29,11 @@ class ScheduleConfig:
     warmup_end: str | None = None
     warmup_frequency: str = "1d"
     cache_root: Path = Path("market_data")
+    use_cached_research: bool = False
+    research_start: str | None = None
+    research_end: str | None = None
+    research_frequency: str = "1d"
+    min_bars: int = 20
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

@@ -22,10 +22,26 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--write-reports", action="store_true", help="Write Markdown/JSON/HTML reports to disk.")
     parser.add_argument("--report-dir", default=None, help="Report output directory. Defaults to reports/YYYY-MM-DD when writing reports.")
     parser.add_argument("--notify-dry-run", action="store_true", help="Run notification adapters in dry-run placeholder mode only.")
+    parser.add_argument("--use-cached-research", action="store_true", help="Read local cached bars for Research scoring before ETF strategy.")
+    parser.add_argument("--cache-root", default="market_data", help="Local market data cache root.")
+    parser.add_argument("--research-start", default=None, help="Cached Research start date.")
+    parser.add_argument("--research-end", default=None, help="Cached Research end date.")
+    parser.add_argument("--research-frequency", default="1d", help="Cached Research bar frequency.")
+    parser.add_argument("--min-bars", type=int, default=20, help="Minimum cached bars required per symbol.")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
-    result = run_etf_daily_pipeline(trade_date=args.trade_date, symbols=symbols or None, dry_run=True)
+    result = run_etf_daily_pipeline(
+        trade_date=args.trade_date,
+        symbols=symbols or None,
+        dry_run=True,
+        use_cached_research=args.use_cached_research,
+        cache_root=args.cache_root,
+        research_start_date=args.research_start,
+        research_end_date=args.research_end,
+        research_frequency=args.research_frequency,
+        min_bars=args.min_bars,
+    )
     print(result.report_text)
 
     artifacts = []
