@@ -96,6 +96,11 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--data-quality-tracking-symbols", default="")
     parser.add_argument("--data-quality-tracking-start", default=None)
     parser.add_argument("--data-quality-tracking-end", default=None)
+    parser.add_argument("--enable-notification-dry-run", action="store_true")
+    parser.add_argument("--notification-dry-run-output-dir", default="notification_dryrun")
+    parser.add_argument("--notification-dry-run-channels", default=None)
+    parser.add_argument("--notification-dry-run-recipients", default=None)
+    parser.add_argument("--notification-dry-run-preview-output-dir", default=None)
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -166,6 +171,15 @@ def main(argv: list[str] | None = None) -> int:
             args.extend(["--data-quality-tracking-start", parsed.data_quality_tracking_start])
         if parsed.data_quality_tracking_end:
             args.extend(["--data-quality-tracking-end", parsed.data_quality_tracking_end])
+    if parsed.enable_notification_dry_run:
+        args.append("--enable-notification-dry-run")
+        args.extend(["--notification-dry-run-output-dir", parsed.notification_dry_run_output_dir])
+        if parsed.notification_dry_run_channels:
+            args.extend(["--notification-dry-run-channels", parsed.notification_dry_run_channels])
+        if parsed.notification_dry_run_recipients:
+            args.extend(["--notification-dry-run-recipients", parsed.notification_dry_run_recipients])
+        if parsed.notification_dry_run_preview_output_dir:
+            args.extend(["--notification-dry-run-preview-output-dir", parsed.notification_dry_run_preview_output_dir])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])

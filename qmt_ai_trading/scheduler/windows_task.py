@@ -102,6 +102,9 @@ def build_daily_pipeline_command(
     data_quality_tracking_symbols: str = "",
     data_quality_tracking_start: str | None = None,
     data_quality_tracking_end: str | None = None,
+    enable_notification_dry_run: bool = False,
+    notification_dry_run_output_dir: str | Path = Path("notification_dryrun"),
+    notification_dry_run_channels: str = "",
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -203,6 +206,11 @@ def build_daily_pipeline_command(
             args.extend(["--data-quality-tracking-start", str(data_quality_tracking_start)])
         if data_quality_tracking_end:
             args.extend(["--data-quality-tracking-end", str(data_quality_tracking_end)])
+    if enable_notification_dry_run:
+        args.append("--enable-notification-dry-run")
+        args.extend(["--notification-dry-run-output-dir", str(notification_dry_run_output_dir)])
+        if notification_dry_run_channels:
+            args.extend(["--notification-dry-run-channels", str(notification_dry_run_channels)])
     if build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
@@ -320,6 +328,9 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         data_quality_tracking_symbols=cfg.data_quality_tracking_symbols,
         data_quality_tracking_start=cfg.data_quality_tracking_start,
         data_quality_tracking_end=cfg.data_quality_tracking_end,
+        enable_notification_dry_run=cfg.enable_notification_dry_run,
+        notification_dry_run_output_dir=cfg.notification_dry_run_output_dir,
+        notification_dry_run_channels=cfg.notification_dry_run_channels,
     )
     task_run = pipeline.metadata["display"]
     args = ["/Create", "/F", "/SC", "DAILY", "/TN", cfg.task_name, "/TR", task_run, "/ST", cfg.run_time]

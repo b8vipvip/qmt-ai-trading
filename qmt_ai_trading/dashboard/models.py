@@ -68,6 +68,8 @@ class DashboardConfig:
     include_cache_quality: bool = True
     include_data_quality_tracking: bool = False
     data_quality_dir: str = "data_quality_tracking"
+    include_notification_dry_run: bool = False
+    notification_dry_run_dir: str = "notification_dryrun"
     read_only: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
 

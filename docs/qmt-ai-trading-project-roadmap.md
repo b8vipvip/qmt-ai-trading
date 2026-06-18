@@ -383,3 +383,13 @@ Dashboard 只生成单文件 HTML；`scripts/build_dashboard.py` 可从本地报
 ## 阶段三十四：真实通知 dry-run 接入准备（下一阶段）
 
 阶段三十四确认路线为“真实通知 dry-run 接入准备”。目标是为邮件、Telegram、企业微信等真实通知通道建立 dry-run 配置验证、消息模板、敏感信息保护和发送前审计；默认不真实发送通知、不读取真实 token、不调用外部网络。
+
+## 阶段三十四：真实通知 dry-run 接入准备（已完成）
+
+阶段三十四确认路线为“真实通知 dry-run 接入准备”。本阶段新增统一 Notification Dry Run 层，支持 `NotificationMessage`、`NotificationRecipient`、`NotificationDeliveryPlan`、`NotificationAuditResult`、`NotificationDryRunReport`，支持 FILE / CONSOLE 本地预览，并为 EMAIL / TELEGRAM / WECHAT 生成 dry-run / suppressed delivery plan。
+
+阶段三十四完成状态：已新增 `qmt_ai_trading.notification_dryrun` 包、`scripts/run_notification_dry_run.py`、Daily Pipeline 可选 `--enable-notification-dry-run`、scheduled/register 参数透传、Dashboard Notification Dry Run section、阶段文档与测试。当前阶段不读取真实 token/key/password/secret，不调用 SMTP / Telegram API / 企业微信 API，不调用外部网络，不真实发送通知；不调用 QMT 交易接口、不调用 xttrader、不下单。后续开发前必须继续先读 roadmap。
+
+## 阶段三十五：小资金灰度人工流程演练（下一阶段）
+
+阶段三十五确认为“小资金灰度人工流程演练”。目标是在不启用真实实盘的前提下，演练从信号生成、Risk Gate、Human Approval、Paper Trading、Monitoring、Agent Research、Live Gray Readiness、Notification Dry Run 到 Dashboard 的完整人工流程。阶段三十五仍默认 dry-run，不真实下单，不调用 xttrader，不真实发送通知。

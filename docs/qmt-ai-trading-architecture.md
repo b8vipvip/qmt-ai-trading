@@ -642,3 +642,11 @@ ETF Universe -> Universe Warmup -> LocalBarStore -> Cached Research -> Cached ET
 阶段三十三新增 Data Quality Tracking，只读连接 QMT Data Quality reports、LocalBarStore、本地 Monitoring 和 Dashboard。该层位于 QMT historical quality report / LocalBarStore 与 Monitoring / Dashboard 之间：上游读取 `qmt_data_quality_reports/` 中的历史质量 JSON 与 `market_data_qmt/`、`market_data/` 等 LocalBarStore 缓存；下游生成 Data Quality Ledger、Trend、Incident 与 Tracking Report，并把趋势恶化映射为 MonitoringEvent，同时供 Dashboard 读取最新 Markdown/JSON 展示。
 
 Data Quality Tracking 只读历史行情质量报告和缓存。它不调用 QMT 交易接口、不调用 xttrader、不查询账户/资金/持仓/订单/成交、不下单、不真实发送通知。
+
+## 阶段三十四进度：真实通知 dry-run 接入准备
+
+Notification Dry Run 位于 Reporting / Monitoring / Agent / Data Quality / Live Gray / Dashboard 之后，作为真实通知接入前的本地预演与审计层。它统一生成 NotificationMessage、NotificationRecipient、NotificationDeliveryPlan、NotificationAuditResult 和 NotificationDryRunReport。
+
+当前阶段 FILE / CONSOLE 仅用于本地 preview；EMAIL / TELEGRAM / WECHAT 当前只生成 dry-run / suppressed plan，不读取真实 token，不调用 SMTP / Telegram API / 企业微信 API，不调用外部网络，不真实发送通知。
+
+该层只消费本地报告或 pipeline summary，不改变 TradeIntent、RiskDecision、Human Approval、Paper Trading 或 Live Gray Readiness。阶段三十四不调用 QMT 交易接口、不调用 xttrader、不查询真实资金/持仓/订单/成交、不下单。

@@ -93,6 +93,14 @@ def format_pipeline_report(result: PipelineResult) -> str:
             lines.append(f"  - {item}")
         lines.append(f"- safety_note: {live_gray.get('safety_note', '')}")
 
+
+    nd = result.metadata.get("notification_dry_run") if isinstance(result.metadata, dict) else None
+    if nd:
+        lines.extend(["", "## Notification Dry Run", f"- report_id: {nd.get('report_id', '')}", f"- success: {nd.get('success', False)}", f"- output_path: {nd.get('output_path', '')}", f"- json_output_path: {nd.get('json_output_path', '')}", "- summary:"])
+        for k, v in (nd.get("summary") or {}).items():
+            lines.append(f"  - {k}: {v}")
+        lines.append(f"- safety_note: {nd.get('safety_note', '')}")
+
     bt = result.backtest_result
     lines.extend(["", "## Backtest Summary"])
     if bt is None:

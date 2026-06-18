@@ -88,6 +88,9 @@ class ScheduleConfig:
     data_quality_tracking_symbols: str = ""
     data_quality_tracking_start: str | None = None
     data_quality_tracking_end: str | None = None
+    enable_notification_dry_run: bool = False
+    notification_dry_run_output_dir: Path = Path("notification_dryrun")
+    notification_dry_run_channels: str = ""
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
