@@ -110,6 +110,13 @@ def build_daily_pipeline_command(
     gray_rehearsal_allowed_symbols: str = "",
     gray_rehearsal_max_total_capital: float = 5000.0,
     gray_rehearsal_max_single_order_value: float = 1000.0,
+    enable_gray_decision_package: bool = False,
+    gray_decision_output_dir: str | Path = Path("gray_decision"),
+    gray_decision_allowed_symbols: str = "",
+    gray_decision_max_total_capital: float = 5000.0,
+    gray_decision_max_single_order_value: float = 1000.0,
+    gray_decision_max_symbol_weight: float = 0.1,
+    gray_decision_max_portfolio_weight: float = 0.2,
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -222,6 +229,13 @@ def build_daily_pipeline_command(
         if gray_rehearsal_allowed_symbols:
             args.extend(["--gray-rehearsal-allowed-symbols", str(gray_rehearsal_allowed_symbols)])
         args.extend(["--gray-rehearsal-max-total-capital", str(gray_rehearsal_max_total_capital), "--gray-rehearsal-max-single-order-value", str(gray_rehearsal_max_single_order_value)])
+    if enable_gray_decision_package:
+        args.append("--enable-gray-decision-package")
+        args.extend(["--gray-decision-output-dir", str(gray_decision_output_dir)])
+        if gray_decision_allowed_symbols:
+            args.extend(["--gray-decision-allowed-symbols", str(gray_decision_allowed_symbols)])
+        args.extend(["--gray-decision-max-total-capital", str(gray_decision_max_total_capital), "--gray-decision-max-single-order-value", str(gray_decision_max_single_order_value)])
+        args.extend(["--gray-decision-max-symbol-weight", str(gray_decision_max_symbol_weight), "--gray-decision-max-portfolio-weight", str(gray_decision_max_portfolio_weight)])
     if build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
@@ -347,6 +361,13 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         gray_rehearsal_allowed_symbols=cfg.gray_rehearsal_allowed_symbols,
         gray_rehearsal_max_total_capital=cfg.gray_rehearsal_max_total_capital,
         gray_rehearsal_max_single_order_value=cfg.gray_rehearsal_max_single_order_value,
+        enable_gray_decision_package=cfg.enable_gray_decision_package,
+        gray_decision_output_dir=cfg.gray_decision_output_dir,
+        gray_decision_allowed_symbols=cfg.gray_decision_allowed_symbols,
+        gray_decision_max_total_capital=cfg.gray_decision_max_total_capital,
+        gray_decision_max_single_order_value=cfg.gray_decision_max_single_order_value,
+        gray_decision_max_symbol_weight=cfg.gray_decision_max_symbol_weight,
+        gray_decision_max_portfolio_weight=cfg.gray_decision_max_portfolio_weight,
     )
     task_run = pipeline.metadata["display"]
     args = ["/Create", "/F", "/SC", "DAILY", "/TN", cfg.task_name, "/TR", task_run, "/ST", cfg.run_time]

@@ -72,6 +72,8 @@ class DashboardConfig:
     notification_dry_run_dir: str = "notification_dryrun"
     include_gray_rehearsal: bool = False
     gray_rehearsal_dir: str = "gray_rehearsal"
+    include_gray_decision: bool = False
+    gray_decision_dir: str = "gray_decision"
     read_only: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
 

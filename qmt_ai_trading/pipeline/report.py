@@ -101,6 +101,13 @@ def format_pipeline_report(result: PipelineResult) -> str:
             lines.append(f"  - {k}: {v}")
         lines.append(f"- safety_note: {nd.get('safety_note', '')}")
 
+    gd = result.metadata.get("gray_decision_package") if isinstance(result.metadata, dict) else None
+    if gd:
+        lines.extend(["", "## Gray Decision Package", f"- package_id: {gd.get('package_id', '')}", f"- decision: {gd.get('decision', '')}", f"- output_path: {gd.get('output_path', '')}", f"- json_output_path: {gd.get('json_output_path', '')}", "- blocked_reasons:"])
+        for item in gd.get("blocked_reasons", []) or ["None"]:
+            lines.append(f"  - {item}")
+        lines.append(f"- safety_note: {gd.get('safety_note', '')}")
+
     gr = result.metadata.get("gray_rehearsal") if isinstance(result.metadata, dict) else None
     if gr:
         lines.extend(["", "## Gray Rehearsal", f"- report_id: {gr.get('report_id', '')}", f"- decision: {gr.get('decision', '')}", f"- output_path: {gr.get('output_path', '')}", f"- json_output_path: {gr.get('json_output_path', '')}", f"- summary: {gr.get('summary', '')}", f"- safety_note: {gr.get('safety_note', '')}"])

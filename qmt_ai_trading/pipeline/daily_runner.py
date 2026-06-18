@@ -114,6 +114,15 @@ def run_daily_signal_pipeline(
     gray_rehearsal_allowed_symbols: Iterable[str] | None = None,
     gray_rehearsal_max_total_capital: float = 5000.0,
     gray_rehearsal_max_single_order_value: float = 1000.0,
+    enable_gray_decision_package: bool = False,
+    gray_decision_output_dir: str = "gray_decision",
+    gray_decision_allowed_symbols: Iterable[str] | None = None,
+    gray_decision_max_total_capital: float = 5000.0,
+    gray_decision_max_single_order_value: float = 1000.0,
+    gray_decision_max_symbol_weight: float = 0.1,
+    gray_decision_max_portfolio_weight: float = 0.2,
+    gray_decision_operator_name: str = "",
+    gray_decision_reviewer_name: str = "",
 ) -> PipelineResult:
     """Run the generic daily signal pipeline without connecting to real QMT trading."""
 
@@ -408,6 +417,45 @@ def run_daily_signal_pipeline(
             _record_step(steps, "gray_rehearsal", False, "Gray Rehearsal generation failed", errors=[repr(exc)])
         result.success = all(step.success for step in steps)
 
+
+    if enable_gray_decision_package:
+        try:
+            from pathlib import Path
+            from qmt_ai_trading.gray_decision.safety import build_default_gray_decision_config
+            from qmt_ai_trading.gray_decision.service import run_gray_decision_package, save_gray_decision_package
+            from qmt_ai_trading.gray_decision.evidence import collect_evidence_from_file
+            from qmt_ai_trading.gray_decision.models import GrayDecisionEvidenceType
+            cfg = build_default_gray_decision_config(
+                allowed_symbols=list(gray_decision_allowed_symbols or ctx.symbols or []),
+                max_total_capital=gray_decision_max_total_capital,
+                max_single_order_value=gray_decision_max_single_order_value,
+                max_symbol_weight=gray_decision_max_symbol_weight,
+                max_portfolio_weight=gray_decision_max_portfolio_weight,
+                operator_name=gray_decision_operator_name,
+                reviewer_name=gray_decision_reviewer_name,
+                metadata={"pipeline_run_id": ctx.run_id},
+            )
+            ev=[]
+            local_paths=[
+                (result.metadata.get("agent_research",{}).get("output_path") if isinstance(result.metadata.get("agent_research"),dict) else None, GrayDecisionEvidenceType.AGENT_RESEARCH),
+                (result.metadata.get("live_gray_readiness",{}).get("output_path") if isinstance(result.metadata.get("live_gray_readiness"),dict) else None, GrayDecisionEvidenceType.LIVE_GRAY_READINESS),
+                (result.metadata.get("data_quality_tracking",{}).get("output_path") if isinstance(result.metadata.get("data_quality_tracking"),dict) else None, GrayDecisionEvidenceType.DATA_QUALITY),
+                (result.metadata.get("notification_dry_run",{}).get("output_path") if isinstance(result.metadata.get("notification_dry_run"),dict) else None, GrayDecisionEvidenceType.NOTIFICATION_DRY_RUN),
+                (result.metadata.get("gray_rehearsal",{}).get("output_path") if isinstance(result.metadata.get("gray_rehearsal"),dict) else None, GrayDecisionEvidenceType.GRAY_REHEARSAL),
+                (result.metadata.get("dashboard_path"), GrayDecisionEvidenceType.DASHBOARD),
+            ]
+            for path, et in local_paths:
+                ev.append(collect_evidence_from_file(path, et))
+            package = run_gray_decision_package(config=cfg, evidence=ev, metadata={"pipeline_run_id": ctx.run_id})
+            out_dir = Path(gray_decision_output_dir); md_path = out_dir / f"{ctx.run_id}.gray_decision.md"; json_path = out_dir / f"{ctx.run_id}.gray_decision.json"
+            save_gray_decision_package(package, md_path); save_gray_decision_package(package, json_path)
+            result.metadata["gray_decision_package"] = {"package_id": package.package_id, "decision": getattr(package.decision, "value", package.decision), "output_path": str(md_path), "json_output_path": str(json_path), "warnings": package.warnings, "blocked_reasons": package.blocked_reasons, "safety_note": package.safety_note}
+            _record_step(steps, "gray_decision_package", True, f"generated manual-only gray decision package: {md_path}", {"output_path": str(md_path)})
+        except Exception as exc:
+            result.metadata["gray_decision_package_error"] = repr(exc)
+            _record_step(steps, "gray_decision_package", False, "Gray Decision Package generation failed", errors=[repr(exc)])
+        result.success = all(step.success for step in steps)
+
     from qmt_ai_trading.pipeline.report import format_pipeline_report
 
     result.report_text = format_pipeline_report(result)
@@ -489,6 +537,15 @@ def run_etf_daily_pipeline(
     gray_rehearsal_allowed_symbols: Iterable[str] | None = None,
     gray_rehearsal_max_total_capital: float = 5000.0,
     gray_rehearsal_max_single_order_value: float = 1000.0,
+    enable_gray_decision_package: bool = False,
+    gray_decision_output_dir: str = "gray_decision",
+    gray_decision_allowed_symbols: Iterable[str] | None = None,
+    gray_decision_max_total_capital: float = 5000.0,
+    gray_decision_max_single_order_value: float = 1000.0,
+    gray_decision_max_symbol_weight: float = 0.1,
+    gray_decision_max_portfolio_weight: float = 0.2,
+    gray_decision_operator_name: str = "",
+    gray_decision_reviewer_name: str = "",
 ) -> PipelineResult:
     """Run the default ETF daily pipeline using the Data Hub ETF universe."""
 
@@ -573,4 +630,13 @@ def run_etf_daily_pipeline(
         gray_rehearsal_allowed_symbols=gray_rehearsal_allowed_symbols,
         gray_rehearsal_max_total_capital=gray_rehearsal_max_total_capital,
         gray_rehearsal_max_single_order_value=gray_rehearsal_max_single_order_value,
+        enable_gray_decision_package=enable_gray_decision_package,
+        gray_decision_output_dir=gray_decision_output_dir,
+        gray_decision_allowed_symbols=gray_decision_allowed_symbols,
+        gray_decision_max_total_capital=gray_decision_max_total_capital,
+        gray_decision_max_single_order_value=gray_decision_max_single_order_value,
+        gray_decision_max_symbol_weight=gray_decision_max_symbol_weight,
+        gray_decision_max_portfolio_weight=gray_decision_max_portfolio_weight,
+        gray_decision_operator_name=gray_decision_operator_name,
+        gray_decision_reviewer_name=gray_decision_reviewer_name,
     )

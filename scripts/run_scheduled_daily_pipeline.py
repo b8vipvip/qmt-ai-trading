@@ -106,6 +106,15 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--gray-rehearsal-allowed-symbols", default="")
     parser.add_argument("--gray-rehearsal-max-total-capital", type=float, default=5000.0)
     parser.add_argument("--gray-rehearsal-max-single-order-value", type=float, default=1000.0)
+    parser.add_argument("--enable-gray-decision-package", action="store_true")
+    parser.add_argument("--gray-decision-output-dir", default="gray_decision")
+    parser.add_argument("--gray-decision-allowed-symbols", default="")
+    parser.add_argument("--gray-decision-max-total-capital", type=float, default=5000.0)
+    parser.add_argument("--gray-decision-max-single-order-value", type=float, default=1000.0)
+    parser.add_argument("--gray-decision-max-symbol-weight", type=float, default=0.1)
+    parser.add_argument("--gray-decision-max-portfolio-weight", type=float, default=0.2)
+    parser.add_argument("--gray-decision-operator-name", default="")
+    parser.add_argument("--gray-decision-reviewer-name", default="")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -191,6 +200,17 @@ def main(argv: list[str] | None = None) -> int:
         if parsed.gray_rehearsal_allowed_symbols:
             args.extend(["--gray-rehearsal-allowed-symbols", parsed.gray_rehearsal_allowed_symbols])
         args.extend(["--gray-rehearsal-max-total-capital", str(parsed.gray_rehearsal_max_total_capital), "--gray-rehearsal-max-single-order-value", str(parsed.gray_rehearsal_max_single_order_value)])
+    if parsed.enable_gray_decision_package:
+        args.append("--enable-gray-decision-package")
+        args.extend(["--gray-decision-output-dir", parsed.gray_decision_output_dir])
+        if parsed.gray_decision_allowed_symbols:
+            args.extend(["--gray-decision-allowed-symbols", parsed.gray_decision_allowed_symbols])
+        args.extend(["--gray-decision-max-total-capital", str(parsed.gray_decision_max_total_capital), "--gray-decision-max-single-order-value", str(parsed.gray_decision_max_single_order_value)])
+        args.extend(["--gray-decision-max-symbol-weight", str(parsed.gray_decision_max_symbol_weight), "--gray-decision-max-portfolio-weight", str(parsed.gray_decision_max_portfolio_weight)])
+        if parsed.gray_decision_operator_name:
+            args.extend(["--gray-decision-operator-name", parsed.gray_decision_operator_name])
+        if parsed.gray_decision_reviewer_name:
+            args.extend(["--gray-decision-reviewer-name", parsed.gray_decision_reviewer_name])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])

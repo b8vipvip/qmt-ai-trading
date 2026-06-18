@@ -656,3 +656,11 @@ Notification Dry Run 位于 Reporting / Monitoring / Agent / Data Quality / Live
 Gray Rehearsal 位于 Pipeline / Monitoring / Data Quality Tracking / Agent Research / Live Gray Readiness / Notification Dry Run / Dashboard 之后，是对完整人工复核链路的 dry-run 演练层。它只读取本地已有报告或 mock context，输出 Markdown / JSON 演练报告、场景结果与人工 checklist。
 
 Gray Rehearsal 不开启实盘，不改变 TradeIntent，不改变 RiskDecision，不触发 Approval，不触发 Paper Trading，不触发 Live Trading。它明确不调用 QMT 交易接口、不调用 `xttrader`、不查询账户/资金/持仓/订单/成交、不真实发送通知、不下单。Live Gray Readiness 在该链路中只能输出 NO_GO / BLOCKED / READY_FOR_MANUAL_REVIEW，不提供自动 GO。
+
+## 阶段三十六进度：Gray Decision Package 小资金灰度准入复核 / 人工决策包
+
+Gray Decision Package 位于 Gray Rehearsal 之后，是人工决策证据包层。它只读取本地 Pipeline、Monitoring、Data Quality Tracking、Agent Research、Live Gray Readiness、Notification Dry Run、Dashboard、Gray Rehearsal、Risk Gate、Human Approval、Paper Trading、Live Readiness Audit 和 Final Acceptance 证据，生成 manual-only Markdown / JSON decision package。
+
+该层不启用实盘，只生成人工复核材料。`READY_FOR_MANUAL_DECISION` 不等于交易授权，不等于自动 GO，不等于允许 paper submit 或 live submit；它只代表证据足以让人工在未来单独阶段讨论。
+
+安全边界：Gray Decision Package 不调用 QMT 交易接口、不调用 `xttrader`、不查询账户/资金/持仓/订单/成交、不真实发送通知、不下单、不读取 `.env`、token、key、password、secret。若证据或 package 文本出现 live flag、real-send、下单、账户查询、Risk bypass、CRITICAL 或 Circuit Breaker OPEN，则必须 BLOCKED 或 NEED_MORE_EVIDENCE，不能 READY。

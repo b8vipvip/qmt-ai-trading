@@ -97,6 +97,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--gray-rehearsal-allowed-symbols", default="")
     parser.add_argument("--gray-rehearsal-max-total-capital", type=float, default=5000.0)
     parser.add_argument("--gray-rehearsal-max-single-order-value", type=float, default=1000.0)
+    parser.add_argument("--enable-gray-decision-package", action="store_true")
+    parser.add_argument("--gray-decision-output-dir", default="gray_decision")
+    parser.add_argument("--gray-decision-allowed-symbols", default="")
+    parser.add_argument("--gray-decision-max-total-capital", type=float, default=5000.0)
+    parser.add_argument("--gray-decision-max-single-order-value", type=float, default=1000.0)
+    parser.add_argument("--gray-decision-max-symbol-weight", type=float, default=0.1)
+    parser.add_argument("--gray-decision-max-portfolio-weight", type=float, default=0.2)
+    parser.add_argument("--gray-decision-operator-name", default="")
+    parser.add_argument("--gray-decision-reviewer-name", default="")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -167,6 +176,15 @@ def main(argv: list[str] | None = None) -> int:
         gray_rehearsal_allowed_symbols=[x.strip() for x in args.gray_rehearsal_allowed_symbols.split(",") if x.strip()] or None,
         gray_rehearsal_max_total_capital=args.gray_rehearsal_max_total_capital,
         gray_rehearsal_max_single_order_value=args.gray_rehearsal_max_single_order_value,
+        enable_gray_decision_package=args.enable_gray_decision_package,
+        gray_decision_output_dir=args.gray_decision_output_dir,
+        gray_decision_allowed_symbols=[x.strip() for x in args.gray_decision_allowed_symbols.split(",") if x.strip()] or None,
+        gray_decision_max_total_capital=args.gray_decision_max_total_capital,
+        gray_decision_max_single_order_value=args.gray_decision_max_single_order_value,
+        gray_decision_max_symbol_weight=args.gray_decision_max_symbol_weight,
+        gray_decision_max_portfolio_weight=args.gray_decision_max_portfolio_weight,
+        gray_decision_operator_name=args.gray_decision_operator_name,
+        gray_decision_reviewer_name=args.gray_decision_reviewer_name,
     )
     print(result.report_text)
 
@@ -234,6 +252,8 @@ def main(argv: list[str] | None = None) -> int:
             include_notification_dry_run=args.enable_notification_dry_run,
             gray_rehearsal_dir=args.gray_rehearsal_output_dir,
             include_gray_rehearsal=args.enable_gray_rehearsal,
+            gray_decision_dir=args.gray_decision_output_dir,
+            include_gray_decision=args.enable_gray_decision_package,
         )
         _, dashboard_path = build_and_save_dashboard(dashboard_config)
         print(f"\nRead-only dashboard written: {dashboard_path}")
