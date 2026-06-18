@@ -95,6 +95,11 @@ def collect_notification_dry_run_section(config: DashboardConfig) -> DashboardSe
     return _section_from_latest("notification_dry_run", "Notification Dry Run", directory, ("*.md", "*.json"))
 
 
+def collect_gray_rehearsal_section(config: DashboardConfig) -> DashboardSection:
+    directory = config.report_dirs.get("gray_rehearsal") or getattr(config, "gray_rehearsal_dir", "gray_rehearsal")
+    return _section_from_latest("gray_rehearsal", "Gray Rehearsal", directory, ("*.md", "*.json"))
+
+
 def collect_dashboard_sections(config: DashboardConfig) -> list[DashboardSection]:
     sections: list[DashboardSection] = []
     if config.include_daily_report:
@@ -105,6 +110,8 @@ def collect_dashboard_sections(config: DashboardConfig) -> list[DashboardSection
         sections.append(collect_data_quality_tracking_section(config))
     if getattr(config, "include_notification_dry_run", False):
         sections.append(collect_notification_dry_run_section(config))
+    if getattr(config, "include_gray_rehearsal", False):
+        sections.append(collect_gray_rehearsal_section(config))
     if config.include_monitoring:
         sections.append(collect_monitoring_section(config))
     if config.include_agent_research:

@@ -91,6 +91,11 @@ class ScheduleConfig:
     enable_notification_dry_run: bool = False
     notification_dry_run_output_dir: Path = Path("notification_dryrun")
     notification_dry_run_channels: str = ""
+    enable_gray_rehearsal: bool = False
+    gray_rehearsal_output_dir: Path = Path("gray_rehearsal")
+    gray_rehearsal_allowed_symbols: str = ""
+    gray_rehearsal_max_total_capital: float = 5000.0
+    gray_rehearsal_max_single_order_value: float = 1000.0
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

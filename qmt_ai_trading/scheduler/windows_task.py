@@ -105,6 +105,11 @@ def build_daily_pipeline_command(
     enable_notification_dry_run: bool = False,
     notification_dry_run_output_dir: str | Path = Path("notification_dryrun"),
     notification_dry_run_channels: str = "",
+    enable_gray_rehearsal: bool = False,
+    gray_rehearsal_output_dir: str | Path = Path("gray_rehearsal"),
+    gray_rehearsal_allowed_symbols: str = "",
+    gray_rehearsal_max_total_capital: float = 5000.0,
+    gray_rehearsal_max_single_order_value: float = 1000.0,
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -211,6 +216,12 @@ def build_daily_pipeline_command(
         args.extend(["--notification-dry-run-output-dir", str(notification_dry_run_output_dir)])
         if notification_dry_run_channels:
             args.extend(["--notification-dry-run-channels", str(notification_dry_run_channels)])
+    if enable_gray_rehearsal:
+        args.append("--enable-gray-rehearsal")
+        args.extend(["--gray-rehearsal-output-dir", str(gray_rehearsal_output_dir)])
+        if gray_rehearsal_allowed_symbols:
+            args.extend(["--gray-rehearsal-allowed-symbols", str(gray_rehearsal_allowed_symbols)])
+        args.extend(["--gray-rehearsal-max-total-capital", str(gray_rehearsal_max_total_capital), "--gray-rehearsal-max-single-order-value", str(gray_rehearsal_max_single_order_value)])
     if build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
@@ -331,6 +342,11 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         enable_notification_dry_run=cfg.enable_notification_dry_run,
         notification_dry_run_output_dir=cfg.notification_dry_run_output_dir,
         notification_dry_run_channels=cfg.notification_dry_run_channels,
+        enable_gray_rehearsal=cfg.enable_gray_rehearsal,
+        gray_rehearsal_output_dir=cfg.gray_rehearsal_output_dir,
+        gray_rehearsal_allowed_symbols=cfg.gray_rehearsal_allowed_symbols,
+        gray_rehearsal_max_total_capital=cfg.gray_rehearsal_max_total_capital,
+        gray_rehearsal_max_single_order_value=cfg.gray_rehearsal_max_single_order_value,
     )
     task_run = pipeline.metadata["display"]
     args = ["/Create", "/F", "/SC", "DAILY", "/TN", cfg.task_name, "/TR", task_run, "/ST", cfg.run_time]

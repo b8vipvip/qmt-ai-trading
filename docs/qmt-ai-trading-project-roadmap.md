@@ -393,3 +393,15 @@ Dashboard 只生成单文件 HTML；`scripts/build_dashboard.py` 可从本地报
 ## 阶段三十五：小资金灰度人工流程演练（下一阶段）
 
 阶段三十五确认为“小资金灰度人工流程演练”。目标是在不启用真实实盘的前提下，演练从信号生成、Risk Gate、Human Approval、Paper Trading、Monitoring、Agent Research、Live Gray Readiness、Notification Dry Run 到 Dashboard 的完整人工流程。阶段三十五仍默认 dry-run，不真实下单，不调用 xttrader，不真实发送通知。
+
+## 阶段三十五：小资金灰度人工流程演练（已完成）
+
+阶段三十五确认当前路线为“小资金灰度人工流程演练”。本阶段新增 Gray Rehearsal，本地 dry-run 串联 Pipeline / Monitoring / Data Quality Tracking / Agent Research / Live Gray Readiness / Notification Dry Run / Dashboard 之后的人工复核链路，生成演练计划、场景配置、步骤台账、人工 Checklist 与 Markdown/JSON 结果报告。
+
+完成状态：支持 `scripts/run_gray_rehearsal.py` 独立运行；支持 `run_daily_pipeline.py --enable-gray-rehearsal` 可选输出 Gray Rehearsal 区块；支持 scheduled pipeline 与 register task 透传 gray rehearsal 参数；Dashboard 支持只读 Gray Rehearsal section。阶段三十五不启用实盘、不调用 QMT 交易接口、不调用 `xttrader`、不查询账户/资金/持仓/订单/成交、不真实发送通知、不下单。
+
+## 阶段三十六：小资金灰度准入复核 / 人工决策包（下一阶段）
+
+阶段三十六目标是在不启用真实实盘的前提下，把阶段三十五演练结果整理成一份人工决策包，用于人工判断是否有资格在未来单独阶段进入极小资金灰度。阶段三十六仍默认 dry-run，不真实下单，不调用 `xttrader`，不真实发送通知。
+
+后续开发前必须继续先读 roadmap，再读 architecture，再读最近阶段文档。
