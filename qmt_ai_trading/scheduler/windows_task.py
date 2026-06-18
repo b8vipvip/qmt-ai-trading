@@ -65,6 +65,16 @@ def build_daily_pipeline_command(
     create_approval: bool = False,
     approval_root: str | Path = Path("approvals"),
     approval_expires_hours: float = 24.0,
+    enable_portfolio_plan: bool = False,
+    portfolio_method: str = "score_weight",
+    portfolio_top_n: int = 2,
+    portfolio_cash_reserve_ratio: float = 0.2,
+    portfolio_max_symbol_weight: float = 0.3,
+    portfolio_max_weight: float = 0.8,
+    portfolio_rebalance_threshold: float = 0.05,
+    portfolio_total_asset: float = 1000000.0,
+    portfolio_current_cash: float = 1000000.0,
+    portfolio_snapshot_path: str | None = None,
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -120,6 +130,18 @@ def build_daily_pipeline_command(
         args.extend(["--approval-root", str(approval_root)])
     if create_approval or float(approval_expires_hours) != 24.0:
         args.extend(["--approval-expires-hours", str(approval_expires_hours)])
+    if enable_portfolio_plan:
+        args.append("--enable-portfolio-plan")
+    if enable_portfolio_plan or portfolio_method != "score_weight":
+        args.extend(["--portfolio-method", str(portfolio_method)])
+    if enable_portfolio_plan or int(portfolio_top_n) != 2:
+        args.extend(["--portfolio-top-n", str(portfolio_top_n)])
+    if enable_portfolio_plan:
+        args.extend(["--portfolio-cash-reserve-ratio", str(portfolio_cash_reserve_ratio), "--portfolio-max-symbol-weight", str(portfolio_max_symbol_weight)])
+        args.extend(["--portfolio-max-weight", str(portfolio_max_weight), "--portfolio-rebalance-threshold", str(portfolio_rebalance_threshold)])
+        args.extend(["--portfolio-total-asset", str(portfolio_total_asset), "--portfolio-current-cash", str(portfolio_current_cash)])
+        if portfolio_snapshot_path:
+            args.extend(["--portfolio-snapshot-path", str(portfolio_snapshot_path)])
     if use_cached_research or data_source_mode in {"cached", "auto", "cached_real_first"}:
         if use_cached_research:
             args.append("--use-cached-research")
@@ -197,6 +219,16 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         create_approval=cfg.create_approval,
         approval_root=cfg.approval_root,
         approval_expires_hours=cfg.approval_expires_hours,
+        enable_portfolio_plan=cfg.enable_portfolio_plan,
+        portfolio_method=cfg.portfolio_method,
+        portfolio_top_n=cfg.portfolio_top_n,
+        portfolio_cash_reserve_ratio=cfg.portfolio_cash_reserve_ratio,
+        portfolio_max_symbol_weight=cfg.portfolio_max_symbol_weight,
+        portfolio_max_weight=cfg.portfolio_max_weight,
+        portfolio_rebalance_threshold=cfg.portfolio_rebalance_threshold,
+        portfolio_total_asset=cfg.portfolio_total_asset,
+        portfolio_current_cash=cfg.portfolio_current_cash,
+        portfolio_snapshot_path=cfg.portfolio_snapshot_path,
     )
     task_run = pipeline.metadata["display"]
     args = ["/Create", "/F", "/SC", "DAILY", "/TN", cfg.task_name, "/TR", task_run, "/ST", cfg.run_time]

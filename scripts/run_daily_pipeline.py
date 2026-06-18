@@ -45,6 +45,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--create-approval", action="store_true", help="Create a pending human approval request when TradeIntent exists.")
     parser.add_argument("--approval-root", default="approvals", help="Local approval JSON root directory.")
     parser.add_argument("--approval-expires-hours", type=float, default=24.0, help="Pending approval expiry window in hours.")
+
+    parser.add_argument("--enable-portfolio-plan", action="store_true", help="Generate dry-run/paper portfolio plan before Risk Gate.")
+    parser.add_argument("--portfolio-method", default="score_weight", choices=["equal_weight", "score_weight", "risk_adjusted_weight"])
+    parser.add_argument("--portfolio-top-n", type=int, default=2)
+    parser.add_argument("--portfolio-cash-reserve-ratio", type=float, default=0.2)
+    parser.add_argument("--portfolio-max-symbol-weight", type=float, default=0.3)
+    parser.add_argument("--portfolio-max-weight", type=float, default=0.8)
+    parser.add_argument("--portfolio-rebalance-threshold", type=float, default=0.05)
+    parser.add_argument("--portfolio-total-asset", type=float, default=1000000.0)
+    parser.add_argument("--portfolio-current-cash", type=float, default=1000000.0)
+    parser.add_argument("--portfolio-snapshot-path", default=None)
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -72,6 +83,16 @@ def main(argv: list[str] | None = None) -> int:
         min_loaded_symbols=args.min_loaded_symbols,
         require_cached_research=args.require_cached_research,
         data_source_confidence_required=args.data_source_confidence_required,
+        enable_portfolio_plan=args.enable_portfolio_plan,
+        portfolio_method=args.portfolio_method,
+        portfolio_top_n=args.portfolio_top_n,
+        portfolio_cash_reserve_ratio=args.portfolio_cash_reserve_ratio,
+        portfolio_max_symbol_weight=args.portfolio_max_symbol_weight,
+        portfolio_max_weight=args.portfolio_max_weight,
+        portfolio_rebalance_threshold=args.portfolio_rebalance_threshold,
+        portfolio_total_asset=args.portfolio_total_asset,
+        portfolio_current_cash=args.portfolio_current_cash,
+        portfolio_snapshot_path=args.portfolio_snapshot_path,
     )
     print(result.report_text)
 

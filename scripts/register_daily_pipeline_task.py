@@ -53,6 +53,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--create-approval", action="store_true")
     parser.add_argument("--approval-root", default="approvals")
     parser.add_argument("--approval-expires-hours", type=float, default=24.0)
+
+    parser.add_argument("--enable-portfolio-plan", action="store_true", help="Generate dry-run/paper portfolio plan before Risk Gate.")
+    parser.add_argument("--portfolio-method", default="score_weight", choices=["equal_weight", "score_weight", "risk_adjusted_weight"])
+    parser.add_argument("--portfolio-top-n", type=int, default=2)
+    parser.add_argument("--portfolio-cash-reserve-ratio", type=float, default=0.2)
+    parser.add_argument("--portfolio-max-symbol-weight", type=float, default=0.3)
+    parser.add_argument("--portfolio-max-weight", type=float, default=0.8)
+    parser.add_argument("--portfolio-rebalance-threshold", type=float, default=0.05)
+    parser.add_argument("--portfolio-total-asset", type=float, default=1000000.0)
+    parser.add_argument("--portfolio-current-cash", type=float, default=1000000.0)
+    parser.add_argument("--portfolio-snapshot-path", default=None)
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -95,6 +106,16 @@ def main(argv: list[str] | None = None) -> int:
         create_approval=args.create_approval,
         approval_root=Path(args.approval_root),
         approval_expires_hours=args.approval_expires_hours,
+        enable_portfolio_plan=args.enable_portfolio_plan,
+        portfolio_method=args.portfolio_method,
+        portfolio_top_n=args.portfolio_top_n,
+        portfolio_cash_reserve_ratio=args.portfolio_cash_reserve_ratio,
+        portfolio_max_symbol_weight=args.portfolio_max_symbol_weight,
+        portfolio_max_weight=args.portfolio_max_weight,
+        portfolio_rebalance_threshold=args.portfolio_rebalance_threshold,
+        portfolio_total_asset=args.portfolio_total_asset,
+        portfolio_current_cash=args.portfolio_current_cash,
+        portfolio_snapshot_path=args.portfolio_snapshot_path,
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -109,6 +130,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Data source: mode={args.data_source_mode} allow_mock_fallback={args.allow_mock_fallback} min_coverage_ratio={args.min_coverage_ratio} min_loaded_symbols={args.min_loaded_symbols} quality_report_dir={args.quality_report_dir} min_quality_level={args.min_quality_level}")
     if args.create_approval:
         print(f"Human approval: create_approval=True approval_root={args.approval_root} expires_hours={args.approval_expires_hours} no_order_submitted=True")
+    if args.enable_portfolio_plan:
+        print(f"Portfolio plan: enable_portfolio_plan=True method={args.portfolio_method} top_n={args.portfolio_top_n} dry_run_only=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:
         print(f"Cached research: start={args.research_start} end={args.research_end} frequency={args.research_frequency} min_bars={args.min_bars} cache_root={args.cache_root}")
         print(f"Cached ETF rotation: top_n={args.cached_strategy_top_n} min_score={args.cached_strategy_min_score} min_bars={args.cached_strategy_min_bars}")

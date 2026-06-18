@@ -71,6 +71,16 @@ def run_daily_signal_pipeline(
     min_loaded_symbols: int = 1,
     require_cached_research: bool = False,
     data_source_confidence_required: str | None = None,
+    enable_portfolio_plan: bool = False,
+    portfolio_method: str = "score_weight",
+    portfolio_top_n: int = 2,
+    portfolio_cash_reserve_ratio: float = 0.2,
+    portfolio_max_symbol_weight: float = 0.3,
+    portfolio_max_weight: float = 0.8,
+    portfolio_rebalance_threshold: float = 0.05,
+    portfolio_total_asset: float = 1_000_000.0,
+    portfolio_current_cash: float = 1_000_000.0,
+    portfolio_snapshot_path: str | None = None,
 ) -> PipelineResult:
     """Run the generic daily signal pipeline without connecting to real QMT trading."""
 
@@ -176,6 +186,36 @@ def run_daily_signal_pipeline(
         result.metadata["no_intent_reason"] = "strategy generation failed"
         _record_step(steps, "generate_trade_intents", False, "strategy generation failed; no intents emitted", errors=[repr(exc)])
 
+
+    if enable_portfolio_plan:
+        try:
+            from qmt_ai_trading.portfolio.allocator import PortfolioAllocationConfig
+            from qmt_ai_trading.portfolio.rebalance import PortfolioRebalanceConfig
+            from qmt_ai_trading.portfolio.service import build_portfolio_plan_from_candidates
+
+            plan = build_portfolio_plan_from_candidates(
+                result.candidates,
+                run_id=ctx.run_id,
+                total_asset=portfolio_total_asset,
+                current_cash=portfolio_current_cash,
+                snapshot_path=portfolio_snapshot_path,
+                allocation_config=PortfolioAllocationConfig(
+                    method=portfolio_method,
+                    top_n=portfolio_top_n,
+                    cash_reserve_ratio=portfolio_cash_reserve_ratio,
+                    max_symbol_weight=portfolio_max_symbol_weight,
+                    max_portfolio_weight=portfolio_max_weight,
+                    min_score=min_score,
+                ),
+                rebalance_config=PortfolioRebalanceConfig(rebalance_threshold=portfolio_rebalance_threshold),
+            )
+            result.metadata["portfolio_plan"] = plan
+            result.trade_intents = list(plan.trade_intents)
+            _record_step(steps, "portfolio_plan", True, f"generated portfolio plan with {len(plan.targets)} targets and {len(plan.trade_intents)} dry-run intents", {"targets": len(plan.targets), "adjustments": len(plan.adjustments), "trade_intents": len(plan.trade_intents)})
+        except Exception as exc:
+            result.metadata["portfolio_plan_error"] = repr(exc)
+            _record_step(steps, "portfolio_plan", False, "portfolio plan generation failed", errors=[repr(exc)])
+
     try:
         result.risk_decisions = [validate_trade_intent(intent) for intent in result.trade_intents]
         _record_step(steps, "risk_gate", True, f"validated {len(result.risk_decisions)} intents", {"count": len(result.risk_decisions)})
@@ -229,6 +269,16 @@ def run_etf_daily_pipeline(
     min_loaded_symbols: int = 1,
     require_cached_research: bool = False,
     data_source_confidence_required: str | None = None,
+    enable_portfolio_plan: bool = False,
+    portfolio_method: str = "score_weight",
+    portfolio_top_n: int = 2,
+    portfolio_cash_reserve_ratio: float = 0.2,
+    portfolio_max_symbol_weight: float = 0.3,
+    portfolio_max_weight: float = 0.8,
+    portfolio_rebalance_threshold: float = 0.05,
+    portfolio_total_asset: float = 1_000_000.0,
+    portfolio_current_cash: float = 1_000_000.0,
+    portfolio_snapshot_path: str | None = None,
 ) -> PipelineResult:
     """Run the default ETF daily pipeline using the Data Hub ETF universe."""
 
@@ -270,4 +320,14 @@ def run_etf_daily_pipeline(
         cached_strategy_top_n=cached_strategy_top_n,
         cached_strategy_min_score=cached_strategy_min_score,
         cached_strategy_min_bars=cached_strategy_min_bars,
+        enable_portfolio_plan=enable_portfolio_plan,
+        portfolio_method=portfolio_method,
+        portfolio_top_n=portfolio_top_n,
+        portfolio_cash_reserve_ratio=portfolio_cash_reserve_ratio,
+        portfolio_max_symbol_weight=portfolio_max_symbol_weight,
+        portfolio_max_weight=portfolio_max_weight,
+        portfolio_rebalance_threshold=portfolio_rebalance_threshold,
+        portfolio_total_asset=portfolio_total_asset,
+        portfolio_current_cash=portfolio_current_cash,
+        portfolio_snapshot_path=portfolio_snapshot_path,
     )
