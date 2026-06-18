@@ -258,3 +258,13 @@ ETF Universe
 - 禁止事项
 - 最后输出要求
 - 当前阶段通过后的下一阶段计划
+
+## 阶段二十三补充：实盘前安全审计
+
+阶段二十三是“实盘前安全审计”。本阶段在 Paper Trading / QMT dry-run 之后建立 Live Readiness Audit 框架，用于检查 roadmap / architecture 一致性、Risk Gate、Human Approval、Paper Trading、QMT Gateway、安全配置、运行产物忽略规则、敏感模式、禁止 `xttrader` import、禁止绕过 Risk Gate 的直接下单调用，并生成结构化 go/no-go 审计报告。
+
+阶段二十三完成状态：已建立审计模型、静态检查、审计服务、Markdown/JSON formatter、CLI、测试和阶段文档。当前阶段默认 `NO_GO`，`allow_go=False`，审计报告不是交易授权；本阶段不调用 QMT、不调用 `xttrader`、不真实下单、不查询资金/持仓/订单/成交。
+
+阶段二十四确认：阶段二十四是“QMT 实机数据联调与真实缓存质量验证”。目标是在真实 MiniQMT / xtquant 环境中小范围拉取 ETF 历史数据，校验字段、日期、复权、成交量、缺失值、重复值和缓存质量。阶段二十四仍不实盘、不调用 `xttrader`、不真实下单。
+
+后续开发前必须继续先读 `docs/qmt-ai-trading-project-roadmap.md`，再读 `docs/qmt-ai-trading-architecture.md`，再读最近一个已完成阶段文档；不得越级接实盘，不得为了测试绕过风控。
