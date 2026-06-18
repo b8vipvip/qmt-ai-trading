@@ -64,6 +64,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--portfolio-total-asset", type=float, default=1000000.0)
     parser.add_argument("--portfolio-current-cash", type=float, default=1000000.0)
     parser.add_argument("--portfolio-snapshot-path", default=None)
+    parser.add_argument("--enable-monitoring", action="store_true")
+    parser.add_argument("--monitoring-output-dir", default="monitoring_reports")
+    parser.add_argument("--monitoring-dry-run-alerts", action="store_true")
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -116,6 +119,9 @@ def main(argv: list[str] | None = None) -> int:
         portfolio_total_asset=args.portfolio_total_asset,
         portfolio_current_cash=args.portfolio_current_cash,
         portfolio_snapshot_path=args.portfolio_snapshot_path,
+        enable_monitoring=args.enable_monitoring,
+        monitoring_output_dir=Path(args.monitoring_output_dir),
+        monitoring_dry_run_alerts=args.monitoring_dry_run_alerts,
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -132,6 +138,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Human approval: create_approval=True approval_root={args.approval_root} expires_hours={args.approval_expires_hours} no_order_submitted=True")
     if args.enable_portfolio_plan:
         print(f"Portfolio plan: enable_portfolio_plan=True method={args.portfolio_method} top_n={args.portfolio_top_n} dry_run_only=True")
+    if args.enable_monitoring:
+        print(f"Monitoring: enable_monitoring=True output_dir={args.monitoring_output_dir} dry_run_alerts={args.monitoring_dry_run_alerts}")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:
         print(f"Cached research: start={args.research_start} end={args.research_end} frequency={args.research_frequency} min_bars={args.min_bars} cache_root={args.cache_root}")
         print(f"Cached ETF rotation: top_n={args.cached_strategy_top_n} min_score={args.cached_strategy_min_score} min_bars={args.cached_strategy_min_bars}")

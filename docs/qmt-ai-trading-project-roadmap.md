@@ -317,3 +317,10 @@ ETF Universe
 阶段二十七只读取 `LocalBarStore` 本地缓存，不调用 QMT 交易接口，不调用 `xttrader`，不真实下单，不查询真实资金、持仓、订单或成交。Risk Gate 拒绝的模拟 TradeIntent 会单独记录，不计入 risk-executable performance。
 
 阶段二十八确认为“异常监控、告警、熔断”。阶段二十八将在长期回测之后，对数据缺失、缓存异常、信号异常、Risk Gate 连续拒绝、回测异常和调度失败建立监控事件、告警等级和熔断规则。后续开发前仍必须先读本 roadmap、architecture 和最近阶段文档。
+
+
+## 阶段二十八完成状态：异常监控、告警、熔断
+
+阶段二十八确认为“异常监控、告警、熔断”。本阶段新增 `qmt_ai_trading.monitoring` 与 `scripts/run_monitoring_check.py`，用于对数据质量、fallback/mock 使用、Risk Gate 拒绝数量、调度退出码和最大回撤做本地 dry-run 监控，输出 Markdown / JSON 报告、本地 dry-run alert 文件和 circuit-breaker 建议。
+
+阶段二十八不发送真实通知、不调用 QMT 交易接口、不调用 `xttrader`、不真实下单、不查询真实资金、持仓、订单或成交。Circuit breaker 是阻断建议和人工复核信号，不是自动实盘控制。阶段二十九确认为“Agent Research Layer”，Agent 仍只能做研究解释和风险提示，不能下单，不能绕过 Risk Gate。

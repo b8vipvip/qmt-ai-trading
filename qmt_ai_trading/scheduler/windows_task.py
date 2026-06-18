@@ -75,6 +75,9 @@ def build_daily_pipeline_command(
     portfolio_total_asset: float = 1000000.0,
     portfolio_current_cash: float = 1000000.0,
     portfolio_snapshot_path: str | None = None,
+    enable_monitoring: bool = False,
+    monitoring_output_dir: str | Path = Path("monitoring_reports"),
+    monitoring_dry_run_alerts: bool = False,
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -142,6 +145,11 @@ def build_daily_pipeline_command(
         args.extend(["--portfolio-total-asset", str(portfolio_total_asset), "--portfolio-current-cash", str(portfolio_current_cash)])
         if portfolio_snapshot_path:
             args.extend(["--portfolio-snapshot-path", str(portfolio_snapshot_path)])
+    if enable_monitoring:
+        args.append("--enable-monitoring")
+        args.extend(["--monitoring-output-dir", str(monitoring_output_dir)])
+        if monitoring_dry_run_alerts:
+            args.append("--monitoring-dry-run-alerts")
     if use_cached_research or data_source_mode in {"cached", "auto", "cached_real_first"}:
         if use_cached_research:
             args.append("--use-cached-research")
@@ -229,6 +237,9 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         portfolio_total_asset=cfg.portfolio_total_asset,
         portfolio_current_cash=cfg.portfolio_current_cash,
         portfolio_snapshot_path=cfg.portfolio_snapshot_path,
+        enable_monitoring=cfg.enable_monitoring,
+        monitoring_output_dir=cfg.monitoring_output_dir,
+        monitoring_dry_run_alerts=cfg.monitoring_dry_run_alerts,
     )
     task_run = pipeline.metadata["display"]
     args = ["/Create", "/F", "/SC", "DAILY", "/TN", cfg.task_name, "/TR", task_run, "/ST", cfg.run_time]
