@@ -608,3 +608,11 @@ Agent Research 输入包括 Daily Pipeline 输出、Monitoring Report、Long Bac
 安全边界：Agent 不生成订单，不提交订单，不触发 Approval / Paper / Live，不改变 TradeIntent / RiskDecision / Approval / PaperOrder，不绕过 Risk Gate / Human Approval。
 
 阶段二十九默认使用 deterministic `local_rules` summarizer；`external_llm_disabled` 仅输出禁用说明。当前阶段不调用外部 LLM API、不调用 QMT 交易接口、不调用 `xttrader`、不真实发送通知、不下单。
+
+## 阶段三十进度：Live Gray Readiness
+
+阶段三十新增 Live Gray Readiness 准备层，位置在 Live Readiness Audit / Paper Trading / Monitoring / Agent Research 之后，用于把小资金灰度前的 live/gray 开关、白名单、资金上限、单笔金额上限、仓位上限、证据链和人工复核清单聚合为 Markdown / JSON readiness report。
+
+本阶段只生成 readiness report，不开启实盘。`--live-enabled` 默认不使用，计划任务 dry-run 命令默认不包含 `--live-enabled`；即使误传，也不会绕过 Risk Gate、Human Approval、Live Readiness Audit、Monitoring 或 Circuit Breaker。
+
+阶段三十不调用 QMT 交易接口、不调用 `xttrader`、不查询真实资金/持仓/订单/成交、不真实发送通知、不下单。

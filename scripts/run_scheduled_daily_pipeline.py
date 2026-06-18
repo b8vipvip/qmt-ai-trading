@@ -75,6 +75,16 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--agent-include-monitoring", action="store_true", default=True)
     parser.add_argument("--agent-include-backtest", action="store_true", default=True)
     parser.add_argument("--agent-include-human-checklist", action="store_true", default=True)
+    parser.add_argument("--enable-live-gray-readiness", action="store_true")
+    parser.add_argument("--live-gray-output-dir", default="live_gray_reports")
+    parser.add_argument("--live-gray-allowed-symbols", default="")
+    parser.add_argument("--live-gray-max-total-capital", type=float, default=5000.0)
+    parser.add_argument("--live-gray-max-single-order-value", type=float, default=1000.0)
+    parser.add_argument("--live-gray-max-symbol-weight", type=float, default=0.1)
+    parser.add_argument("--live-gray-max-portfolio-weight", type=float, default=0.2)
+    parser.add_argument("--live-gray-enabled", action="store_true")
+    parser.add_argument("--live-enabled", action="store_true")
+    parser.add_argument("--live-gray-operator-name", default="")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -121,6 +131,19 @@ def main(argv: list[str] | None = None) -> int:
             args.append("--agent-include-backtest")
         if parsed.agent_include_human_checklist:
             args.append("--agent-include-human-checklist")
+    if parsed.enable_live_gray_readiness:
+        args.append("--enable-live-gray-readiness")
+        args.extend(["--live-gray-output-dir", parsed.live_gray_output_dir])
+        if parsed.live_gray_allowed_symbols:
+            args.extend(["--live-gray-allowed-symbols", parsed.live_gray_allowed_symbols])
+        args.extend(["--live-gray-max-total-capital", str(parsed.live_gray_max_total_capital), "--live-gray-max-single-order-value", str(parsed.live_gray_max_single_order_value)])
+        args.extend(["--live-gray-max-symbol-weight", str(parsed.live_gray_max_symbol_weight), "--live-gray-max-portfolio-weight", str(parsed.live_gray_max_portfolio_weight)])
+        if parsed.live_gray_enabled:
+            args.append("--live-gray-enabled")
+        if parsed.live_enabled:
+            args.append("--live-enabled")
+        if parsed.live_gray_operator_name:
+            args.extend(["--live-gray-operator-name", parsed.live_gray_operator_name])
     args.extend(["--portfolio-method", parsed.portfolio_method, "--portfolio-top-n", str(parsed.portfolio_top_n)])
     args.extend(["--portfolio-cash-reserve-ratio", str(parsed.portfolio_cash_reserve_ratio), "--portfolio-max-symbol-weight", str(parsed.portfolio_max_symbol_weight)])
     args.extend(["--portfolio-max-weight", str(parsed.portfolio_max_weight), "--portfolio-rebalance-threshold", str(parsed.portfolio_rebalance_threshold)])

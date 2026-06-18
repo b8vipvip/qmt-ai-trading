@@ -1,0 +1,4 @@
+ITEMS=["Confirm live trading remains disabled by default.","Confirm allowed symbols are whitelisted.","Confirm max total capital is small and explicit.","Confirm max single order value is small and explicit.","Confirm Risk Gate passed.","Confirm Human Approval exists and is explicit.","Confirm Paper Trading dry-run has passed.","Confirm Live Readiness Audit has no critical failures.","Confirm Monitoring has no CRITICAL alerts.","Confirm Agent Research is read-only and reviewed.","Confirm operator manually accepts residual risk.","Confirm no order is submitted by this checklist."]
+def default_gray_checklist_items(): return list(ITEMS)
+def build_gray_manual_review_checklist(report): return default_gray_checklist_items()+list(getattr(report,"manual_review_items",[]) or [])
+def format_gray_manual_review_checklist(report): return "\n".join(f"- [ ] {x}" for x in build_gray_manual_review_checklist(report))

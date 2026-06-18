@@ -343,3 +343,13 @@ ETF Universe
 ## 阶段三十：小资金实盘灰度准备（下一阶段）
 
 阶段三十目标是在 dry-run / paper / monitoring / agent research 能力通过后，建立极小资金灰度实盘准备清单、live config 审计、白名单标的、人工审批流程和多重开关验证。阶段三十仍默认关闭实盘，不允许自动下单，不允许绕过 Human Approval / Risk Gate / Live Readiness Audit。
+
+## 阶段三十：小资金实盘灰度准备（已完成）
+
+阶段三十新增 Live Gray Readiness 准备层，位于 Risk Gate / Human Approval / Paper Trading / Live Readiness Audit / Monitoring / Agent Research 之后。该阶段只生成小资金灰度准备配置、只读检查、人工复核 checklist、Markdown / JSON readiness report；默认 `live_enabled=False`、`gray_enabled=False`、默认 `NO_GO`，不调用 QMT 交易接口、不调用 `xttrader`、不真实发送通知、不下单。
+
+阶段三十完成状态：已建立 `qmt_ai_trading/liveprep/`、`scripts/run_live_gray_readiness.py`、Daily Pipeline 可选 Live Gray Readiness 区块、scheduled/register 参数透传和阶段三十文档。后续开发前仍必须先读 roadmap 与 architecture，不得越级接实盘，不得绕过风控。
+
+## 阶段三十一：UI / Dashboard（下一阶段）
+
+阶段三十一计划建立本地只读 dashboard，用于展示报告、审批状态、风险状态、缓存覆盖率、监控事件、Agent Research Memo 和 Live Gray Readiness。UI 不得作为交易绕过入口，不得直接触发实盘，不得绕过 Risk Gate / Human Approval。
