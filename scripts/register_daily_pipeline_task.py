@@ -67,6 +67,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--enable-monitoring", action="store_true")
     parser.add_argument("--monitoring-output-dir", default="monitoring_reports")
     parser.add_argument("--monitoring-dry-run-alerts", action="store_true")
+    parser.add_argument("--enable-agent-research", action="store_true")
+    parser.add_argument("--agent-research-output-dir", default="agent_reports")
+    parser.add_argument("--agent-research-mode", default="local_rules", choices=["mock", "local_rules", "external_llm_disabled"])
+    parser.add_argument("--agent-include-monitoring", action="store_true", default=True)
+    parser.add_argument("--agent-include-backtest", action="store_true", default=True)
+    parser.add_argument("--agent-include-human-checklist", action="store_true", default=True)
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -122,6 +128,12 @@ def main(argv: list[str] | None = None) -> int:
         enable_monitoring=args.enable_monitoring,
         monitoring_output_dir=Path(args.monitoring_output_dir),
         monitoring_dry_run_alerts=args.monitoring_dry_run_alerts,
+        enable_agent_research=args.enable_agent_research,
+        agent_research_output_dir=Path(args.agent_research_output_dir),
+        agent_research_mode=args.agent_research_mode,
+        agent_include_monitoring=args.agent_include_monitoring,
+        agent_include_backtest=args.agent_include_backtest,
+        agent_include_human_checklist=args.agent_include_human_checklist,
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -140,6 +152,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Portfolio plan: enable_portfolio_plan=True method={args.portfolio_method} top_n={args.portfolio_top_n} dry_run_only=True")
     if args.enable_monitoring:
         print(f"Monitoring: enable_monitoring=True output_dir={args.monitoring_output_dir} dry_run_alerts={args.monitoring_dry_run_alerts}")
+    if args.enable_agent_research:
+        print(f"Agent Research: enable_agent_research=True output_dir={args.agent_research_output_dir} mode={args.agent_research_mode} read_only=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:
         print(f"Cached research: start={args.research_start} end={args.research_end} frequency={args.research_frequency} min_bars={args.min_bars} cache_root={args.cache_root}")
         print(f"Cached ETF rotation: top_n={args.cached_strategy_top_n} min_score={args.cached_strategy_min_score} min_bars={args.cached_strategy_min_bars}")

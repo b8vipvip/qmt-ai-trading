@@ -331,3 +331,15 @@ ETF Universe
 阶段二十九确认为“Agent Research Layer”。下一阶段只允许在 Research / Reporting / Monitoring 产物之上做研究解释、因子归因摘要、异常原因分析和风险提示；Agent 不得下单，不得调用 `xttrader`，不得查询真实资金、持仓、订单或成交，不得绕过 Risk Gate、Human Approval、Paper Trading、Live Readiness Audit 或阶段二十八 Circuit Breaker。
 
 后续任何开发前必须先读本 roadmap，再读 architecture 和最近阶段文档；不能越级接实盘，不能为了测试绕过风控，不能把 dry-run alert 或 circuit-breaker 建议解释为交易授权。
+
+## 阶段二十九：Agent Research Layer（已完成）
+
+阶段二十九新增只读 Agent Research Layer。该层位于 Daily Pipeline、Monitoring、Long Backtest、Portfolio 和 Risk Gate 输出之后，用于汇总 Daily Pipeline 报告、Monitoring Report、Long Backtest Result、Portfolio Plan、RiskDecision 和 Cache Quality 信息，生成结构化 Research Memo、Signal Explanation、Risk Summary、Backtest Summary、Monitoring Summary、Candidate Comparison 和 Human Review Checklist。
+
+阶段二十九默认使用 deterministic `local_rules` summarizer；`external_llm_disabled` 模式只输出禁用说明。当前阶段不调用外部 LLM API，不读取真实 key，不调用 QMT 交易接口，不调用 `xttrader`，不真实发送通知，不下单，不绕过 Risk Gate / Human Approval。
+
+后续开发前仍必须先读本 roadmap、architecture 和最近阶段文档。
+
+## 阶段三十：小资金实盘灰度准备（下一阶段）
+
+阶段三十目标是在 dry-run / paper / monitoring / agent research 能力通过后，建立极小资金灰度实盘准备清单、live config 审计、白名单标的、人工审批流程和多重开关验证。阶段三十仍默认关闭实盘，不允许自动下单，不允许绕过 Human Approval / Risk Gate / Live Readiness Audit。

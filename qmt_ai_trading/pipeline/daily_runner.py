@@ -81,6 +81,12 @@ def run_daily_signal_pipeline(
     portfolio_total_asset: float = 1_000_000.0,
     portfolio_current_cash: float = 1_000_000.0,
     portfolio_snapshot_path: str | None = None,
+    enable_agent_research: bool = False,
+    agent_research_output_dir: str = "agent_reports",
+    agent_research_mode: str = "local_rules",
+    agent_include_monitoring: bool = True,
+    agent_include_backtest: bool = True,
+    agent_include_human_checklist: bool = True,
 ) -> PipelineResult:
     """Run the generic daily signal pipeline without connecting to real QMT trading."""
 
@@ -231,6 +237,46 @@ def run_daily_signal_pipeline(
         _record_step(steps, "shadow_replay_backtest", False, "simulated shadow replay/backtest failed", errors=[repr(exc)])
 
     result.success = all(step.success for step in steps)
+
+    if enable_agent_research:
+        try:
+            from pathlib import Path
+            from qmt_ai_trading.agent.service import run_agent_research_from_pipeline_result, save_agent_research_memo
+            from qmt_ai_trading.agent.summarizer import AgentSummarizerConfig
+
+            memo = run_agent_research_from_pipeline_result(
+                result,
+                config=AgentSummarizerConfig(
+                    mode=agent_research_mode,
+                    include_monitoring=agent_include_monitoring,
+                    include_backtest=agent_include_backtest,
+                    include_human_checklist=agent_include_human_checklist,
+                ),
+            )
+            out_dir = Path(agent_research_output_dir)
+            md_path = out_dir / f"{ctx.run_id}.agent_research.md"
+            json_path = out_dir / f"{ctx.run_id}.agent_research.json"
+            save_agent_research_memo(memo, md_path)
+            save_agent_research_memo(memo, json_path)
+            result.metadata["agent_research"] = {
+                "memo": memo,
+                "memo_id": memo.memo_id,
+                "mode": memo.mode,
+                "success": memo.success,
+                "executive_summary": memo.executive_summary,
+                "risk_summary": memo.risk_summary,
+                "human_review_checklist": memo.human_review_checklist,
+                "safety_note": memo.safety_note,
+                "output_path": str(md_path),
+                "json_output_path": str(json_path),
+            }
+            _record_step(steps, "agent_research", memo.success, f"generated read-only Agent Research memo: {md_path}", {"output_path": str(md_path), "mode": memo.mode})
+            result.success = all(step.success for step in steps)
+        except Exception as exc:
+            result.metadata["agent_research_error"] = repr(exc)
+            _record_step(steps, "agent_research", False, "Agent Research generation failed", errors=[repr(exc)])
+            result.success = all(step.success for step in steps)
+
     from qmt_ai_trading.pipeline.report import format_pipeline_report
 
     result.report_text = format_pipeline_report(result)
@@ -279,6 +325,12 @@ def run_etf_daily_pipeline(
     portfolio_total_asset: float = 1_000_000.0,
     portfolio_current_cash: float = 1_000_000.0,
     portfolio_snapshot_path: str | None = None,
+    enable_agent_research: bool = False,
+    agent_research_output_dir: str = "agent_reports",
+    agent_research_mode: str = "local_rules",
+    agent_include_monitoring: bool = True,
+    agent_include_backtest: bool = True,
+    agent_include_human_checklist: bool = True,
 ) -> PipelineResult:
     """Run the default ETF daily pipeline using the Data Hub ETF universe."""
 
@@ -330,4 +382,10 @@ def run_etf_daily_pipeline(
         portfolio_total_asset=portfolio_total_asset,
         portfolio_current_cash=portfolio_current_cash,
         portfolio_snapshot_path=portfolio_snapshot_path,
+        enable_agent_research=enable_agent_research,
+        agent_research_output_dir=agent_research_output_dir,
+        agent_research_mode=agent_research_mode,
+        agent_include_monitoring=agent_include_monitoring,
+        agent_include_backtest=agent_include_backtest,
+        agent_include_human_checklist=agent_include_human_checklist,
     )

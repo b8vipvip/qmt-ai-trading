@@ -64,6 +64,12 @@ class ScheduleConfig:
     enable_monitoring: bool = False
     monitoring_output_dir: Path = Path("monitoring_reports")
     monitoring_dry_run_alerts: bool = False
+    enable_agent_research: bool = False
+    agent_research_output_dir: Path = Path("agent_reports")
+    agent_research_mode: str = "local_rules"
+    agent_include_monitoring: bool = True
+    agent_include_backtest: bool = True
+    agent_include_human_checklist: bool = True
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

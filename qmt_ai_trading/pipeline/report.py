@@ -62,6 +62,13 @@ def format_pipeline_report(result: PipelineResult) -> str:
     else:
         lines.append("- No risk decisions because no trade intents were generated.")
 
+    agent = result.metadata.get("agent_research") if isinstance(result.metadata, dict) else None
+    if agent:
+        lines.extend(["", "## Agent Research", f"- memo_id: {agent.get('memo_id', '')}", f"- mode: {agent.get('mode', '')}", f"- success: {agent.get('success', False)}", f"- output_path: {agent.get('output_path', '')}", f"- executive_summary: {agent.get('executive_summary', '')}", f"- risk_summary: {agent.get('risk_summary', '')}", "- human_review_checklist:"])
+        for item in agent.get("human_review_checklist", []) or []:
+            lines.append(f"  - {item}")
+        lines.append(f"- safety_note: {agent.get('safety_note', '')}")
+
     bt = result.backtest_result
     lines.extend(["", "## Backtest Summary"])
     if bt is None:

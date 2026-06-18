@@ -69,6 +69,12 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--enable-monitoring", action="store_true")
     parser.add_argument("--monitoring-output-dir", default="monitoring_reports")
     parser.add_argument("--monitoring-dry-run-alerts", action="store_true")
+    parser.add_argument("--enable-agent-research", action="store_true")
+    parser.add_argument("--agent-research-output-dir", default="agent_reports")
+    parser.add_argument("--agent-research-mode", default="local_rules", choices=["mock", "local_rules", "external_llm_disabled"])
+    parser.add_argument("--agent-include-monitoring", action="store_true", default=True)
+    parser.add_argument("--agent-include-backtest", action="store_true", default=True)
+    parser.add_argument("--agent-include-human-checklist", action="store_true", default=True)
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -106,6 +112,15 @@ def main(argv: list[str] | None = None) -> int:
         args.extend(["--monitoring-output-dir", parsed.monitoring_output_dir])
         if parsed.monitoring_dry_run_alerts:
             args.append("--monitoring-dry-run-alerts")
+    if parsed.enable_agent_research:
+        args.append("--enable-agent-research")
+        args.extend(["--agent-research-output-dir", parsed.agent_research_output_dir, "--agent-research-mode", parsed.agent_research_mode])
+        if parsed.agent_include_monitoring:
+            args.append("--agent-include-monitoring")
+        if parsed.agent_include_backtest:
+            args.append("--agent-include-backtest")
+        if parsed.agent_include_human_checklist:
+            args.append("--agent-include-human-checklist")
     args.extend(["--portfolio-method", parsed.portfolio_method, "--portfolio-top-n", str(parsed.portfolio_top_n)])
     args.extend(["--portfolio-cash-reserve-ratio", str(parsed.portfolio_cash_reserve_ratio), "--portfolio-max-symbol-weight", str(parsed.portfolio_max_symbol_weight)])
     args.extend(["--portfolio-max-weight", str(parsed.portfolio_max_weight), "--portfolio-rebalance-threshold", str(parsed.portfolio_rebalance_threshold)])
