@@ -624,3 +624,15 @@ Agent Research 输入包括 Daily Pipeline 输出、Monitoring Report、Long Bac
 Dashboard 展示 Daily Pipeline、Data Source / Cache Quality、Candidates、TradeIntents、RiskDecision、Portfolio Plan、Monitoring Report / Alerts / Circuit Breaker、Agent Research Memo、Live Gray Readiness、Human Approval 和 Paper Trading 状态。缺少报告时只显示 EMPTY/WARNING，不崩溃。
 
 Dashboard 明确只读展示，不提供下单按钮，不触发 Approval / Paper / Live，不绕过 Risk Gate / Human Approval / Live Readiness Audit / Monitoring / Circuit Breaker。Dashboard 不调用 QMT 交易接口、不调用 `xttrader`、不真实发送通知、不下单，不读取 `.env`、token、key、password、secret，不加载外部 CDN 或外部 JS。
+
+## 阶段三十二进度：runbook / acceptance dry-run 验收层
+
+阶段三十二追加运行手册、部署手册和总体验收层。最终架构链路明确为：
+
+```text
+ETF Universe -> Universe Warmup -> LocalBarStore -> Cached Research -> Cached ETF Rotation -> Portfolio Plan -> TradeIntent -> Risk Gate -> Human Approval -> Paper Trading -> Monitoring -> Agent Research -> Live Gray Readiness -> Dashboard
+```
+
+`qmt_ai_trading.acceptance` 与 `docs/runbook-*.md` 属于文档和 dry-run 验收层，只检查本地文件、`.gitignore`、安全声明和 smoke 命令结果，不引入实盘能力。
+
+当前仍不调用 QMT 交易接口、不调用 `xttrader`、不查询真实资金/持仓/订单/成交、不真实发送通知、不下单。Final Acceptance 报告不是交易授权；Live Gray Readiness 的 `READY_FOR_MANUAL_REVIEW` 也仅代表人工复核候选，不代表 GO。

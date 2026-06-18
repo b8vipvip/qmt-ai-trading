@@ -214,3 +214,22 @@ market_data_test_stage31/
 agent_reports_stage31/
 monitoring_reports_stage31/
 live_gray_reports_stage31/
+
+# stage 32 final runbook / acceptance runtime outputs
+final_acceptance_stage32/
+smoke_reports_stage32/
+market_data_test_stage32/
+dashboard_stage32/
+agent_reports_stage32/
+monitoring_reports_stage32/
+live_gray_reports_stage32/
+reports/
+logs/
+approvals/
+paper_orders/
+market_data/
+data_cache/
+*.acceptance.json
+*.acceptance.md
+*.smoke.json
+*.smoke.md

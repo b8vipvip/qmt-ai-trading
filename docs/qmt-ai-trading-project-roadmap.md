@@ -365,3 +365,11 @@ Dashboard 只生成单文件 HTML；`scripts/build_dashboard.py` 可从本地报
 ## 阶段三十二：运行手册 / 部署手册 / 总体验收（下一阶段）
 
 阶段三十二确认阶段名称为“运行手册 / 部署手册 / 总体验收”。目标是把当前系统的本地运行、数据缓存、Daily Pipeline、Scheduler、Approval、Paper、Monitoring、Agent、Live Gray、Dashboard 全链路整理成操作手册和总体验收清单。阶段三十二仍不实盘、不调用 `xttrader`、不真实下单。
+
+## 阶段三十二：运行手册 / 部署手册 / 总体验收
+
+阶段三十二确认名称为“运行手册 / 部署手册 / 总体验收”。本阶段目标是把本地运行、数据缓存、Daily Pipeline、Scheduler、Approval、Paper Trading、Monitoring、Agent Research、Live Gray Readiness、Dashboard 全链路整理为操作手册、部署手册、故障排查入口和总体验收清单，并新增只读 Final Acceptance 与 Full Dry Run Smoke。
+
+阶段三十二完成状态说明：已新增 runbook 文档、final acceptance 检查包、dry-run smoke 脚本和阶段三十二验收测试。该阶段仍不实盘、不调用 QMT 交易接口、不调用 `xttrader`、不查询真实资金/持仓/订单/成交、不真实发送通知、不下单。
+
+项目总体验收完成 / 后续增强待定。后续开发前必须先读 roadmap，任何新增强必须在新的人工确认阶段中明确授权，默认 dry-run，不能绕过 Risk Gate / Human Approval / Live Readiness Audit。
