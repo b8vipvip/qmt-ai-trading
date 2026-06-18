@@ -33,17 +33,30 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--warmup-frequency", default="1d")
     parser.add_argument("--cache-root", default="market_data")
     parser.add_argument("--warmup-fail-fast", action="store_true")
+    parser.add_argument("--use-cached-research", action="store_true", help="Pass cached Research mode to the daily pipeline.")
+    parser.add_argument("--research-start", default=None)
+    parser.add_argument("--research-end", default=None)
+    parser.add_argument("--research-frequency", default="1d")
+    parser.add_argument("--min-bars", type=int, default=20)
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
 
 
 def main(argv: list[str] | None = None) -> int:
-    parsed = _parse_args(argv) if argv is not None else _parse_args([])
+    parsed = _parse_args(argv)
     log_dir = ROOT / "logs" / "daily_pipeline"
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / f"daily_pipeline_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-    args = parsed.pipeline_args or ["--write-reports", "--report-dir", "reports", "--notify-dry-run"]
+    args = list(parsed.pipeline_args or ["--write-reports", "--report-dir", "reports", "--notify-dry-run"])
+    if parsed.use_cached_research:
+        args.append("--use-cached-research")
+        args.extend(["--cache-root", parsed.cache_root])
+        if parsed.research_start:
+            args.extend(["--research-start", parsed.research_start])
+        if parsed.research_end:
+            args.extend(["--research-end", parsed.research_end])
+        args.extend(["--research-frequency", parsed.research_frequency, "--min-bars", str(parsed.min_bars)])
     with log_path.open("w", encoding="utf-8") as log_file:
         log_file.write("QMT AI Trading scheduled dry-run pipeline\n")
         log_file.write(f"Started at: {datetime.now().isoformat()}\n")

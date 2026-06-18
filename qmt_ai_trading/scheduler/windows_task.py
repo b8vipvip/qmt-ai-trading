@@ -43,6 +43,11 @@ def build_daily_pipeline_command(
     warmup_end: str | None = None,
     warmup_frequency: str = "1d",
     cache_root: str | Path = Path("market_data"),
+    use_cached_research: bool = False,
+    research_start: str | None = None,
+    research_end: str | None = None,
+    research_frequency: str = "1d",
+    min_bars: int = 20,
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -70,6 +75,16 @@ def build_daily_pipeline_command(
             args.extend(["--warmup-end", str(warmup_end)])
         args.extend(["--warmup-frequency", str(warmup_frequency)])
         args.extend(["--cache-root", str(cache_root)])
+    if use_cached_research:
+        args.append("--use-cached-research")
+        if "--cache-root" not in args:
+            args.extend(["--cache-root", str(cache_root)])
+        if research_start:
+            args.extend(["--research-start", str(research_start)])
+        if research_end:
+            args.extend(["--research-end", str(research_end)])
+        args.extend(["--research-frequency", str(research_frequency)])
+        args.extend(["--min-bars", str(min_bars)])
     if write_reports:
         args.append("--write-reports")
     args.extend(["--report-dir", str(report_dir)])
@@ -110,6 +125,11 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         warmup_end=cfg.warmup_end,
         warmup_frequency=cfg.warmup_frequency,
         cache_root=cfg.cache_root,
+        use_cached_research=cfg.use_cached_research,
+        research_start=cfg.research_start,
+        research_end=cfg.research_end,
+        research_frequency=cfg.research_frequency,
+        min_bars=cfg.min_bars,
     )
     task_run = pipeline.metadata["display"]
     args = ["/Create", "/F", "/SC", "DAILY", "/TN", cfg.task_name, "/TR", task_run, "/ST", cfg.run_time]

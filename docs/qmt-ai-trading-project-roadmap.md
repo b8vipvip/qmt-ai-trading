@@ -70,3 +70,9 @@ qmt-ai-trading 是个人本地 A股 / ETF / QMT / AI Agent 辅助量化系统。
 - 不要为了测试绕过风控。
 - 不要引入重依赖。
 - 不要整体引入 Qlib / vn.py / TradingAgents 源码。
+
+## 8. 阶段十七进度：Research 使用缓存历史数据
+
+阶段十七新增 Cached Research 数据源：Research 可以通过 `LocalBarStore` / `BarQuery` 只读本地 `market_data/` 历史 K 线，生成 `ResearchScore` 和 `ETFCandidate`，并接入 dry-run Daily Pipeline。缓存缺失或 bars 不足时返回 warning / 空结果，不下载数据、不调用 QMT、不调用 `xttrader`、不下单。
+
+后续开发前仍必须先读本文档，再读 `docs/qmt-ai-trading-architecture.md`，再读对应上一阶段文档。

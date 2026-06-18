@@ -31,6 +31,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--warmup-end", default=None)
     parser.add_argument("--warmup-frequency", default="1d")
     parser.add_argument("--cache-root", default="market_data")
+    parser.add_argument("--use-cached-research", action="store_true")
+    parser.add_argument("--research-start", default=None)
+    parser.add_argument("--research-end", default=None)
+    parser.add_argument("--research-frequency", default="1d")
+    parser.add_argument("--min-bars", type=int, default=20)
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -51,6 +56,11 @@ def main(argv: list[str] | None = None) -> int:
         warmup_end=args.warmup_end,
         warmup_frequency=args.warmup_frequency,
         cache_root=Path(args.cache_root),
+        use_cached_research=args.use_cached_research,
+        research_start=args.research_start,
+        research_end=args.research_end,
+        research_frequency=args.research_frequency,
+        min_bars=args.min_bars,
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -61,6 +71,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Universe warmup: universe={args.universe_name} provider={args.warmup_provider} lookback_days={args.universe_lookback_days} lookback_years={args.universe_lookback_years} frequency={args.warmup_frequency} cache_root={args.cache_root}")
     elif args.warmup_cache:
         print(f"Warmup: provider={args.warmup_provider} start={args.warmup_start} end={args.warmup_end} frequency={args.warmup_frequency} cache_root={args.cache_root}")
+    if args.use_cached_research:
+        print(f"Cached research: start={args.research_start} end={args.research_end} frequency={args.research_frequency} min_bars={args.min_bars} cache_root={args.cache_root}")
     print(f"Result: {result.message}")
     if result.dry_run:
         print("DRY-RUN ONLY: no task registered. Re-run with --execute to register on Windows.")
