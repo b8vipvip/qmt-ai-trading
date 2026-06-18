@@ -54,3 +54,21 @@ def evaluate_monitoring_rules(config: MonitoringConfig) -> list[MonitoringEvent]
         severity = "CRITICAL" if float(config.max_drawdown) <= float(config.critical_max_drawdown) else "WARNING"
         events.append(MonitoringEvent("drawdown_breach", severity, f"Max drawdown {config.max_drawdown:.2%} breached threshold {config.max_allowed_drawdown:.2%}.", "max_drawdown", config.max_drawdown, config.max_allowed_drawdown, "BACKTEST"))
     return events
+
+
+def detect_data_quality_tracking_events(report, config: MonitoringConfig) -> list[MonitoringEvent]:
+    """Convert read-only DataQualityTrackingReport deterioration into monitoring events."""
+    events: list[MonitoringEvent] = []
+    threshold = float(getattr(config, "min_cache_coverage", 0.8))
+    for incident in getattr(report, "incidents", []) or []:
+        sev = str(getattr(incident, "severity", "WARNING")).upper()
+        if sev in {"ERROR", "CRITICAL"}:
+            events.append(MonitoringEvent("data_quality_tracking_incident", sev, getattr(incident, "message", "Data quality incident detected."), "incident", getattr(incident, "category", ""), sev, "QUALITY"))
+    for trend in getattr(report, "trends", []) or []:
+        level = str(getattr(trend, "trend_level", "UNKNOWN")).split(".")[-1].upper()
+        avg = float(getattr(trend, "average_coverage", 0.0) or 0.0)
+        if level == "FAIL":
+            events.append(MonitoringEvent("data_quality_tracking_trend_fail", "ERROR", getattr(trend, "message", "Data quality trend failed."), "trend_level", level, "PASS", "QUALITY"))
+        if avg < threshold:
+            events.append(MonitoringEvent("data_quality_tracking_coverage_low", "WARNING", f"Data quality tracking average coverage {avg:.2%} below {threshold:.2%}.", "average_coverage", avg, threshold, "QUALITY"))
+    return events

@@ -95,6 +95,13 @@ def build_daily_pipeline_command(
     build_dashboard: bool = False,
     dashboard_output: str | Path = Path("dashboard/daily_dashboard.html"),
     dashboard_title: str = "QMT AI Trading Dashboard",
+    enable_data_quality_tracking: bool = False,
+    data_quality_tracking_output_dir: str | Path = Path("data_quality_tracking"),
+    data_quality_tracking_report_dir: str | Path = Path("qmt_data_quality_reports"),
+    data_quality_tracking_cache_root: str | None = None,
+    data_quality_tracking_symbols: str = "",
+    data_quality_tracking_start: str | None = None,
+    data_quality_tracking_end: str | None = None,
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -185,6 +192,17 @@ def build_daily_pipeline_command(
         args.extend(["--live-gray-max-symbol-weight", str(live_gray_max_symbol_weight), "--live-gray-max-portfolio-weight", str(live_gray_max_portfolio_weight)])
         if live_gray_enabled:
             args.append("--live-gray-enabled")
+    if enable_data_quality_tracking:
+        args.append("--enable-data-quality-tracking")
+        args.extend(["--data-quality-tracking-output-dir", str(data_quality_tracking_output_dir), "--data-quality-tracking-report-dir", str(data_quality_tracking_report_dir)])
+        if data_quality_tracking_cache_root:
+            args.extend(["--data-quality-tracking-cache-root", str(data_quality_tracking_cache_root)])
+        if data_quality_tracking_symbols:
+            args.extend(["--data-quality-tracking-symbols", str(data_quality_tracking_symbols)])
+        if data_quality_tracking_start:
+            args.extend(["--data-quality-tracking-start", str(data_quality_tracking_start)])
+        if data_quality_tracking_end:
+            args.extend(["--data-quality-tracking-end", str(data_quality_tracking_end)])
     if build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
@@ -295,6 +313,13 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         build_dashboard=cfg.build_dashboard,
         dashboard_output=cfg.dashboard_output,
         dashboard_title=cfg.dashboard_title,
+        enable_data_quality_tracking=cfg.enable_data_quality_tracking,
+        data_quality_tracking_output_dir=cfg.data_quality_tracking_output_dir,
+        data_quality_tracking_report_dir=cfg.data_quality_tracking_report_dir,
+        data_quality_tracking_cache_root=cfg.data_quality_tracking_cache_root,
+        data_quality_tracking_symbols=cfg.data_quality_tracking_symbols,
+        data_quality_tracking_start=cfg.data_quality_tracking_start,
+        data_quality_tracking_end=cfg.data_quality_tracking_end,
     )
     task_run = pipeline.metadata["display"]
     args = ["/Create", "/F", "/SC", "DAILY", "/TN", cfg.task_name, "/TR", task_run, "/ST", cfg.run_time]

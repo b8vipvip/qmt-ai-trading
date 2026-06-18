@@ -233,3 +233,20 @@ data_cache/
 *.acceptance.md
 *.smoke.json
 *.smoke.md
+# Stage 33 data quality tracking runtime artifacts
+data_quality_tracking/
+data_quality_tracking_stage33/
+qmt_data_quality_reports/
+market_data_test_stage33/
+dashboard_stage33/
+agent_reports_stage33/
+monitoring_reports_stage33/
+live_gray_reports_stage33/
+reports/
+logs/
+approvals/
+paper_orders/
+market_data/
+data_cache/
+*.data_quality_tracking.json
+*.data_quality_tracking.md

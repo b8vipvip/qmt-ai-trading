@@ -80,6 +80,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dashboard-output", default="dashboard_stage31/daily_dashboard.html")
     parser.add_argument("--dashboard-report-dir", default=None)
     parser.add_argument("--dashboard-title", default="QMT AI Trading Daily Dashboard")
+    parser.add_argument("--enable-data-quality-tracking", action="store_true")
+    parser.add_argument("--data-quality-tracking-output-dir", default="data_quality_tracking")
+    parser.add_argument("--data-quality-tracking-report-dir", default="qmt_data_quality_reports")
+    parser.add_argument("--data-quality-tracking-cache-root", default=None)
+    parser.add_argument("--data-quality-tracking-symbols", default="")
+    parser.add_argument("--data-quality-tracking-start", default=None)
+    parser.add_argument("--data-quality-tracking-end", default=None)
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -133,6 +140,13 @@ def main(argv: list[str] | None = None) -> int:
         live_gray_enabled=args.live_gray_enabled,
         live_enabled=args.live_enabled,
         live_gray_operator_name=args.live_gray_operator_name,
+        enable_data_quality_tracking=args.enable_data_quality_tracking,
+        data_quality_tracking_output_dir=args.data_quality_tracking_output_dir,
+        data_quality_tracking_report_dir=args.data_quality_tracking_report_dir,
+        data_quality_tracking_cache_root=args.data_quality_tracking_cache_root,
+        data_quality_tracking_symbols=[x.strip() for x in args.data_quality_tracking_symbols.split(",") if x.strip()] or None,
+        data_quality_tracking_start=args.data_quality_tracking_start,
+        data_quality_tracking_end=args.data_quality_tracking_end,
     )
     print(result.report_text)
 
@@ -194,6 +208,8 @@ def main(argv: list[str] | None = None) -> int:
             paper_dir="paper_orders",
             cache_quality_dir=args.quality_report_dir,
             title=args.dashboard_title,
+            data_quality_dir=args.data_quality_tracking_output_dir,
+            include_data_quality_tracking=args.enable_data_quality_tracking,
         )
         _, dashboard_path = build_and_save_dashboard(dashboard_config)
         print(f"\nRead-only dashboard written: {dashboard_path}")
