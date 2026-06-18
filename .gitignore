@@ -142,3 +142,9 @@ market_data_test_stage22/
 # stage 23 live readiness audit local outputs
 market_data_test_stage23/
 audit_test_reports/
+
+# stage 24 QMT real data quality runtime outputs
+market_data_qmt_stage24/
+qmt_data_quality_reports/
+*.qmt_quality.json
+*.qmt_quality.md
