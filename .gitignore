@@ -138,3 +138,7 @@ paper_orders_test_stage22/
 market_data_test_stage22/
 *.paper_order.json
 *.paper_report.json
+
+# stage 23 live readiness audit local outputs
+market_data_test_stage23/
+audit_test_reports/
