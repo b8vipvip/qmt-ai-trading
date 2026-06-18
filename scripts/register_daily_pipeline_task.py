@@ -84,6 +84,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--build-dashboard", action="store_true")
     parser.add_argument("--dashboard-output", default="dashboard/daily_dashboard.html")
     parser.add_argument("--dashboard-title", default="QMT AI Trading Dashboard")
+    parser.add_argument("--enable-data-quality-tracking", action="store_true")
+    parser.add_argument("--data-quality-tracking-output-dir", default="data_quality_tracking")
+    parser.add_argument("--data-quality-tracking-report-dir", default="qmt_data_quality_reports")
+    parser.add_argument("--data-quality-tracking-cache-root", default=None)
+    parser.add_argument("--data-quality-tracking-symbols", default="")
+    parser.add_argument("--data-quality-tracking-start", default=None)
+    parser.add_argument("--data-quality-tracking-end", default=None)
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -156,6 +163,13 @@ def main(argv: list[str] | None = None) -> int:
         build_dashboard=args.build_dashboard,
         dashboard_output=Path(args.dashboard_output),
         dashboard_title=args.dashboard_title,
+        enable_data_quality_tracking=args.enable_data_quality_tracking,
+        data_quality_tracking_output_dir=Path(args.data_quality_tracking_output_dir),
+        data_quality_tracking_report_dir=Path(args.data_quality_tracking_report_dir),
+        data_quality_tracking_cache_root=args.data_quality_tracking_cache_root,
+        data_quality_tracking_symbols=args.data_quality_tracking_symbols,
+        data_quality_tracking_start=args.data_quality_tracking_start,
+        data_quality_tracking_end=args.data_quality_tracking_end,
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -178,6 +192,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Agent Research: enable_agent_research=True output_dir={args.agent_research_output_dir} mode={args.agent_research_mode} read_only=True")
     if args.enable_live_gray_readiness:
         print(f"Live Gray Readiness: enable_live_gray_readiness=True output_dir={args.live_gray_output_dir} allowed_symbols={args.live_gray_allowed_symbols} live_enabled_included=False preparation_only=True")
+    if args.enable_data_quality_tracking:
+        print(f"Data Quality Tracking: enable_data_quality_tracking=True output_dir={args.data_quality_tracking_output_dir} report_dir={args.data_quality_tracking_report_dir} read_only=True")
     if args.build_dashboard:
         print(f"Dashboard: build_dashboard=True output={args.dashboard_output} title={args.dashboard_title} read_only=True no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:

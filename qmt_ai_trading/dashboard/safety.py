@@ -25,6 +25,8 @@ def build_default_dashboard_config(
     approval_dir: str = "approvals",
     paper_dir: str = "paper_orders",
     cache_quality_dir: str = "qmt_data_quality_reports",
+    data_quality_dir: str = "data_quality_tracking",
+    include_data_quality_tracking: bool = False,
     title: str = "QMT AI Trading Dashboard",
 ) -> DashboardConfig:
     return DashboardConfig(
@@ -36,8 +38,11 @@ def build_default_dashboard_config(
             "approval": approval_dir,
             "paper": paper_dir,
             "cache_quality": cache_quality_dir,
+            "data_quality_tracking": data_quality_dir,
         },
         output_path=output_path,
+        include_data_quality_tracking=include_data_quality_tracking,
+        data_quality_dir=data_quality_dir,
         read_only=True,
         metadata={"title": title, "stage": "stage31-ui-dashboard"},
     )

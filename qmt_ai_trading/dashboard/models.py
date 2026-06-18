@@ -66,6 +66,8 @@ class DashboardConfig:
     include_approval: bool = True
     include_paper: bool = True
     include_cache_quality: bool = True
+    include_data_quality_tracking: bool = False
+    data_quality_dir: str = "data_quality_tracking"
     read_only: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
 

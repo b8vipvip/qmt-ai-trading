@@ -89,6 +89,13 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--dashboard-output", default="dashboard_stage31/scheduled_dashboard.html")
     parser.add_argument("--dashboard-report-dir", default=None)
     parser.add_argument("--dashboard-title", default="QMT AI Trading Scheduled Dashboard")
+    parser.add_argument("--enable-data-quality-tracking", action="store_true")
+    parser.add_argument("--data-quality-tracking-output-dir", default="data_quality_tracking")
+    parser.add_argument("--data-quality-tracking-report-dir", default="qmt_data_quality_reports")
+    parser.add_argument("--data-quality-tracking-cache-root", default=None)
+    parser.add_argument("--data-quality-tracking-symbols", default="")
+    parser.add_argument("--data-quality-tracking-start", default=None)
+    parser.add_argument("--data-quality-tracking-end", default=None)
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -148,6 +155,17 @@ def main(argv: list[str] | None = None) -> int:
             args.append("--live-enabled")
         if parsed.live_gray_operator_name:
             args.extend(["--live-gray-operator-name", parsed.live_gray_operator_name])
+    if parsed.enable_data_quality_tracking:
+        args.append("--enable-data-quality-tracking")
+        args.extend(["--data-quality-tracking-output-dir", parsed.data_quality_tracking_output_dir, "--data-quality-tracking-report-dir", parsed.data_quality_tracking_report_dir])
+        if parsed.data_quality_tracking_cache_root:
+            args.extend(["--data-quality-tracking-cache-root", parsed.data_quality_tracking_cache_root])
+        if parsed.data_quality_tracking_symbols:
+            args.extend(["--data-quality-tracking-symbols", parsed.data_quality_tracking_symbols])
+        if parsed.data_quality_tracking_start:
+            args.extend(["--data-quality-tracking-start", parsed.data_quality_tracking_start])
+        if parsed.data_quality_tracking_end:
+            args.extend(["--data-quality-tracking-end", parsed.data_quality_tracking_end])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])

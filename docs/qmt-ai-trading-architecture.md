@@ -636,3 +636,9 @@ ETF Universe -> Universe Warmup -> LocalBarStore -> Cached Research -> Cached ET
 `qmt_ai_trading.acceptance` 与 `docs/runbook-*.md` 属于文档和 dry-run 验收层，只检查本地文件、`.gitignore`、安全声明和 smoke 命令结果，不引入实盘能力。
 
 当前仍不调用 QMT 交易接口、不调用 `xttrader`、不查询真实资金/持仓/订单/成交、不真实发送通知、不下单。Final Acceptance 报告不是交易授权；Live Gray Readiness 的 `READY_FOR_MANUAL_REVIEW` 也仅代表人工复核候选，不代表 GO。
+
+## 阶段三十三进度：Data Quality Tracking
+
+阶段三十三新增 Data Quality Tracking，只读连接 QMT Data Quality reports、LocalBarStore、本地 Monitoring 和 Dashboard。该层位于 QMT historical quality report / LocalBarStore 与 Monitoring / Dashboard 之间：上游读取 `qmt_data_quality_reports/` 中的历史质量 JSON 与 `market_data_qmt/`、`market_data/` 等 LocalBarStore 缓存；下游生成 Data Quality Ledger、Trend、Incident 与 Tracking Report，并把趋势恶化映射为 MonitoringEvent，同时供 Dashboard 读取最新 Markdown/JSON 展示。
+
+Data Quality Tracking 只读历史行情质量报告和缓存。它不调用 QMT 交易接口、不调用 xttrader、不查询账户/资金/持仓/订单/成交、不下单、不真实发送通知。

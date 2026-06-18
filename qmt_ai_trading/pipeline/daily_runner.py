@@ -97,6 +97,13 @@ def run_daily_signal_pipeline(
     live_gray_enabled: bool = False,
     live_enabled: bool = False,
     live_gray_operator_name: str = "",
+    enable_data_quality_tracking: bool = False,
+    data_quality_tracking_output_dir: str = "data_quality_tracking",
+    data_quality_tracking_report_dir: str = "qmt_data_quality_reports",
+    data_quality_tracking_cache_root: str | None = None,
+    data_quality_tracking_symbols: Iterable[str] | None = None,
+    data_quality_tracking_start: str | None = None,
+    data_quality_tracking_end: str | None = None,
 ) -> PipelineResult:
     """Run the generic daily signal pipeline without connecting to real QMT trading."""
 
@@ -315,6 +322,31 @@ def run_daily_signal_pipeline(
             _record_step(steps, "live_gray_readiness", False, "Live Gray Readiness generation failed", errors=[repr(exc)])
         result.success = all(step.success for step in steps)
 
+    if enable_data_quality_tracking:
+        try:
+            from pathlib import Path
+            from qmt_ai_trading.data_quality.service import run_data_quality_tracking, save_data_quality_tracking_report
+            dq_symbols = list(data_quality_tracking_symbols or ctx.symbols or [])
+            dq_report = run_data_quality_tracking(
+                report_dir=data_quality_tracking_report_dir,
+                cache_root=data_quality_tracking_cache_root,
+                symbols=dq_symbols,
+                start_date=data_quality_tracking_start or research_start_date or "",
+                end_date=data_quality_tracking_end or research_end_date or str(ctx.trade_date),
+                frequency=research_frequency,
+                metadata={"pipeline_run_id": ctx.run_id},
+            )
+            out_dir = Path(data_quality_tracking_output_dir)
+            md_path = out_dir / f"{ctx.run_id}.data_quality_tracking.md"
+            json_path = out_dir / f"{ctx.run_id}.data_quality_tracking.json"
+            save_data_quality_tracking_report(dq_report, md_path); save_data_quality_tracking_report(dq_report, json_path)
+            result.metadata["data_quality_tracking"] = {"report_id": dq_report.report_id, "summary": dq_report.summary, "safety_note": dq_report.safety_note, "output_path": str(md_path), "json_output_path": str(json_path)}
+            _record_step(steps, "data_quality_tracking", True, f"generated read-only Data Quality Tracking report: {md_path}", {"output_path": str(md_path)})
+        except Exception as exc:
+            result.metadata["data_quality_tracking_error"] = repr(exc)
+            _record_step(steps, "data_quality_tracking", False, "Data Quality Tracking generation failed", errors=[repr(exc)])
+        result.success = all(step.success for step in steps)
+
     from qmt_ai_trading.pipeline.report import format_pipeline_report
 
     result.report_text = format_pipeline_report(result)
@@ -379,6 +411,13 @@ def run_etf_daily_pipeline(
     live_gray_enabled: bool = False,
     live_enabled: bool = False,
     live_gray_operator_name: str = "",
+    enable_data_quality_tracking: bool = False,
+    data_quality_tracking_output_dir: str = "data_quality_tracking",
+    data_quality_tracking_report_dir: str = "qmt_data_quality_reports",
+    data_quality_tracking_cache_root: str | None = None,
+    data_quality_tracking_symbols: Iterable[str] | None = None,
+    data_quality_tracking_start: str | None = None,
+    data_quality_tracking_end: str | None = None,
 ) -> PipelineResult:
     """Run the default ETF daily pipeline using the Data Hub ETF universe."""
 
@@ -446,4 +485,11 @@ def run_etf_daily_pipeline(
         live_gray_enabled=live_gray_enabled,
         live_enabled=live_enabled,
         live_gray_operator_name=live_gray_operator_name,
+        enable_data_quality_tracking=enable_data_quality_tracking,
+        data_quality_tracking_output_dir=data_quality_tracking_output_dir,
+        data_quality_tracking_report_dir=data_quality_tracking_report_dir,
+        data_quality_tracking_cache_root=data_quality_tracking_cache_root,
+        data_quality_tracking_symbols=data_quality_tracking_symbols,
+        data_quality_tracking_start=data_quality_tracking_start,
+        data_quality_tracking_end=data_quality_tracking_end,
     )

@@ -85,6 +85,10 @@ def collect_paper_section(config: DashboardConfig) -> DashboardSection:
 def collect_cache_quality_section(config: DashboardConfig) -> DashboardSection:
     return _section_from_latest("cache_quality", "Data Source / Cache Quality", config.report_dirs.get("cache_quality"), ("*.md", "*.json", "*.txt"))
 
+def collect_data_quality_tracking_section(config: DashboardConfig) -> DashboardSection:
+    directory = config.report_dirs.get("data_quality_tracking") or getattr(config, "data_quality_dir", "data_quality_tracking")
+    return _section_from_latest("data_quality_tracking", "Data Quality Tracking", directory, ("*.md", "*.json"))
+
 
 def collect_dashboard_sections(config: DashboardConfig) -> list[DashboardSection]:
     sections: list[DashboardSection] = []
@@ -92,6 +96,8 @@ def collect_dashboard_sections(config: DashboardConfig) -> list[DashboardSection
         sections.append(collect_daily_report_section(config))
     if config.include_cache_quality:
         sections.append(collect_cache_quality_section(config))
+    if getattr(config, "include_data_quality_tracking", False):
+        sections.append(collect_data_quality_tracking_section(config))
     if config.include_monitoring:
         sections.append(collect_monitoring_section(config))
     if config.include_agent_research:

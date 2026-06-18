@@ -373,3 +373,13 @@ Dashboard 只生成单文件 HTML；`scripts/build_dashboard.py` 可从本地报
 阶段三十二完成状态说明：已新增 runbook 文档、final acceptance 检查包、dry-run smoke 脚本和阶段三十二验收测试。该阶段仍不实盘、不调用 QMT 交易接口、不调用 `xttrader`、不查询真实资金/持仓/订单/成交、不真实发送通知、不下单。
 
 项目总体验收完成 / 后续增强待定。后续开发前必须先读 roadmap，任何新增强必须在新的人工确认阶段中明确授权，默认 dry-run，不能绕过 Risk Gate / Human Approval / Live Readiness Audit。
+
+## 阶段三十三：真实 QMT 数据质量长期追踪（已完成）
+
+阶段三十三确认路线为“真实 QMT 数据质量长期追踪”。目标是把多日 QMT historical cache quality report 与 LocalBarStore 只读缓存扫描汇总为长期 Data Quality Ledger、Trend Report、Incident Report 和 DataQualityTrackingReport，并接入 Monitoring / Dashboard / Daily Pipeline 的只读视图。
+
+阶段三十三完成状态：已新增 `qmt_ai_trading.data_quality` 包、CLI、Monitoring 规则、Dashboard section、Daily Pipeline 可选参数、scheduled/register 参数与阶段测试。当前阶段不调用 QMT 交易接口、不调用 xttrader、不查询账户/资金/持仓/订单/成交、不真实发送通知、不下单。后续开发前必须继续先读 roadmap。
+
+## 阶段三十四：真实通知 dry-run 接入准备（下一阶段）
+
+阶段三十四确认路线为“真实通知 dry-run 接入准备”。目标是为邮件、Telegram、企业微信等真实通知通道建立 dry-run 配置验证、消息模板、敏感信息保护和发送前审计；默认不真实发送通知、不读取真实 token、不调用外部网络。

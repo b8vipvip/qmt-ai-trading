@@ -81,6 +81,13 @@ class ScheduleConfig:
     build_dashboard: bool = False
     dashboard_output: Path = Path("dashboard/daily_dashboard.html")
     dashboard_title: str = "QMT AI Trading Dashboard"
+    enable_data_quality_tracking: bool = False
+    data_quality_tracking_output_dir: Path = Path("data_quality_tracking")
+    data_quality_tracking_report_dir: Path = Path("qmt_data_quality_reports")
+    data_quality_tracking_cache_root: str | None = None
+    data_quality_tracking_symbols: str = ""
+    data_quality_tracking_start: str | None = None
+    data_quality_tracking_end: str | None = None
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

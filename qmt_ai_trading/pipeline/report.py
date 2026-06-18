@@ -62,6 +62,13 @@ def format_pipeline_report(result: PipelineResult) -> str:
     else:
         lines.append("- No risk decisions because no trade intents were generated.")
 
+    dq = result.metadata.get("data_quality_tracking") if isinstance(result.metadata, dict) else None
+    if dq:
+        lines.extend(["", "## Data Quality Tracking", f"- report_id: {dq.get('report_id', '')}", f"- output_path: {dq.get('output_path', '')}", "- summary:"])
+        for k, v in (dq.get("summary") or {}).items():
+            lines.append(f"  - {k}: {v}")
+        lines.append(f"- safety_note: {dq.get('safety_note', '')}")
+
     agent = result.metadata.get("agent_research") if isinstance(result.metadata, dict) else None
     if agent:
         lines.extend(["", "## Agent Research", f"- memo_id: {agent.get('memo_id', '')}", f"- mode: {agent.get('mode', '')}", f"- success: {agent.get('success', False)}", f"- output_path: {agent.get('output_path', '')}", f"- executive_summary: {agent.get('executive_summary', '')}", f"- risk_summary: {agent.get('risk_summary', '')}", "- human_review_checklist:"])
