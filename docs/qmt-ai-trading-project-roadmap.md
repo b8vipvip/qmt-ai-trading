@@ -82,3 +82,11 @@ qmt-ai-trading 是个人本地 A股 / ETF / QMT / AI Agent 辅助量化系统。
 阶段十八新增 `cached_etf_rotation` 策略适配层，将 Cached Research 从本地缓存计算出的 momentum / volatility / volume factor score 接入 ETF Rotation 的候选构建、过滤、排序、权重和 dry-run `TradeIntent` 生成。缓存数据足够时 Daily Pipeline 可生成至少一个 dry-run TradeIntent；缓存不足时仍输出 no eligible candidates，不下载数据、不调用 QMT、不调用 `xttrader`、不下单。
 
 后续开发前仍必须先读本文档，再读 `docs/qmt-ai-trading-architecture.md`，再读对应上一阶段文档。
+
+## 阶段十九：Daily Pipeline 数据源切换策略
+
+阶段十九新增 Pipeline Data Source Strategy：`qmt_ai_trading.pipeline.data_source` 统一评估 `legacy`、`cached`、`auto`、`mock` 四种模式，基于本地 cache coverage、最低 loaded symbols、fallback 配置和 confidence 决定 Daily Pipeline 使用 `legacy_default`、`cached_research`、`mock_fallback` 或 `unavailable`。Daily Pipeline 报告新增 Data Source 区块，明确 selected_source、coverage、confidence、fallback、是否允许生成 TradeIntent 以及原因。
+
+阶段十九仍保持 dry-run / shadow，不调用 QMT 下单、不调用 `xttrader`、不查询资金/持仓/订单/成交、不真实发送通知。fallback/mock 明确标记低可信度，仅用于 dry-run validation，不能作为实盘交易依据。
+
+后续开发前仍必须先阅读本文档，并同步阅读架构文档与最近阶段文档。

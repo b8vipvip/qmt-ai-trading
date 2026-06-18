@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from qmt_ai_trading.pipeline.models import PipelineResult
+from qmt_ai_trading.pipeline.data_source import MOCK_FALLBACK_WARNING
 
 
 def format_pipeline_report(result: PipelineResult) -> str:
@@ -18,6 +19,12 @@ def format_pipeline_report(result: PipelineResult) -> str:
         "",
         "## Steps",
     ]
+    ds = result.metadata.get("data_source") or result.context.metadata.get("data_source") or {}
+    if ds:
+        lines.extend(["", "## Data Source", f"- selected_source: {ds.get('selected_source', '')}", f"- coverage_ratio: {float(ds.get('coverage_ratio', 0.0) or 0.0):.4f}", f"- confidence: {ds.get('confidence', '')}", f"- fallback_used: {ds.get('fallback_used', False)}", f"- allow_trade_intents: {ds.get('allow_trade_intents', False)}", f"- message: {ds.get('message', '')}"])
+        if ds.get("fallback_used") or ds.get("selected_source") == "mock_fallback":
+            lines.append(f"- WARNING: {MOCK_FALLBACK_WARNING}")
+        lines.append("")
     for step in result.steps:
         status = "OK" if step.success else "FAILED"
         lines.append(f"- {step.name}: {status} - {step.message}")

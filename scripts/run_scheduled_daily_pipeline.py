@@ -41,6 +41,12 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--cached-strategy-top-n", type=int, default=1)
     parser.add_argument("--cached-strategy-min-score", type=float, default=None)
     parser.add_argument("--cached-strategy-min-bars", type=int, default=20)
+    parser.add_argument("--data-source-mode", default="legacy", choices=["legacy", "cached", "auto", "mock"])
+    parser.add_argument("--allow-mock-fallback", action="store_true")
+    parser.add_argument("--min-coverage-ratio", type=float, default=0.8)
+    parser.add_argument("--min-loaded-symbols", type=int, default=1)
+    parser.add_argument("--require-cached-research", action="store_true")
+    parser.add_argument("--data-source-confidence-required", default=None, choices=["LOW", "MEDIUM", "HIGH"])
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -52,8 +58,18 @@ def main(argv: list[str] | None = None) -> int:
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / f"daily_pipeline_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
     args = list(parsed.pipeline_args or ["--write-reports", "--report-dir", "reports", "--notify-dry-run"])
-    if parsed.use_cached_research:
-        args.append("--use-cached-research")
+    if parsed.data_source_mode != "legacy":
+        args.extend(["--data-source-mode", parsed.data_source_mode])
+    if parsed.allow_mock_fallback:
+        args.append("--allow-mock-fallback")
+    args.extend(["--min-coverage-ratio", str(parsed.min_coverage_ratio), "--min-loaded-symbols", str(parsed.min_loaded_symbols)])
+    if parsed.require_cached_research:
+        args.append("--require-cached-research")
+    if parsed.data_source_confidence_required:
+        args.extend(["--data-source-confidence-required", parsed.data_source_confidence_required])
+    if parsed.use_cached_research or parsed.data_source_mode in {"cached", "auto"}:
+        if parsed.use_cached_research:
+            args.append("--use-cached-research")
         args.extend(["--cache-root", parsed.cache_root])
         if parsed.research_start:
             args.extend(["--research-start", parsed.research_start])

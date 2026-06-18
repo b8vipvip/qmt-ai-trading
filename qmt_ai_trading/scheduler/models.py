@@ -37,6 +37,12 @@ class ScheduleConfig:
     cached_strategy_top_n: int = 1
     cached_strategy_min_score: float | None = None
     cached_strategy_min_bars: int = 20
+    data_source_mode: str = "legacy"
+    allow_mock_fallback: bool = False
+    min_coverage_ratio: float = 0.8
+    min_loaded_symbols: int = 1
+    require_cached_research: bool = False
+    data_source_confidence_required: str | None = None
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

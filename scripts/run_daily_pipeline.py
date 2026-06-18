@@ -31,6 +31,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cached-strategy-top-n", type=int, default=1, help="Top N cached ETF rotation candidates to select.")
     parser.add_argument("--cached-strategy-min-score", type=float, default=None, help="Minimum cached ETF rotation score.")
     parser.add_argument("--cached-strategy-min-bars", type=int, default=20, help="Minimum bars required by cached ETF rotation.")
+    parser.add_argument("--data-source-mode", default="legacy", choices=["legacy", "cached", "auto", "mock"], help="Pipeline data source mode.")
+    parser.add_argument("--allow-mock-fallback", action="store_true", help="Allow explicit mock fallback when cache is insufficient in auto mode.")
+    parser.add_argument("--min-coverage-ratio", type=float, default=0.8)
+    parser.add_argument("--min-loaded-symbols", type=int, default=1)
+    parser.add_argument("--require-cached-research", action="store_true")
+    parser.add_argument("--data-source-confidence-required", default=None, choices=["LOW", "MEDIUM", "HIGH"])
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -47,6 +53,12 @@ def main(argv: list[str] | None = None) -> int:
         cached_strategy_top_n=args.cached_strategy_top_n,
         cached_strategy_min_score=args.cached_strategy_min_score,
         cached_strategy_min_bars=args.cached_strategy_min_bars,
+        data_source_mode=args.data_source_mode,
+        allow_mock_fallback=args.allow_mock_fallback,
+        min_coverage_ratio=args.min_coverage_ratio,
+        min_loaded_symbols=args.min_loaded_symbols,
+        require_cached_research=args.require_cached_research,
+        data_source_confidence_required=args.data_source_confidence_required,
     )
     print(result.report_text)
 
