@@ -37,8 +37,13 @@ class ScheduleConfig:
     cached_strategy_top_n: int = 1
     cached_strategy_min_score: float | None = None
     cached_strategy_min_bars: int = 20
-    data_source_mode: str = "legacy"
+    data_source_mode: str = "cached_real_first"
     allow_mock_fallback: bool = False
+    quality_report_dir: Path = Path("qmt_data_quality_reports")
+    require_quality_report: bool = False
+    allow_unknown_quality_for_dry_run: bool = True
+    allow_mock_cache: bool = False
+    min_quality_level: str = "UNKNOWN"
     min_coverage_ratio: float = 0.8
     min_loaded_symbols: int = 1
     require_cached_research: bool = False

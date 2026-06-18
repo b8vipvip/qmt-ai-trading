@@ -148,3 +148,6 @@ market_data_qmt_stage24/
 qmt_data_quality_reports/
 *.qmt_quality.json
 *.qmt_quality.md
+
+# stage 25 cached real default runtime outputs
+market_data_test_stage25/

@@ -287,3 +287,13 @@ ETF Universe
 阶段二十五确认名称为“Daily Pipeline 真实缓存数据默认化”。阶段二十五将在阶段二十四真实缓存质量验证通过后，把 Daily Pipeline 的默认数据源从 legacy/mock 逐步切换为 cached_real_data 优先；mock fallback 必须显式开启，并在报告中展示真实缓存覆盖率、数据质量等级和信号可信度。阶段二十五仍不实盘、不调用 `xttrader`、不真实下单。
 
 后续开发仍必须先阅读本 roadmap，再阅读 architecture 和最近阶段文档，确认阶段目标与路线一致后再开始开发。
+
+## 阶段二十五：Daily Pipeline 真实缓存数据默认化（已完成）
+
+阶段二十五将 Daily Pipeline 默认数据源切换为 `cached_real_first`：先读取本地 `LocalBarStore` 缓存，再读取阶段二十四生成的 `qmt_data_quality_reports/*.qmt_quality.json` 质量证据，最后由 Cache Quality Gate 决定是否允许生成 dry-run TradeIntent。
+
+完成状态：已新增 `cache_quality_gate`，报告展示 selected_source、cache_root、cache coverage、quality decision、quality report path、confidence、fallback_used、allow_trade_intents 与 remediation。缺少 quality report 时仅允许 dry-run 且 `quality=UNKNOWN`；mock fallback 必须显式开启，不允许静默 fallback。阶段二十五仍不调用 `xttrader`、不调用 QMT 下单、不查询资金/持仓/订单/成交、不实盘。
+
+## 阶段二十六：组合与资金管理层（下一阶段）
+
+阶段二十六目标是在当前单一 ETF top_n 信号基础上，增加组合级权重、最大仓位、现金保留、调仓阈值、持仓计划和组合风险约束。阶段二十六仍 dry-run / paper，不调用 `xttrader`、不真实下单。

@@ -31,8 +31,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cached-strategy-top-n", type=int, default=1, help="Top N cached ETF rotation candidates to select.")
     parser.add_argument("--cached-strategy-min-score", type=float, default=None, help="Minimum cached ETF rotation score.")
     parser.add_argument("--cached-strategy-min-bars", type=int, default=20, help="Minimum bars required by cached ETF rotation.")
-    parser.add_argument("--data-source-mode", default="legacy", choices=["legacy", "cached", "auto", "mock"], help="Pipeline data source mode.")
-    parser.add_argument("--allow-mock-fallback", action="store_true", help="Allow explicit mock fallback when cache is insufficient in auto mode.")
+    parser.add_argument("--data-source-mode", default="cached_real_first", choices=["legacy", "cached", "auto", "mock", "cached_real_first"], help="Pipeline data source mode.")
+    parser.add_argument("--allow-mock-fallback", action="store_true", help="Allow explicit mock fallback when cache is insufficient in auto/cached_real_first mode.")
+    parser.add_argument("--quality-report-dir", default="qmt_data_quality_reports")
+    parser.add_argument("--require-quality-report", action="store_true")
+    parser.add_argument("--allow-unknown-quality-for-dry-run", action="store_true", default=True)
+    parser.add_argument("--allow-mock-cache", action="store_true")
+    parser.add_argument("--min-quality-level", default="UNKNOWN", choices=["UNKNOWN", "LOW", "MEDIUM", "HIGH", "UNAVAILABLE"])
     parser.add_argument("--min-coverage-ratio", type=float, default=0.8)
     parser.add_argument("--min-loaded-symbols", type=int, default=1)
     parser.add_argument("--require-cached-research", action="store_true")
@@ -57,6 +62,11 @@ def main(argv: list[str] | None = None) -> int:
         cached_strategy_min_score=args.cached_strategy_min_score,
         cached_strategy_min_bars=args.cached_strategy_min_bars,
         data_source_mode=args.data_source_mode,
+        quality_report_dir=args.quality_report_dir,
+        require_quality_report=args.require_quality_report,
+        allow_unknown_quality_for_dry_run=args.allow_unknown_quality_for_dry_run,
+        allow_mock_cache=args.allow_mock_cache,
+        min_quality_level=args.min_quality_level,
         allow_mock_fallback=args.allow_mock_fallback,
         min_coverage_ratio=args.min_coverage_ratio,
         min_loaded_symbols=args.min_loaded_symbols,
