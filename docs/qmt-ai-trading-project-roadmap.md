@@ -54,7 +54,7 @@ ETF Universe
 -> Reporting
 -> Scheduler
 -> Human Approval
--> Future Paper Trading
+-> Paper Trading / QMT dry-run
 -> Future Live Trading
 ```
 
@@ -113,6 +113,7 @@ ETF Universe
 | 十九 | Daily Pipeline 数据源切换策略 | 为 Daily Pipeline 建立数据源选择和可信度判断 | pipeline data_source | 已完成 | selected_source、coverage、confidence、fallback warning 清晰 |
 | 二十 | 项目路线总文档重审与阶段计划对齐 | 重审路线并对齐阶段计划 | roadmap、stage20 docs | 已完成 | 阶段编号无冲突，后续提示词规则清晰 |
 | 二十一 | Human Approval 人工确认层 | 在 TradeIntent/Risk Gate 后加入人工审批文件和 CLI | approval、approval_cli | 已完成 | 默认 pending，未批准阻断 paper/live，不调用 QMT/xttrader |
+| 二十二 | Paper Trading / QMT dry-run 适配 | 在 Human Approval 后加入本地 paper order 生命周期模拟 | paper、paper_trading_cli | 已完成 | 只读取 APPROVED approval，确认 RiskDecision allowed=True，不调用 QMT/xttrader |
 
 阶段十九：Daily Pipeline 数据源切换策略。这是“Daily Pipeline 接入真实缓存行情”的安全前置和实际工程化表达。它通过 `data_source_mode=legacy/cached/auto/mock`、cache coverage、confidence、fallback warning，确保 pipeline 知道自己使用的是什么数据源，避免把 mock/fallback 当成真实行情。
 
@@ -142,12 +143,12 @@ ETF Universe
 - cached ETF rotation
 - pipeline data source decision
 - Human Approval 本地审批对象、审批文件、CLI 审批和审批状态检查
+- Paper Trading 本地订单生命周期模拟、paper order/report 文件、CLI 查看/取消
 
 ## 7. 当前仍缺失的关键能力
 
 当前仍缺失：
 
-- Paper Trading / QMT dry-run 适配
 - 实盘前安全审计
 - QMT xtquant 实机环境校准与真实样本数据验证
 - 真实数据长期缓存质量检查
@@ -178,9 +179,10 @@ ETF Universe
 
 ### 阶段二十二：Paper Trading / QMT dry-run 适配
 
-- 在不实盘的情况下模拟 QMT 订单生命周期。
-- 记录 paper order、filled/cancelled/rejected 状态。
-- 仍不调用真实下单。
+- 在 Human Approval 之后、Live Trading 之前，模拟本地 paper order 生命周期。
+- 只读取 `APPROVED` approval request，确认 `trade_intents` 非空且 `risk_decisions allowed=True`。
+- 记录 paper order、submitted/filled/cancelled/rejected 状态和 paper execution report。
+- 当前状态：已完成。仍不调用 QMT、不调用 `xttrader`、不真实下单。
 
 ### 阶段二十三：实盘前安全审计
 
