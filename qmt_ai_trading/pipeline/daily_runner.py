@@ -109,6 +109,11 @@ def run_daily_signal_pipeline(
     notification_dry_run_channels: Iterable[str] | str | None = None,
     notification_dry_run_recipients: Iterable[str] | str | None = None,
     notification_dry_run_preview_output_dir: str | None = None,
+    enable_gray_rehearsal: bool = False,
+    gray_rehearsal_output_dir: str = "gray_rehearsal",
+    gray_rehearsal_allowed_symbols: Iterable[str] | None = None,
+    gray_rehearsal_max_total_capital: float = 5000.0,
+    gray_rehearsal_max_single_order_value: float = 1000.0,
 ) -> PipelineResult:
     """Run the generic daily signal pipeline without connecting to real QMT trading."""
 
@@ -371,6 +376,38 @@ def run_daily_signal_pipeline(
             _record_step(steps, "notification_dry_run", False, "Notification Dry Run generation failed", errors=[repr(exc)])
         result.success = all(step.success for step in steps)
 
+    if enable_gray_rehearsal:
+        try:
+            from pathlib import Path
+            from qmt_ai_trading.gray_rehearsal.safety import build_default_gray_rehearsal_config
+            from qmt_ai_trading.gray_rehearsal.service import run_gray_rehearsal, save_gray_rehearsal_report
+            cfg = build_default_gray_rehearsal_config(
+                allowed_symbols=list(gray_rehearsal_allowed_symbols or ctx.symbols or []),
+                max_total_capital=gray_rehearsal_max_total_capital,
+                max_single_order_value=gray_rehearsal_max_single_order_value,
+                metadata={"pipeline_run_id": ctx.run_id, "live_enabled": False, "real_send_enabled": False, "external_network_enabled": False},
+            )
+            rehearsal_context = {
+                "pipeline_report": "in-memory pipeline result",
+                "monitoring_report": result.metadata.get("monitoring") or result.metadata.get("monitoring_report"),
+                "data_quality_report": result.metadata.get("data_quality_tracking"),
+                "agent_memo": result.metadata.get("agent_research"),
+                "live_gray_report": result.metadata.get("live_gray_readiness"),
+                "notification_dry_run_report": result.metadata.get("notification_dry_run"),
+                "dashboard_path": result.metadata.get("dashboard_path", ""),
+            }
+            rehearsal = run_gray_rehearsal(config=cfg, context=rehearsal_context, metadata={"pipeline_run_id": ctx.run_id})
+            out_dir = Path(gray_rehearsal_output_dir)
+            md_path = out_dir / f"{ctx.run_id}.gray_rehearsal.md"
+            json_path = out_dir / f"{ctx.run_id}.gray_rehearsal.json"
+            save_gray_rehearsal_report(rehearsal, md_path); save_gray_rehearsal_report(rehearsal, json_path)
+            result.metadata["gray_rehearsal"] = {"report_id": rehearsal.report_id, "decision": getattr(rehearsal.decision, "value", rehearsal.decision), "summary": rehearsal.summary, "safety_note": rehearsal.safety_note, "output_path": str(md_path), "json_output_path": str(json_path)}
+            _record_step(steps, "gray_rehearsal", True, f"generated gray rehearsal dry-run report: {md_path}", {"output_path": str(md_path)})
+        except Exception as exc:
+            result.metadata["gray_rehearsal_error"] = repr(exc)
+            _record_step(steps, "gray_rehearsal", False, "Gray Rehearsal generation failed", errors=[repr(exc)])
+        result.success = all(step.success for step in steps)
+
     from qmt_ai_trading.pipeline.report import format_pipeline_report
 
     result.report_text = format_pipeline_report(result)
@@ -447,6 +484,11 @@ def run_etf_daily_pipeline(
     notification_dry_run_channels: Iterable[str] | str | None = None,
     notification_dry_run_recipients: Iterable[str] | str | None = None,
     notification_dry_run_preview_output_dir: str | None = None,
+    enable_gray_rehearsal: bool = False,
+    gray_rehearsal_output_dir: str = "gray_rehearsal",
+    gray_rehearsal_allowed_symbols: Iterable[str] | None = None,
+    gray_rehearsal_max_total_capital: float = 5000.0,
+    gray_rehearsal_max_single_order_value: float = 1000.0,
 ) -> PipelineResult:
     """Run the default ETF daily pipeline using the Data Hub ETF universe."""
 
@@ -526,4 +568,9 @@ def run_etf_daily_pipeline(
         notification_dry_run_channels=notification_dry_run_channels,
         notification_dry_run_recipients=notification_dry_run_recipients,
         notification_dry_run_preview_output_dir=notification_dry_run_preview_output_dir,
+        enable_gray_rehearsal=enable_gray_rehearsal,
+        gray_rehearsal_output_dir=gray_rehearsal_output_dir,
+        gray_rehearsal_allowed_symbols=gray_rehearsal_allowed_symbols,
+        gray_rehearsal_max_total_capital=gray_rehearsal_max_total_capital,
+        gray_rehearsal_max_single_order_value=gray_rehearsal_max_single_order_value,
     )

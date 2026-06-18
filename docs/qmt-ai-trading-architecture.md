@@ -650,3 +650,9 @@ Notification Dry Run 位于 Reporting / Monitoring / Agent / Data Quality / Live
 当前阶段 FILE / CONSOLE 仅用于本地 preview；EMAIL / TELEGRAM / WECHAT 当前只生成 dry-run / suppressed plan，不读取真实 token，不调用 SMTP / Telegram API / 企业微信 API，不调用外部网络，不真实发送通知。
 
 该层只消费本地报告或 pipeline summary，不改变 TradeIntent、RiskDecision、Human Approval、Paper Trading 或 Live Gray Readiness。阶段三十四不调用 QMT 交易接口、不调用 xttrader、不查询真实资金/持仓/订单/成交、不下单。
+
+## 阶段三十五进度：Gray Rehearsal 小资金灰度人工流程演练
+
+Gray Rehearsal 位于 Pipeline / Monitoring / Data Quality Tracking / Agent Research / Live Gray Readiness / Notification Dry Run / Dashboard 之后，是对完整人工复核链路的 dry-run 演练层。它只读取本地已有报告或 mock context，输出 Markdown / JSON 演练报告、场景结果与人工 checklist。
+
+Gray Rehearsal 不开启实盘，不改变 TradeIntent，不改变 RiskDecision，不触发 Approval，不触发 Paper Trading，不触发 Live Trading。它明确不调用 QMT 交易接口、不调用 `xttrader`、不查询账户/资金/持仓/订单/成交、不真实发送通知、不下单。Live Gray Readiness 在该链路中只能输出 NO_GO / BLOCKED / READY_FOR_MANUAL_REVIEW，不提供自动 GO。

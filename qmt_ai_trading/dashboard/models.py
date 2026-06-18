@@ -70,6 +70,8 @@ class DashboardConfig:
     data_quality_dir: str = "data_quality_tracking"
     include_notification_dry_run: bool = False
     notification_dry_run_dir: str = "notification_dryrun"
+    include_gray_rehearsal: bool = False
+    gray_rehearsal_dir: str = "gray_rehearsal"
     read_only: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
 

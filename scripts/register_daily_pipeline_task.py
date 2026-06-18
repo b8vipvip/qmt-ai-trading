@@ -94,6 +94,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--enable-notification-dry-run", action="store_true")
     parser.add_argument("--notification-dry-run-output-dir", default="notification_dryrun")
     parser.add_argument("--notification-dry-run-channels", default="")
+    parser.add_argument("--enable-gray-rehearsal", action="store_true")
+    parser.add_argument("--gray-rehearsal-output-dir", default="gray_rehearsal")
+    parser.add_argument("--gray-rehearsal-allowed-symbols", default="")
+    parser.add_argument("--gray-rehearsal-max-total-capital", type=float, default=5000.0)
+    parser.add_argument("--gray-rehearsal-max-single-order-value", type=float, default=1000.0)
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -176,6 +181,11 @@ def main(argv: list[str] | None = None) -> int:
         enable_notification_dry_run=args.enable_notification_dry_run,
         notification_dry_run_output_dir=Path(args.notification_dry_run_output_dir),
         notification_dry_run_channels=args.notification_dry_run_channels,
+        enable_gray_rehearsal=args.enable_gray_rehearsal,
+        gray_rehearsal_output_dir=Path(args.gray_rehearsal_output_dir),
+        gray_rehearsal_allowed_symbols=args.gray_rehearsal_allowed_symbols,
+        gray_rehearsal_max_total_capital=args.gray_rehearsal_max_total_capital,
+        gray_rehearsal_max_single_order_value=args.gray_rehearsal_max_single_order_value,
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -200,6 +210,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Live Gray Readiness: enable_live_gray_readiness=True output_dir={args.live_gray_output_dir} allowed_symbols={args.live_gray_allowed_symbols} live_enabled_included=False preparation_only=True")
     if args.enable_data_quality_tracking:
         print(f"Data Quality Tracking: enable_data_quality_tracking=True output_dir={args.data_quality_tracking_output_dir} report_dir={args.data_quality_tracking_report_dir} read_only=True")
+    if args.enable_gray_rehearsal:
+        print(f"Gray Rehearsal: enable_gray_rehearsal=True output_dir={args.gray_rehearsal_output_dir} allowed_symbols={args.gray_rehearsal_allowed_symbols} dry_run_only=True")
     if args.build_dashboard:
         print(f"Dashboard: build_dashboard=True output={args.dashboard_output} title={args.dashboard_title} read_only=True no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:

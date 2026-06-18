@@ -101,6 +101,11 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--notification-dry-run-channels", default=None)
     parser.add_argument("--notification-dry-run-recipients", default=None)
     parser.add_argument("--notification-dry-run-preview-output-dir", default=None)
+    parser.add_argument("--enable-gray-rehearsal", action="store_true")
+    parser.add_argument("--gray-rehearsal-output-dir", default="gray_rehearsal")
+    parser.add_argument("--gray-rehearsal-allowed-symbols", default="")
+    parser.add_argument("--gray-rehearsal-max-total-capital", type=float, default=5000.0)
+    parser.add_argument("--gray-rehearsal-max-single-order-value", type=float, default=1000.0)
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -180,6 +185,12 @@ def main(argv: list[str] | None = None) -> int:
             args.extend(["--notification-dry-run-recipients", parsed.notification_dry_run_recipients])
         if parsed.notification_dry_run_preview_output_dir:
             args.extend(["--notification-dry-run-preview-output-dir", parsed.notification_dry_run_preview_output_dir])
+    if parsed.enable_gray_rehearsal:
+        args.append("--enable-gray-rehearsal")
+        args.extend(["--gray-rehearsal-output-dir", parsed.gray_rehearsal_output_dir])
+        if parsed.gray_rehearsal_allowed_symbols:
+            args.extend(["--gray-rehearsal-allowed-symbols", parsed.gray_rehearsal_allowed_symbols])
+        args.extend(["--gray-rehearsal-max-total-capital", str(parsed.gray_rehearsal_max_total_capital), "--gray-rehearsal-max-single-order-value", str(parsed.gray_rehearsal_max_single_order_value)])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])

@@ -92,6 +92,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--notification-dry-run-channels", default=None)
     parser.add_argument("--notification-dry-run-recipients", default=None)
     parser.add_argument("--notification-dry-run-preview-output-dir", default=None)
+    parser.add_argument("--enable-gray-rehearsal", action="store_true")
+    parser.add_argument("--gray-rehearsal-output-dir", default="gray_rehearsal")
+    parser.add_argument("--gray-rehearsal-allowed-symbols", default="")
+    parser.add_argument("--gray-rehearsal-max-total-capital", type=float, default=5000.0)
+    parser.add_argument("--gray-rehearsal-max-single-order-value", type=float, default=1000.0)
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -157,6 +162,11 @@ def main(argv: list[str] | None = None) -> int:
         notification_dry_run_channels=args.notification_dry_run_channels,
         notification_dry_run_recipients=args.notification_dry_run_recipients,
         notification_dry_run_preview_output_dir=args.notification_dry_run_preview_output_dir,
+        enable_gray_rehearsal=args.enable_gray_rehearsal,
+        gray_rehearsal_output_dir=args.gray_rehearsal_output_dir,
+        gray_rehearsal_allowed_symbols=[x.strip() for x in args.gray_rehearsal_allowed_symbols.split(",") if x.strip()] or None,
+        gray_rehearsal_max_total_capital=args.gray_rehearsal_max_total_capital,
+        gray_rehearsal_max_single_order_value=args.gray_rehearsal_max_single_order_value,
     )
     print(result.report_text)
 
@@ -222,6 +232,8 @@ def main(argv: list[str] | None = None) -> int:
             include_data_quality_tracking=args.enable_data_quality_tracking,
             notification_dry_run_dir=args.notification_dry_run_output_dir,
             include_notification_dry_run=args.enable_notification_dry_run,
+            gray_rehearsal_dir=args.gray_rehearsal_output_dir,
+            include_gray_rehearsal=args.enable_gray_rehearsal,
         )
         _, dashboard_path = build_and_save_dashboard(dashboard_config)
         print(f"\nRead-only dashboard written: {dashboard_path}")
