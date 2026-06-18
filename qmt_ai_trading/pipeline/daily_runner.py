@@ -123,6 +123,16 @@ def run_daily_signal_pipeline(
     gray_decision_max_portfolio_weight: float = 0.2,
     gray_decision_operator_name: str = "",
     gray_decision_reviewer_name: str = "",
+    enable_live_manual_prep: bool = False,
+    live_manual_prep_output_dir: str = "live_manual_prep",
+    live_manual_prep_allowed_symbols: Iterable[str] | None = None,
+    live_manual_prep_max_total_capital: float = 5000.0,
+    live_manual_prep_max_single_order_value: float = 1000.0,
+    live_manual_prep_max_symbol_weight: float = 0.1,
+    live_manual_prep_max_portfolio_weight: float = 0.2,
+    live_manual_prep_operator_name: str = "",
+    live_manual_prep_reviewer_name: str = "",
+    live_manual_prep_risk_owner_name: str = "",
 ) -> PipelineResult:
     """Run the generic daily signal pipeline without connecting to real QMT trading."""
 
@@ -456,6 +466,44 @@ def run_daily_signal_pipeline(
             _record_step(steps, "gray_decision_package", False, "Gray Decision Package generation failed", errors=[repr(exc)])
         result.success = all(step.success for step in steps)
 
+
+    if enable_live_manual_prep:
+        try:
+            from pathlib import Path
+            from qmt_ai_trading.live_manual_prep.safety import build_default_live_manual_prep_config
+            from qmt_ai_trading.live_manual_prep.service import run_live_manual_prep_package_from_files, save_live_manual_prep_package
+            cfg = build_default_live_manual_prep_config(
+                allowed_symbols=list(live_manual_prep_allowed_symbols or ctx.symbols or []),
+                max_total_capital=live_manual_prep_max_total_capital,
+                max_single_order_value=live_manual_prep_max_single_order_value,
+                max_symbol_weight=live_manual_prep_max_symbol_weight,
+                max_portfolio_weight=live_manual_prep_max_portfolio_weight,
+                operator_name=live_manual_prep_operator_name,
+                reviewer_name=live_manual_prep_reviewer_name,
+                risk_owner_name=live_manual_prep_risk_owner_name,
+                metadata={"pipeline_run_id": ctx.run_id},
+            )
+            package = run_live_manual_prep_package_from_files(
+                config=cfg,
+                gray_decision_package=(result.metadata.get("gray_decision_package",{}) or {}).get("output_path") if isinstance(result.metadata.get("gray_decision_package"),dict) else None,
+                live_gray_report=(result.metadata.get("live_gray_readiness",{}) or {}).get("output_path") if isinstance(result.metadata.get("live_gray_readiness"),dict) else None,
+                gray_rehearsal_report=(result.metadata.get("gray_rehearsal",{}) or {}).get("output_path") if isinstance(result.metadata.get("gray_rehearsal"),dict) else None,
+                pipeline_report=None,
+                monitoring_report=(result.metadata.get("monitoring",{}) or {}).get("output_path") if isinstance(result.metadata.get("monitoring"),dict) else None,
+                data_quality_report=(result.metadata.get("data_quality_tracking",{}) or {}).get("output_path") if isinstance(result.metadata.get("data_quality_tracking"),dict) else None,
+                agent_memo=(result.metadata.get("agent_research",{}) or {}).get("output_path") if isinstance(result.metadata.get("agent_research"),dict) else None,
+                notification_dry_run_report=(result.metadata.get("notification_dry_run",{}) or {}).get("output_path") if isinstance(result.metadata.get("notification_dry_run"),dict) else None,
+                dashboard_path=result.metadata.get("dashboard_path"),
+            )
+            out_dir = Path(live_manual_prep_output_dir); md_path = out_dir / f"{ctx.run_id}.live_manual_prep.md"; json_path = out_dir / f"{ctx.run_id}.live_manual_prep.json"
+            save_live_manual_prep_package(package, md_path); save_live_manual_prep_package(package, json_path)
+            result.metadata["live_manual_prep"] = {"package_id": package.package_id, "decision": getattr(package.decision, "value", package.decision), "output_path": str(md_path), "json_output_path": str(json_path), "warnings": package.warnings, "blocked_reasons": package.blocked_reasons, "safety_note": package.safety_note}
+            _record_step(steps, "live_manual_prep", True, f"generated preparation-only live manual approval prep package: {md_path}", {"output_path": str(md_path)})
+        except Exception as exc:
+            result.metadata["live_manual_prep_error"] = repr(exc)
+            _record_step(steps, "live_manual_prep", False, "Live Manual Approval Prep generation failed", errors=[repr(exc)])
+        result.success = all(step.success for step in steps)
+
     from qmt_ai_trading.pipeline.report import format_pipeline_report
 
     result.report_text = format_pipeline_report(result)
@@ -546,6 +594,16 @@ def run_etf_daily_pipeline(
     gray_decision_max_portfolio_weight: float = 0.2,
     gray_decision_operator_name: str = "",
     gray_decision_reviewer_name: str = "",
+    enable_live_manual_prep: bool = False,
+    live_manual_prep_output_dir: str = "live_manual_prep",
+    live_manual_prep_allowed_symbols: Iterable[str] | None = None,
+    live_manual_prep_max_total_capital: float = 5000.0,
+    live_manual_prep_max_single_order_value: float = 1000.0,
+    live_manual_prep_max_symbol_weight: float = 0.1,
+    live_manual_prep_max_portfolio_weight: float = 0.2,
+    live_manual_prep_operator_name: str = "",
+    live_manual_prep_reviewer_name: str = "",
+    live_manual_prep_risk_owner_name: str = "",
 ) -> PipelineResult:
     """Run the default ETF daily pipeline using the Data Hub ETF universe."""
 
@@ -639,4 +697,14 @@ def run_etf_daily_pipeline(
         gray_decision_max_portfolio_weight=gray_decision_max_portfolio_weight,
         gray_decision_operator_name=gray_decision_operator_name,
         gray_decision_reviewer_name=gray_decision_reviewer_name,
+        enable_live_manual_prep=enable_live_manual_prep,
+        live_manual_prep_output_dir=live_manual_prep_output_dir,
+        live_manual_prep_allowed_symbols=live_manual_prep_allowed_symbols,
+        live_manual_prep_max_total_capital=live_manual_prep_max_total_capital,
+        live_manual_prep_max_single_order_value=live_manual_prep_max_single_order_value,
+        live_manual_prep_max_symbol_weight=live_manual_prep_max_symbol_weight,
+        live_manual_prep_max_portfolio_weight=live_manual_prep_max_portfolio_weight,
+        live_manual_prep_operator_name=live_manual_prep_operator_name,
+        live_manual_prep_reviewer_name=live_manual_prep_reviewer_name,
+        live_manual_prep_risk_owner_name=live_manual_prep_risk_owner_name,
     )

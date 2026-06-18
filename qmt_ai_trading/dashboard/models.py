@@ -74,6 +74,8 @@ class DashboardConfig:
     gray_rehearsal_dir: str = "gray_rehearsal"
     include_gray_decision: bool = False
     gray_decision_dir: str = "gray_decision"
+    include_live_manual_prep: bool = False
+    live_manual_prep_dir: str = "live_manual_prep"
     read_only: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
 

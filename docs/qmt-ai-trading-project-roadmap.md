@@ -417,3 +417,13 @@ Dashboard 只生成单文件 HTML；`scripts/build_dashboard.py` 可从本地报
 阶段三十七确认路线为“极小资金灰度实盘人工审批准备（仍默认关闭）”。目标是在不启用真实实盘的前提下，准备未来极小资金灰度实盘所需的人工审批材料、开关说明、只读配置检查和最终人工确认流程。阶段三十七仍默认关闭实盘，不真实下单，不调用 `xttrader`，不真实发送通知。
 
 后续开发前必须继续先读 roadmap，再读 architecture，再读最近阶段文档；不得越级接实盘，不得为了测试绕过风控。
+
+## 阶段三十七：极小资金灰度实盘人工审批准备（仍默认关闭）
+
+阶段三十七新增 Live Manual Approval Prep，在 Gray Decision Package 之后生成 preparation-only / dry-run 人工审批准备包。目标是汇总 Gray Decision Package、Live Gray Readiness、Gray Rehearsal、Live Readiness Audit、Risk Gate、Human Approval、Paper Trading、Monitoring、Data Quality Tracking、Agent Research、Notification Dry Run、Dashboard 与 Final Acceptance 证据，并生成极小资金范围、允许标的白名单、单笔金额上限、最大仓位上限、禁止事项、残余风险和人工签字页。
+
+完成状态：已新增 `qmt_ai_trading/live_manual_prep/`、`scripts/run_live_manual_prep.py`、Daily Pipeline 可选输出、Scheduler 参数透传、Dashboard 只读 section 和阶段文档。所有 live 开关仍默认关闭；READY_FOR_SIGNOFF 只代表可以让人工审阅签字，不代表允许实盘；本阶段不调用 QMT 交易接口、不调用 xttrader、不查询账户/资金/持仓/订单/成交、不真实发送通知、不下单。
+
+## 阶段三十八：极小资金灰度只读环境核验（仍不下单）
+
+阶段三十八计划在仍不启用真实实盘的前提下，对未来极小资金灰度所需的本地 QMT 环境、配置文件、白名单、开关状态、数据质量、审批材料和只读安全边界做最终核验。阶段三十八仍不真实下单，不调用 xttrader，不真实发送通知。
