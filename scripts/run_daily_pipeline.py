@@ -76,6 +76,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-gray-enabled", action="store_true")
     parser.add_argument("--live-enabled", action="store_true")
     parser.add_argument("--live-gray-operator-name", default="")
+    parser.add_argument("--build-dashboard", action="store_true", help="Build read-only Stage 31 dashboard after pipeline completes.")
+    parser.add_argument("--dashboard-output", default="dashboard_stage31/daily_dashboard.html")
+    parser.add_argument("--dashboard-report-dir", default=None)
+    parser.add_argument("--dashboard-title", default="QMT AI Trading Daily Dashboard")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -175,6 +179,24 @@ def main(argv: list[str] | None = None) -> int:
         print("\nReports written:")
         for artifact in artifacts:
             print(f"- {artifact.format}: {artifact.path}")
+
+    if args.build_dashboard:
+        from qmt_ai_trading.dashboard.safety import build_default_dashboard_config
+        from qmt_ai_trading.dashboard.service import build_and_save_dashboard
+
+        dashboard_config = build_default_dashboard_config(
+            output_path=args.dashboard_output,
+            report_dir=args.dashboard_report_dir or args.report_dir or "reports",
+            monitoring_dir=args.monitoring_output_dir,
+            agent_dir=args.agent_research_output_dir,
+            live_gray_dir=args.live_gray_output_dir,
+            approval_dir=args.approval_root,
+            paper_dir="paper_orders",
+            cache_quality_dir=args.quality_report_dir,
+            title=args.dashboard_title,
+        )
+        _, dashboard_path = build_and_save_dashboard(dashboard_config)
+        print(f"\nRead-only dashboard written: {dashboard_path}")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report

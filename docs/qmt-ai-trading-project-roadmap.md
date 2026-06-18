@@ -353,3 +353,15 @@ ETF Universe
 ## 阶段三十一：UI / Dashboard（下一阶段）
 
 阶段三十一计划建立本地只读 dashboard，用于展示报告、审批状态、风险状态、缓存覆盖率、监控事件、Agent Research Memo 和 Live Gray Readiness。UI 不得作为交易绕过入口，不得直接触发实盘，不得绕过 Risk Gate / Human Approval。
+
+## 阶段三十一：UI / Dashboard（已完成）
+
+阶段三十一确认阶段名称为“UI / Dashboard”。本阶段新增本地只读静态 Dashboard，位于 Reporting / Monitoring / Agent Research / Live Gray Readiness 之后，用于汇总 Daily Pipeline、Cache Quality、Candidates、TradeIntents、RiskDecision、Portfolio Plan、Monitoring、Agent Research、Live Gray Readiness、Human Approval 和 Paper Trading 本地报告或状态文件。
+
+Dashboard 只生成单文件 HTML；`scripts/build_dashboard.py` 可从本地报告目录生成页面，`scripts/run_dashboard_preview.py` 可打印本地路径或启动 Python 标准库只读静态服务，`run_daily_pipeline.py --build-dashboard` 可在 pipeline 完成后生成页面。Dashboard 不提供下单按钮，不触发 Approval / Paper / Live，不调用 QMT 交易接口，不调用 `xttrader`，不真实发送通知，不下单，不读取 `.env`、token、key、password、secret。
+
+后续开发前仍必须先读 roadmap、architecture 和最近阶段文档，不得越级接实盘，不得为了测试绕过 Risk Gate 或 Human Approval。
+
+## 阶段三十二：运行手册 / 部署手册 / 总体验收（下一阶段）
+
+阶段三十二确认阶段名称为“运行手册 / 部署手册 / 总体验收”。目标是把当前系统的本地运行、数据缓存、Daily Pipeline、Scheduler、Approval、Paper、Monitoring、Agent、Live Gray、Dashboard 全链路整理成操作手册和总体验收清单。阶段三十二仍不实盘、不调用 `xttrader`、不真实下单。

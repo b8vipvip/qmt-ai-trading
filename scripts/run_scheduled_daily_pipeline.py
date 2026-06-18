@@ -85,6 +85,10 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--live-gray-enabled", action="store_true")
     parser.add_argument("--live-enabled", action="store_true")
     parser.add_argument("--live-gray-operator-name", default="")
+    parser.add_argument("--build-dashboard", action="store_true")
+    parser.add_argument("--dashboard-output", default="dashboard_stage31/scheduled_dashboard.html")
+    parser.add_argument("--dashboard-report-dir", default=None)
+    parser.add_argument("--dashboard-title", default="QMT AI Trading Scheduled Dashboard")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -144,6 +148,11 @@ def main(argv: list[str] | None = None) -> int:
             args.append("--live-enabled")
         if parsed.live_gray_operator_name:
             args.extend(["--live-gray-operator-name", parsed.live_gray_operator_name])
+    if parsed.build_dashboard:
+        args.append("--build-dashboard")
+        args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])
+        if parsed.dashboard_report_dir:
+            args.extend(["--dashboard-report-dir", parsed.dashboard_report_dir])
     args.extend(["--portfolio-method", parsed.portfolio_method, "--portfolio-top-n", str(parsed.portfolio_top_n)])
     args.extend(["--portfolio-cash-reserve-ratio", str(parsed.portfolio_cash_reserve_ratio), "--portfolio-max-symbol-weight", str(parsed.portfolio_max_symbol_weight)])
     args.extend(["--portfolio-max-weight", str(parsed.portfolio_max_weight), "--portfolio-rebalance-threshold", str(parsed.portfolio_rebalance_threshold)])
