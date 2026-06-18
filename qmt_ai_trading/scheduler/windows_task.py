@@ -124,6 +124,13 @@ def build_daily_pipeline_command(
     live_manual_prep_max_single_order_value: float = 1000.0,
     live_manual_prep_max_symbol_weight: float = 0.1,
     live_manual_prep_max_portfolio_weight: float = 0.2,
+    enable_live_env_check: bool = False,
+    live_env_check_output_dir: str | Path = Path("live_env_check"),
+    live_env_check_allowed_symbols: str = "",
+    live_env_check_max_total_capital: float = 5000.0,
+    live_env_check_max_single_order_value: float = 1000.0,
+    live_env_check_max_symbol_weight: float = 0.1,
+    live_env_check_max_portfolio_weight: float = 0.2,
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -250,6 +257,13 @@ def build_daily_pipeline_command(
             args.extend(["--live-manual-prep-allowed-symbols", str(live_manual_prep_allowed_symbols)])
         args.extend(["--live-manual-prep-max-total-capital", str(live_manual_prep_max_total_capital), "--live-manual-prep-max-single-order-value", str(live_manual_prep_max_single_order_value)])
         args.extend(["--live-manual-prep-max-symbol-weight", str(live_manual_prep_max_symbol_weight), "--live-manual-prep-max-portfolio-weight", str(live_manual_prep_max_portfolio_weight)])
+    if enable_live_env_check:
+        args.append("--enable-live-env-check")
+        args.extend(["--live-env-check-output-dir", str(live_env_check_output_dir)])
+        if live_env_check_allowed_symbols:
+            args.extend(["--live-env-check-allowed-symbols", str(live_env_check_allowed_symbols)])
+        args.extend(["--live-env-check-max-total-capital", str(live_env_check_max_total_capital), "--live-env-check-max-single-order-value", str(live_env_check_max_single_order_value)])
+        args.extend(["--live-env-check-max-symbol-weight", str(live_env_check_max_symbol_weight), "--live-env-check-max-portfolio-weight", str(live_env_check_max_portfolio_weight)])
     if build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
@@ -389,6 +403,13 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         live_manual_prep_max_single_order_value=cfg.live_manual_prep_max_single_order_value,
         live_manual_prep_max_symbol_weight=cfg.live_manual_prep_max_symbol_weight,
         live_manual_prep_max_portfolio_weight=cfg.live_manual_prep_max_portfolio_weight,
+        enable_live_env_check=cfg.enable_live_env_check,
+        live_env_check_output_dir=cfg.live_env_check_output_dir,
+        live_env_check_allowed_symbols=cfg.live_env_check_allowed_symbols,
+        live_env_check_max_total_capital=cfg.live_env_check_max_total_capital,
+        live_env_check_max_single_order_value=cfg.live_env_check_max_single_order_value,
+        live_env_check_max_symbol_weight=cfg.live_env_check_max_symbol_weight,
+        live_env_check_max_portfolio_weight=cfg.live_env_check_max_portfolio_weight,
     )
     task_run = pipeline.metadata["display"]
     args = ["/Create", "/F", "/SC", "DAILY", "/TN", cfg.task_name, "/TR", task_run, "/ST", cfg.run_time]

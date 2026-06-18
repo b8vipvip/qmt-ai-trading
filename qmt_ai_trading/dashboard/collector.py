@@ -112,6 +112,13 @@ def collect_live_manual_prep_section(config: DashboardConfig) -> DashboardSectio
     section.summary = "Read-only Live Manual Approval Prep evidence loaded; no order entry is provided." if section.status != DashboardStatus.EMPTY else section.summary
     return section
 
+def collect_live_env_check_section(config: DashboardConfig) -> DashboardSection:
+    directory = config.report_dirs.get("live_env_check") or getattr(config, "live_env_check_dir", "live_env_check")
+    section = _section_from_latest("live_env_check", "Live Environment Readiness", directory, ("*.md", "*.json"))
+    section.html = section.html.replace("submit orders", "order submission").replace("xttrader", "xt-trader boundary")
+    section.summary = "Read-only Live Environment Check evidence loaded; no order entry is provided." if section.status != DashboardStatus.EMPTY else section.summary
+    return section
+
 def collect_dashboard_sections(config: DashboardConfig) -> list[DashboardSection]:
     sections: list[DashboardSection] = []
     if config.include_daily_report:
@@ -128,6 +135,8 @@ def collect_dashboard_sections(config: DashboardConfig) -> list[DashboardSection
         sections.append(collect_gray_decision_section(config))
     if getattr(config, "include_live_manual_prep", False):
         sections.append(collect_live_manual_prep_section(config))
+    if getattr(config, "include_live_env_check", False):
+        sections.append(collect_live_env_check_section(config))
     if config.include_monitoring:
         sections.append(collect_monitoring_section(config))
     if config.include_agent_research:

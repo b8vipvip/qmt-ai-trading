@@ -113,6 +113,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-manual-prep-max-single-order-value", type=float, default=1000.0)
     parser.add_argument("--live-manual-prep-max-symbol-weight", type=float, default=0.1)
     parser.add_argument("--live-manual-prep-max-portfolio-weight", type=float, default=0.2)
+    parser.add_argument("--enable-live-env-check", action="store_true")
+    parser.add_argument("--live-env-check-output-dir", default="live_env_check")
+    parser.add_argument("--live-env-check-allowed-symbols", default="")
+    parser.add_argument("--live-env-check-max-total-capital", type=float, default=5000.0)
+    parser.add_argument("--live-env-check-max-single-order-value", type=float, default=1000.0)
+    parser.add_argument("--live-env-check-max-symbol-weight", type=float, default=0.1)
+    parser.add_argument("--live-env-check-max-portfolio-weight", type=float, default=0.2)
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -214,6 +221,13 @@ def main(argv: list[str] | None = None) -> int:
         live_manual_prep_max_single_order_value=args.live_manual_prep_max_single_order_value,
         live_manual_prep_max_symbol_weight=args.live_manual_prep_max_symbol_weight,
         live_manual_prep_max_portfolio_weight=args.live_manual_prep_max_portfolio_weight,
+        enable_live_env_check=args.enable_live_env_check,
+        live_env_check_output_dir=Path(args.live_env_check_output_dir),
+        live_env_check_allowed_symbols=args.live_env_check_allowed_symbols,
+        live_env_check_max_total_capital=args.live_env_check_max_total_capital,
+        live_env_check_max_single_order_value=args.live_env_check_max_single_order_value,
+        live_env_check_max_symbol_weight=args.live_env_check_max_symbol_weight,
+        live_env_check_max_portfolio_weight=args.live_env_check_max_portfolio_weight,
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -244,6 +258,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Gray Decision Package: enable_gray_decision_package=True output_dir={args.gray_decision_output_dir} allowed_symbols={args.gray_decision_allowed_symbols} manual_only=True")
     if args.enable_live_manual_prep:
         print(f"Live Manual Approval Prep: enable_live_manual_prep=True output_dir={args.live_manual_prep_output_dir} allowed_symbols={args.live_manual_prep_allowed_symbols} preparation_only=True")
+    if args.enable_live_env_check:
+        print(f"Live Environment Check: enable_live_env_check=True output_dir={args.live_env_check_output_dir} allowed_symbols={args.live_env_check_allowed_symbols} read_only=True")
     if args.build_dashboard:
         print(f"Dashboard: build_dashboard=True output={args.dashboard_output} title={args.dashboard_title} read_only=True no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:

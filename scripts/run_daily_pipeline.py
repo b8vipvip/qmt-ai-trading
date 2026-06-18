@@ -116,6 +116,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-manual-prep-operator-name", default="")
     parser.add_argument("--live-manual-prep-reviewer-name", default="")
     parser.add_argument("--live-manual-prep-risk-owner-name", default="")
+    parser.add_argument("--enable-live-env-check", action="store_true")
+    parser.add_argument("--live-env-check-output-dir", default="live_env_check")
+    parser.add_argument("--live-env-check-allowed-symbols", default="")
+    parser.add_argument("--live-env-check-max-total-capital", type=float, default=5000.0)
+    parser.add_argument("--live-env-check-max-single-order-value", type=float, default=1000.0)
+    parser.add_argument("--live-env-check-max-symbol-weight", type=float, default=0.1)
+    parser.add_argument("--live-env-check-max-portfolio-weight", type=float, default=0.2)
+    parser.add_argument("--live-env-check-operator-name", default="")
+    parser.add_argument("--live-env-check-reviewer-name", default="")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -205,6 +214,15 @@ def main(argv: list[str] | None = None) -> int:
         live_manual_prep_operator_name=args.live_manual_prep_operator_name,
         live_manual_prep_reviewer_name=args.live_manual_prep_reviewer_name,
         live_manual_prep_risk_owner_name=args.live_manual_prep_risk_owner_name,
+        enable_live_env_check=args.enable_live_env_check,
+        live_env_check_output_dir=args.live_env_check_output_dir,
+        live_env_check_allowed_symbols=[x.strip() for x in args.live_env_check_allowed_symbols.split(",") if x.strip()] or None,
+        live_env_check_max_total_capital=args.live_env_check_max_total_capital,
+        live_env_check_max_single_order_value=args.live_env_check_max_single_order_value,
+        live_env_check_max_symbol_weight=args.live_env_check_max_symbol_weight,
+        live_env_check_max_portfolio_weight=args.live_env_check_max_portfolio_weight,
+        live_env_check_operator_name=args.live_env_check_operator_name,
+        live_env_check_reviewer_name=args.live_env_check_reviewer_name,
     )
     print(result.report_text)
 
@@ -276,6 +294,8 @@ def main(argv: list[str] | None = None) -> int:
             include_gray_decision=args.enable_gray_decision_package,
             live_manual_prep_dir=args.live_manual_prep_output_dir,
             include_live_manual_prep=args.enable_live_manual_prep,
+            live_env_check_dir=args.live_env_check_output_dir,
+            include_live_env_check=args.enable_live_env_check,
         )
         _, dashboard_path = build_and_save_dashboard(dashboard_config)
         print(f"\nRead-only dashboard written: {dashboard_path}")

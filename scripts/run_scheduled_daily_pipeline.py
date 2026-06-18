@@ -125,6 +125,15 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--live-manual-prep-operator-name", default="")
     parser.add_argument("--live-manual-prep-reviewer-name", default="")
     parser.add_argument("--live-manual-prep-risk-owner-name", default="")
+    parser.add_argument("--enable-live-env-check", action="store_true")
+    parser.add_argument("--live-env-check-output-dir", default="live_env_check")
+    parser.add_argument("--live-env-check-allowed-symbols", default="")
+    parser.add_argument("--live-env-check-max-total-capital", type=float, default=5000.0)
+    parser.add_argument("--live-env-check-max-single-order-value", type=float, default=1000.0)
+    parser.add_argument("--live-env-check-max-symbol-weight", type=float, default=0.1)
+    parser.add_argument("--live-env-check-max-portfolio-weight", type=float, default=0.2)
+    parser.add_argument("--live-env-check-operator-name", default="")
+    parser.add_argument("--live-env-check-reviewer-name", default="")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known

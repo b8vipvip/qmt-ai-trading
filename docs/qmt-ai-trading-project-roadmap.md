@@ -427,3 +427,15 @@ Dashboard 只生成单文件 HTML；`scripts/build_dashboard.py` 可从本地报
 ## 阶段三十八：极小资金灰度只读环境核验（仍不下单）
 
 阶段三十八计划在仍不启用真实实盘的前提下，对未来极小资金灰度所需的本地 QMT 环境、配置文件、白名单、开关状态、数据质量、审批材料和只读安全边界做最终核验。阶段三十八仍不真实下单，不调用 xttrader，不真实发送通知。
+
+## 阶段三十八：极小资金灰度只读环境核验（仍不下单）
+
+阶段三十八确认新增 Live Environment Check，只对未来极小资金灰度可能需要的本地 Python 环境、项目目录、核心脚本、`.gitignore` 运行产物忽略规则、`scripts/sync_all.ps1` 保护状态、敏感文件风险、live 相关开关、scheduler/register dry-run 预览命令、极小资金配置、白名单标的、前置证据材料和只读安全边界做核验。
+
+完成状态说明：系统可通过 `scripts/run_live_env_check.py` 独立生成 Markdown / JSON 只读核验报告；Daily Pipeline 可选 `--enable-live-env-check` 在末尾输出 Live Environment Read-only Check Report；Scheduled Pipeline 和 register task 可透传 live env check 参数；Dashboard 可只读展示 Live Environment Readiness section。
+
+安全说明：`READY_FOR_ENV_REVIEW` 只表示环境材料可交人工复核，不代表允许实盘、不代表自动 GO、不代表交易授权。阶段三十八不启用实盘，不调用 QMT 交易接口，不调用 `xttrader`，不查询账户/资金/持仓/订单/成交，不真实发送通知，不下单。
+
+## 阶段三十九：极小资金灰度最终人工授权包（仍不执行）
+
+阶段三十九计划在仍不执行实盘的前提下，把阶段三十八只读环境核验结果和全部前置材料整理为最终人工授权包。阶段三十九仍不下单、不调用 `xttrader`、不真实发送通知、不查询账户资金持仓订单成交。
