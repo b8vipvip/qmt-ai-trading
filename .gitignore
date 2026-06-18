@@ -130,3 +130,11 @@ approval_test_stage21/
 market_data_test_stage21/
 *.approval.json
 *.decision.json
+
+# stage 22 paper trading local files
+approval_test_stage22/
+paper_orders/
+paper_orders_test_stage22/
+market_data_test_stage22/
+*.paper_order.json
+*.paper_report.json

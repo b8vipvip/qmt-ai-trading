@@ -51,6 +51,8 @@ def main(argv: list[str] | None = None) -> int:
     else:
         decision = cancel_request(store, args.approval_id, decided_by=args.decided_by, comment=args.comment)
     print(format_approval_decision(decision))
+    if args.command == "approve":
+        print("Approved for paper/live authorization check only. No QMT order has been submitted.")
     return 0
 
 
