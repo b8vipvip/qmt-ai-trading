@@ -76,6 +76,8 @@ class DashboardConfig:
     gray_decision_dir: str = "gray_decision"
     include_live_manual_prep: bool = False
     live_manual_prep_dir: str = "live_manual_prep"
+    include_live_env_check: bool = False
+    live_env_check_dir: str = "live_env_check"
     read_only: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
 

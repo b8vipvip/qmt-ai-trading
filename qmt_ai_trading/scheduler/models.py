@@ -110,6 +110,13 @@ class ScheduleConfig:
     live_manual_prep_max_single_order_value: float = 1000.0
     live_manual_prep_max_symbol_weight: float = 0.1
     live_manual_prep_max_portfolio_weight: float = 0.2
+    enable_live_env_check: bool = False
+    live_env_check_output_dir: Path = Path("live_env_check")
+    live_env_check_allowed_symbols: str = ""
+    live_env_check_max_total_capital: float = 5000.0
+    live_env_check_max_single_order_value: float = 1000.0
+    live_env_check_max_symbol_weight: float = 0.1
+    live_env_check_max_portfolio_weight: float = 0.2
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
