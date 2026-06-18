@@ -37,6 +37,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--min-loaded-symbols", type=int, default=1)
     parser.add_argument("--require-cached-research", action="store_true")
     parser.add_argument("--data-source-confidence-required", default=None, choices=["LOW", "MEDIUM", "HIGH"])
+    parser.add_argument("--create-approval", action="store_true", help="Create a pending human approval request when TradeIntent exists.")
+    parser.add_argument("--approval-root", default="approvals", help="Local approval JSON root directory.")
+    parser.add_argument("--approval-expires-hours", type=float, default=24.0, help="Pending approval expiry window in hours.")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -61,6 +64,19 @@ def main(argv: list[str] | None = None) -> int:
         data_source_confidence_required=args.data_source_confidence_required,
     )
     print(result.report_text)
+
+    if args.create_approval:
+        from qmt_ai_trading.approval.service import approval_request_from_pipeline_result
+        from qmt_ai_trading.approval.store import ApprovalStore
+
+        store = ApprovalStore(args.approval_root)
+        request = approval_request_from_pipeline_result(result, store=store, expires_hours=args.approval_expires_hours)
+        if request is None:
+            print("\nNo approval created: pipeline generated no TradeIntent.")
+        else:
+            print("\nPending approval created. Approval is not an order. No QMT order has been submitted.")
+            print(f"approval_id={request.approval_id}")
+            print(f"approval_file={store.get_request_path(request.approval_id)}")
 
     artifacts = []
     if args.write_reports:

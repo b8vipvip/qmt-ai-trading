@@ -506,3 +506,10 @@ The default warmup provider is `mock` so local tests and scheduler previews work
 `docs/qmt-ai-trading-project-roadmap.md` 是当前项目最高优先级路线文档。后续阶段开发前必须先阅读 `docs/qmt-ai-trading-project-roadmap.md`，再阅读本文档，再阅读最近一个已完成阶段文档，并确认当前阶段目标与总路线一致；如不一致，必须优先更新路线文档或说明原因。
 
 阶段二十不开发交易功能、不接实盘、不调用 QMT 下单、不调用 `xttrader`、不查询资金/持仓/订单/成交、不真实发送通知。阶段二十只完成 roadmap 重写、阶段计划对齐、文档测试和后续开发规则固化。Human Approval 顺延为阶段二十一。
+
+
+## 六、阶段二十一 Human Approval 进度
+
+阶段二十一已在 `TradeIntent` 生成并经过 Risk Gate 校验之后、Paper Trading / Live Trading 之前加入 Human Approval 人工确认层。该层通过 `ApprovalRequest`、`ApprovalDecision`、`ApprovalCheckResult` 和本地 `approvals/` JSON 文件记录审批状态，并提供 `scripts/approval_cli.py` 完成本地 list/show/approve/reject/cancel。
+
+安全边界：Approval 不等于下单；Approval is not an order. No QMT order has been submitted. 未批准的 `TradeIntent` 不得进入 paper/live 执行链路。Human Approval 只影响后续执行授权，不绕过 Risk Gate，不调用 QMT，不调用 `xttrader`，不查询资金、持仓、订单、成交，也不真实发送通知。
