@@ -87,6 +87,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--data-quality-tracking-symbols", default="")
     parser.add_argument("--data-quality-tracking-start", default=None)
     parser.add_argument("--data-quality-tracking-end", default=None)
+    parser.add_argument("--enable-notification-dry-run", action="store_true")
+    parser.add_argument("--notification-dry-run-output-dir", default="notification_dryrun")
+    parser.add_argument("--notification-dry-run-channels", default=None)
+    parser.add_argument("--notification-dry-run-recipients", default=None)
+    parser.add_argument("--notification-dry-run-preview-output-dir", default=None)
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -147,6 +152,11 @@ def main(argv: list[str] | None = None) -> int:
         data_quality_tracking_symbols=[x.strip() for x in args.data_quality_tracking_symbols.split(",") if x.strip()] or None,
         data_quality_tracking_start=args.data_quality_tracking_start,
         data_quality_tracking_end=args.data_quality_tracking_end,
+        enable_notification_dry_run=args.enable_notification_dry_run,
+        notification_dry_run_output_dir=args.notification_dry_run_output_dir,
+        notification_dry_run_channels=args.notification_dry_run_channels,
+        notification_dry_run_recipients=args.notification_dry_run_recipients,
+        notification_dry_run_preview_output_dir=args.notification_dry_run_preview_output_dir,
     )
     print(result.report_text)
 
@@ -210,6 +220,8 @@ def main(argv: list[str] | None = None) -> int:
             title=args.dashboard_title,
             data_quality_dir=args.data_quality_tracking_output_dir,
             include_data_quality_tracking=args.enable_data_quality_tracking,
+            notification_dry_run_dir=args.notification_dry_run_output_dir,
+            include_notification_dry_run=args.enable_notification_dry_run,
         )
         _, dashboard_path = build_and_save_dashboard(dashboard_config)
         print(f"\nRead-only dashboard written: {dashboard_path}")

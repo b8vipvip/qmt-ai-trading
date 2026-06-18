@@ -90,6 +90,11 @@ def collect_data_quality_tracking_section(config: DashboardConfig) -> DashboardS
     return _section_from_latest("data_quality_tracking", "Data Quality Tracking", directory, ("*.md", "*.json"))
 
 
+def collect_notification_dry_run_section(config: DashboardConfig) -> DashboardSection:
+    directory = config.report_dirs.get("notification_dry_run") or getattr(config, "notification_dry_run_dir", "notification_dryrun")
+    return _section_from_latest("notification_dry_run", "Notification Dry Run", directory, ("*.md", "*.json"))
+
+
 def collect_dashboard_sections(config: DashboardConfig) -> list[DashboardSection]:
     sections: list[DashboardSection] = []
     if config.include_daily_report:
@@ -98,6 +103,8 @@ def collect_dashboard_sections(config: DashboardConfig) -> list[DashboardSection
         sections.append(collect_cache_quality_section(config))
     if getattr(config, "include_data_quality_tracking", False):
         sections.append(collect_data_quality_tracking_section(config))
+    if getattr(config, "include_notification_dry_run", False):
+        sections.append(collect_notification_dry_run_section(config))
     if config.include_monitoring:
         sections.append(collect_monitoring_section(config))
     if config.include_agent_research:

@@ -91,6 +91,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--data-quality-tracking-symbols", default="")
     parser.add_argument("--data-quality-tracking-start", default=None)
     parser.add_argument("--data-quality-tracking-end", default=None)
+    parser.add_argument("--enable-notification-dry-run", action="store_true")
+    parser.add_argument("--notification-dry-run-output-dir", default="notification_dryrun")
+    parser.add_argument("--notification-dry-run-channels", default="")
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -170,6 +173,9 @@ def main(argv: list[str] | None = None) -> int:
         data_quality_tracking_symbols=args.data_quality_tracking_symbols,
         data_quality_tracking_start=args.data_quality_tracking_start,
         data_quality_tracking_end=args.data_quality_tracking_end,
+        enable_notification_dry_run=args.enable_notification_dry_run,
+        notification_dry_run_output_dir=Path(args.notification_dry_run_output_dir),
+        notification_dry_run_channels=args.notification_dry_run_channels,
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")

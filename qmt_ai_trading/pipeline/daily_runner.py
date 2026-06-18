@@ -104,6 +104,11 @@ def run_daily_signal_pipeline(
     data_quality_tracking_symbols: Iterable[str] | None = None,
     data_quality_tracking_start: str | None = None,
     data_quality_tracking_end: str | None = None,
+    enable_notification_dry_run: bool = False,
+    notification_dry_run_output_dir: str = "notification_dryrun",
+    notification_dry_run_channels: Iterable[str] | str | None = None,
+    notification_dry_run_recipients: Iterable[str] | str | None = None,
+    notification_dry_run_preview_output_dir: str | None = None,
 ) -> PipelineResult:
     """Run the generic daily signal pipeline without connecting to real QMT trading."""
 
@@ -347,6 +352,25 @@ def run_daily_signal_pipeline(
             _record_step(steps, "data_quality_tracking", False, "Data Quality Tracking generation failed", errors=[repr(exc)])
         result.success = all(step.success for step in steps)
 
+    if enable_notification_dry_run:
+        try:
+            from pathlib import Path
+            from qmt_ai_trading.notification_dryrun.service import run_notification_dry_run, save_notification_dry_run_report
+            summaries = {"daily_report": {"run_id": ctx.run_id, "success": result.success, "steps": len(steps)}}
+            if "agent_research" in result.metadata: summaries["agent_memo"] = result.metadata["agent_research"]
+            if "live_gray_readiness" in result.metadata: summaries["live_gray_report"] = result.metadata["live_gray_readiness"]
+            if "data_quality_tracking" in result.metadata: summaries["data_quality_report"] = result.metadata["data_quality_tracking"]
+            out_dir = Path(notification_dry_run_output_dir)
+            md_path = out_dir / f"{ctx.run_id}.notification_dryrun.md"
+            json_path = out_dir / f"{ctx.run_id}.notification_dryrun.json"
+            report = run_notification_dry_run(summaries=summaries, channels=notification_dry_run_channels, recipients=notification_dry_run_recipients, output_path=md_path, json_output_path=json_path, preview_output_dir=notification_dry_run_preview_output_dir, metadata={"pipeline_run_id": ctx.run_id})
+            result.metadata["notification_dry_run"] = {"report_id": report.report_id, "success": report.success, "summary": report.summary, "safety_note": report.safety_note, "output_path": str(md_path), "json_output_path": str(json_path)}
+            _record_step(steps, "notification_dry_run", True, f"generated notification dry-run report: {md_path}", {"output_path": str(md_path)})
+        except Exception as exc:
+            result.metadata["notification_dry_run_error"] = repr(exc)
+            _record_step(steps, "notification_dry_run", False, "Notification Dry Run generation failed", errors=[repr(exc)])
+        result.success = all(step.success for step in steps)
+
     from qmt_ai_trading.pipeline.report import format_pipeline_report
 
     result.report_text = format_pipeline_report(result)
@@ -418,6 +442,11 @@ def run_etf_daily_pipeline(
     data_quality_tracking_symbols: Iterable[str] | None = None,
     data_quality_tracking_start: str | None = None,
     data_quality_tracking_end: str | None = None,
+    enable_notification_dry_run: bool = False,
+    notification_dry_run_output_dir: str = "notification_dryrun",
+    notification_dry_run_channels: Iterable[str] | str | None = None,
+    notification_dry_run_recipients: Iterable[str] | str | None = None,
+    notification_dry_run_preview_output_dir: str | None = None,
 ) -> PipelineResult:
     """Run the default ETF daily pipeline using the Data Hub ETF universe."""
 
@@ -492,4 +521,9 @@ def run_etf_daily_pipeline(
         data_quality_tracking_symbols=data_quality_tracking_symbols,
         data_quality_tracking_start=data_quality_tracking_start,
         data_quality_tracking_end=data_quality_tracking_end,
+        enable_notification_dry_run=enable_notification_dry_run,
+        notification_dry_run_output_dir=notification_dry_run_output_dir,
+        notification_dry_run_channels=notification_dry_run_channels,
+        notification_dry_run_recipients=notification_dry_run_recipients,
+        notification_dry_run_preview_output_dir=notification_dry_run_preview_output_dir,
     )
