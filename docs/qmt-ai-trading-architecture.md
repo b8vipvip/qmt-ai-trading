@@ -576,3 +576,11 @@ Cached Research
 Portfolio 层只读取策略候选和本地 mock/snapshot 持仓输入，生成目标权重、调仓计划、100 股整数倍 dry-run TradeIntent 和报告区块。Portfolio 不等于真实账户，不查询真实 QMT 资金，不查询真实 QMT 持仓，不查询订单/成交，不执行交易。
 
 阶段二十六仍不调用 `xttrader`、不调用 QMT 交易接口、不真实下单。Portfolio 生成的 TradeIntent 仍必须进入 Risk Gate；进入 Paper Trading 之前仍必须经过 Human Approval。
+
+## 阶段二十七进度：长期回测与绩效归因
+
+阶段二十七新增长期回测与绩效归因层，位置在 Strategy / Cached ETF Rotation / Portfolio Plan 之后、真实交易执行之前，用于评估 dry-run 组合策略在多个 rebalance dates 上的模拟表现。
+
+长期回测流程为：`LocalBarStore` 本地 ETF bars -> cached factor candidates -> Portfolio Plan -> dry-run TradeIntent -> Risk Gate -> risk-executable simulated trades -> equity curve -> performance / attribution report。
+
+该层不调用 QMT 交易接口、不调用 `xttrader`、不下单、不查询真实资金/持仓/订单/成交。它只读取本地缓存并生成 Markdown / JSON 报告。Risk Gate blocked trades 必须单独归因，记录 blocked_count、blocked_value 和 blocked_reason，且不得计入 risk-executable performance。

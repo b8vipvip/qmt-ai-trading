@@ -159,3 +159,16 @@ portfolio_test_stage26/
 market_data_test_stage26/
 *.portfolio_plan.json
 *.portfolio_snapshot.json
+backtest_reports_stage27/
+backtest_results_stage27/
+long_backtest_results/
+portfolio_test_stage26/
+market_data_test_stage27/
+reports/
+logs/
+approvals/
+paper_orders/
+market_data/
+data_cache/
+*.long_backtest.json
+*.long_backtest.md
