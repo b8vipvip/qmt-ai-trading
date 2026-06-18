@@ -73,6 +73,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--agent-include-monitoring", action="store_true", default=True)
     parser.add_argument("--agent-include-backtest", action="store_true", default=True)
     parser.add_argument("--agent-include-human-checklist", action="store_true", default=True)
+    parser.add_argument("--enable-live-gray-readiness", action="store_true")
+    parser.add_argument("--live-gray-output-dir", default="live_gray_reports")
+    parser.add_argument("--live-gray-allowed-symbols", default="")
+    parser.add_argument("--live-gray-max-total-capital", type=float, default=5000.0)
+    parser.add_argument("--live-gray-max-single-order-value", type=float, default=1000.0)
+    parser.add_argument("--live-gray-max-symbol-weight", type=float, default=0.1)
+    parser.add_argument("--live-gray-max-portfolio-weight", type=float, default=0.2)
+    parser.add_argument("--live-gray-enabled", action="store_true")
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -134,6 +142,14 @@ def main(argv: list[str] | None = None) -> int:
         agent_include_monitoring=args.agent_include_monitoring,
         agent_include_backtest=args.agent_include_backtest,
         agent_include_human_checklist=args.agent_include_human_checklist,
+        enable_live_gray_readiness=args.enable_live_gray_readiness,
+        live_gray_output_dir=Path(args.live_gray_output_dir),
+        live_gray_allowed_symbols=args.live_gray_allowed_symbols,
+        live_gray_max_total_capital=args.live_gray_max_total_capital,
+        live_gray_max_single_order_value=args.live_gray_max_single_order_value,
+        live_gray_max_symbol_weight=args.live_gray_max_symbol_weight,
+        live_gray_max_portfolio_weight=args.live_gray_max_portfolio_weight,
+        live_gray_enabled=args.live_gray_enabled,
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -154,6 +170,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Monitoring: enable_monitoring=True output_dir={args.monitoring_output_dir} dry_run_alerts={args.monitoring_dry_run_alerts}")
     if args.enable_agent_research:
         print(f"Agent Research: enable_agent_research=True output_dir={args.agent_research_output_dir} mode={args.agent_research_mode} read_only=True")
+    if args.enable_live_gray_readiness:
+        print(f"Live Gray Readiness: enable_live_gray_readiness=True output_dir={args.live_gray_output_dir} allowed_symbols={args.live_gray_allowed_symbols} live_enabled_included=False preparation_only=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:
         print(f"Cached research: start={args.research_start} end={args.research_end} frequency={args.research_frequency} min_bars={args.min_bars} cache_root={args.cache_root}")
         print(f"Cached ETF rotation: top_n={args.cached_strategy_top_n} min_score={args.cached_strategy_min_score} min_bars={args.cached_strategy_min_bars}")

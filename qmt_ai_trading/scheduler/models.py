@@ -70,6 +70,14 @@ class ScheduleConfig:
     agent_include_monitoring: bool = True
     agent_include_backtest: bool = True
     agent_include_human_checklist: bool = True
+    enable_live_gray_readiness: bool = False
+    live_gray_output_dir: Path = Path("live_gray_reports")
+    live_gray_allowed_symbols: str = ""
+    live_gray_max_total_capital: float = 5000.0
+    live_gray_max_single_order_value: float = 1000.0
+    live_gray_max_symbol_weight: float = 0.1
+    live_gray_max_portfolio_weight: float = 0.2
+    live_gray_enabled: bool = False
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

@@ -192,3 +192,15 @@ alerts/
 *.agent_research.md
 *.research_memo.json
 *.research_memo.md
+
+# stage 30 live gray readiness runtime outputs
+live_gray_reports/
+live_gray_reports_stage30/
+live_readiness_reports/
+market_data_test_stage30/
+*.live_gray.json
+*.live_gray.md
+*.live_readiness.json
+*.live_readiness.md
+agent_reports_stage30/
+monitoring_reports_stage30/

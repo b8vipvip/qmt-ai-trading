@@ -87,6 +87,16 @@ def run_daily_signal_pipeline(
     agent_include_monitoring: bool = True,
     agent_include_backtest: bool = True,
     agent_include_human_checklist: bool = True,
+    enable_live_gray_readiness: bool = False,
+    live_gray_output_dir: str = "live_gray_reports",
+    live_gray_allowed_symbols: Iterable[str] | None = None,
+    live_gray_max_total_capital: float = 5000.0,
+    live_gray_max_single_order_value: float = 1000.0,
+    live_gray_max_symbol_weight: float = 0.1,
+    live_gray_max_portfolio_weight: float = 0.2,
+    live_gray_enabled: bool = False,
+    live_enabled: bool = False,
+    live_gray_operator_name: str = "",
 ) -> PipelineResult:
     """Run the generic daily signal pipeline without connecting to real QMT trading."""
 
@@ -277,6 +287,34 @@ def run_daily_signal_pipeline(
             _record_step(steps, "agent_research", False, "Agent Research generation failed", errors=[repr(exc)])
             result.success = all(step.success for step in steps)
 
+    if enable_live_gray_readiness:
+        try:
+            from pathlib import Path
+            from qmt_ai_trading.liveprep.safety import build_default_live_gray_config
+            from qmt_ai_trading.liveprep.service import run_live_gray_readiness_check, save_live_gray_readiness_report
+            ds = result.metadata.get("data_source", {}) if isinstance(result.metadata, dict) else {}
+            agent_meta = result.metadata.get("agent_research") if isinstance(result.metadata, dict) else None
+            cfg = build_default_live_gray_config(
+                live_enabled=live_enabled, gray_enabled=live_gray_enabled,
+                allowed_symbols=list(live_gray_allowed_symbols or ctx.symbols or []),
+                max_total_capital=live_gray_max_total_capital,
+                max_single_order_value=live_gray_max_single_order_value,
+                max_symbol_weight=live_gray_max_symbol_weight,
+                max_portfolio_weight=live_gray_max_portfolio_weight,
+                operator_name=live_gray_operator_name,
+                allow_unknown_quality_for_review=True,
+                metadata={"pipeline_run_id": ctx.run_id},
+            )
+            report = run_live_gray_readiness_check(config=cfg, trade_intents=result.trade_intents, risk_decisions=result.risk_decisions, agent_memo=agent_meta, cache_quality_decision=ds, metadata={"pipeline_run_id": ctx.run_id})
+            out_dir = Path(live_gray_output_dir); md_path = out_dir / f"{ctx.run_id}.live_gray.md"; json_path = out_dir / f"{ctx.run_id}.live_gray.json"
+            save_live_gray_readiness_report(report, md_path); save_live_gray_readiness_report(report, json_path)
+            result.metadata["live_gray_readiness"] = {"decision": getattr(report.decision, "value", report.decision), "summary": report.summary, "failed_checks": [c.to_dict() for c in report.checks if getattr(c.status, "value", c.status)=="FAIL"], "manual_review_items": report.manual_review_items, "safety_note": report.safety_note, "output_path": str(md_path), "json_output_path": str(json_path)}
+            _record_step(steps, "live_gray_readiness", True, f"generated live gray readiness preparation report: {md_path}", {"output_path": str(md_path)})
+        except Exception as exc:
+            result.metadata["live_gray_readiness_error"] = repr(exc)
+            _record_step(steps, "live_gray_readiness", False, "Live Gray Readiness generation failed", errors=[repr(exc)])
+        result.success = all(step.success for step in steps)
+
     from qmt_ai_trading.pipeline.report import format_pipeline_report
 
     result.report_text = format_pipeline_report(result)
@@ -331,6 +369,16 @@ def run_etf_daily_pipeline(
     agent_include_monitoring: bool = True,
     agent_include_backtest: bool = True,
     agent_include_human_checklist: bool = True,
+    enable_live_gray_readiness: bool = False,
+    live_gray_output_dir: str = "live_gray_reports",
+    live_gray_allowed_symbols: Iterable[str] | None = None,
+    live_gray_max_total_capital: float = 5000.0,
+    live_gray_max_single_order_value: float = 1000.0,
+    live_gray_max_symbol_weight: float = 0.1,
+    live_gray_max_portfolio_weight: float = 0.2,
+    live_gray_enabled: bool = False,
+    live_enabled: bool = False,
+    live_gray_operator_name: str = "",
 ) -> PipelineResult:
     """Run the default ETF daily pipeline using the Data Hub ETF universe."""
 
@@ -388,4 +436,14 @@ def run_etf_daily_pipeline(
         agent_include_monitoring=agent_include_monitoring,
         agent_include_backtest=agent_include_backtest,
         agent_include_human_checklist=agent_include_human_checklist,
+        enable_live_gray_readiness=enable_live_gray_readiness,
+        live_gray_output_dir=live_gray_output_dir,
+        live_gray_allowed_symbols=live_gray_allowed_symbols,
+        live_gray_max_total_capital=live_gray_max_total_capital,
+        live_gray_max_single_order_value=live_gray_max_single_order_value,
+        live_gray_max_symbol_weight=live_gray_max_symbol_weight,
+        live_gray_max_portfolio_weight=live_gray_max_portfolio_weight,
+        live_gray_enabled=live_gray_enabled,
+        live_enabled=live_enabled,
+        live_gray_operator_name=live_gray_operator_name,
     )

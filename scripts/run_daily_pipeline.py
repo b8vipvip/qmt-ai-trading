@@ -66,6 +66,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--agent-include-monitoring", action="store_true", default=True)
     parser.add_argument("--agent-include-backtest", action="store_true", default=True)
     parser.add_argument("--agent-include-human-checklist", action="store_true", default=True)
+    parser.add_argument("--enable-live-gray-readiness", action="store_true")
+    parser.add_argument("--live-gray-output-dir", default="live_gray_reports")
+    parser.add_argument("--live-gray-allowed-symbols", default="")
+    parser.add_argument("--live-gray-max-total-capital", type=float, default=5000.0)
+    parser.add_argument("--live-gray-max-single-order-value", type=float, default=1000.0)
+    parser.add_argument("--live-gray-max-symbol-weight", type=float, default=0.1)
+    parser.add_argument("--live-gray-max-portfolio-weight", type=float, default=0.2)
+    parser.add_argument("--live-gray-enabled", action="store_true")
+    parser.add_argument("--live-enabled", action="store_true")
+    parser.add_argument("--live-gray-operator-name", default="")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -109,6 +119,16 @@ def main(argv: list[str] | None = None) -> int:
         agent_include_monitoring=args.agent_include_monitoring,
         agent_include_backtest=args.agent_include_backtest,
         agent_include_human_checklist=args.agent_include_human_checklist,
+        enable_live_gray_readiness=args.enable_live_gray_readiness,
+        live_gray_output_dir=args.live_gray_output_dir,
+        live_gray_allowed_symbols=[x.strip() for x in args.live_gray_allowed_symbols.split(",") if x.strip()] or None,
+        live_gray_max_total_capital=args.live_gray_max_total_capital,
+        live_gray_max_single_order_value=args.live_gray_max_single_order_value,
+        live_gray_max_symbol_weight=args.live_gray_max_symbol_weight,
+        live_gray_max_portfolio_weight=args.live_gray_max_portfolio_weight,
+        live_gray_enabled=args.live_gray_enabled,
+        live_enabled=args.live_enabled,
+        live_gray_operator_name=args.live_gray_operator_name,
     )
     print(result.report_text)
 

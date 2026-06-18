@@ -69,6 +69,23 @@ def format_pipeline_report(result: PipelineResult) -> str:
             lines.append(f"  - {item}")
         lines.append(f"- safety_note: {agent.get('safety_note', '')}")
 
+    live_gray = result.metadata.get("live_gray_readiness") if isinstance(result.metadata, dict) else None
+    if live_gray:
+        lines.extend(["", "## Live Gray Readiness", f"- decision: {live_gray.get('decision', '')}", f"- output_path: {live_gray.get('output_path', '')}", "- summary:"])
+        for k, v in (live_gray.get("summary") or {}).items():
+            lines.append(f"  - {k}: {v}")
+        lines.append("- failed checks:")
+        failed = live_gray.get("failed_checks") or []
+        if failed:
+            for item in failed:
+                lines.append(f"  - {item.get('check_id', '')}: {item.get('message', '')}")
+        else:
+            lines.append("  - None")
+        lines.append("- manual review items:")
+        for item in live_gray.get("manual_review_items", []) or []:
+            lines.append(f"  - {item}")
+        lines.append(f"- safety_note: {live_gray.get('safety_note', '')}")
+
     bt = result.backtest_result
     lines.extend(["", "## Backtest Summary"])
     if bt is None:

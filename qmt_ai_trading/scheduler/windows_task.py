@@ -84,6 +84,14 @@ def build_daily_pipeline_command(
     agent_include_monitoring: bool = True,
     agent_include_backtest: bool = True,
     agent_include_human_checklist: bool = True,
+    enable_live_gray_readiness: bool = False,
+    live_gray_output_dir: str | Path = Path("live_gray_reports"),
+    live_gray_allowed_symbols: str = "",
+    live_gray_max_total_capital: float = 5000.0,
+    live_gray_max_single_order_value: float = 1000.0,
+    live_gray_max_symbol_weight: float = 0.1,
+    live_gray_max_portfolio_weight: float = 0.2,
+    live_gray_enabled: bool = False,
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -165,6 +173,15 @@ def build_daily_pipeline_command(
             args.append("--agent-include-backtest")
         if agent_include_human_checklist:
             args.append("--agent-include-human-checklist")
+    if enable_live_gray_readiness:
+        args.append("--enable-live-gray-readiness")
+        args.extend(["--live-gray-output-dir", str(live_gray_output_dir)])
+        if live_gray_allowed_symbols:
+            args.extend(["--live-gray-allowed-symbols", str(live_gray_allowed_symbols)])
+        args.extend(["--live-gray-max-total-capital", str(live_gray_max_total_capital), "--live-gray-max-single-order-value", str(live_gray_max_single_order_value)])
+        args.extend(["--live-gray-max-symbol-weight", str(live_gray_max_symbol_weight), "--live-gray-max-portfolio-weight", str(live_gray_max_portfolio_weight)])
+        if live_gray_enabled:
+            args.append("--live-gray-enabled")
     if use_cached_research or data_source_mode in {"cached", "auto", "cached_real_first"}:
         if use_cached_research:
             args.append("--use-cached-research")
@@ -261,6 +278,14 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         agent_include_monitoring=cfg.agent_include_monitoring,
         agent_include_backtest=cfg.agent_include_backtest,
         agent_include_human_checklist=cfg.agent_include_human_checklist,
+        enable_live_gray_readiness=cfg.enable_live_gray_readiness,
+        live_gray_output_dir=cfg.live_gray_output_dir,
+        live_gray_allowed_symbols=cfg.live_gray_allowed_symbols,
+        live_gray_max_total_capital=cfg.live_gray_max_total_capital,
+        live_gray_max_single_order_value=cfg.live_gray_max_single_order_value,
+        live_gray_max_symbol_weight=cfg.live_gray_max_symbol_weight,
+        live_gray_max_portfolio_weight=cfg.live_gray_max_portfolio_weight,
+        live_gray_enabled=cfg.live_gray_enabled,
     )
     task_run = pipeline.metadata["display"]
     args = ["/Create", "/F", "/SC", "DAILY", "/TN", cfg.task_name, "/TR", task_run, "/ST", cfg.run_time]
