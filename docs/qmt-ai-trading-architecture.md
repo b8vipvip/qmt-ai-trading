@@ -494,3 +494,9 @@ The default warmup provider is `mock` so local tests and scheduler previews work
 后续开发前必须先阅读 `docs/qmt-ai-trading-project-roadmap.md`。
 
 阶段十八在 Research 与 Strategy Engine 之间增加 `qmt_ai_trading.strategies.cached_etf_rotation`：Research 继续只读本地缓存并输出 `ResearchScore`，Cached ETF Rotation 将 factor score 标准化为 `ETFCandidate`，再生成 dry-run `TradeIntent`。该路径不下载数据、不调用 QMT、不调用 `xttrader`、不下单，所有 TradeIntent 仍由 Daily Pipeline 送入 Risk Gate。
+
+## Stage 19: Pipeline Data Source Strategy
+
+阶段十九在 Pipeline 层增加 `qmt_ai_trading.pipeline.data_source`，作为 Daily Pipeline 的统一数据源决策层。该层只评估本地缓存覆盖率、模式配置与 fallback 策略，不下载数据、不调用 QMT、不调用 `xttrader`、不下单。Daily Pipeline 报告新增 Data Source 区块，显示 selected_source、cache coverage、confidence、fallback 和 TradeIntent 生成许可。
+
+后续开发前必须先阅读 docs/qmt-ai-trading-project-roadmap.md。

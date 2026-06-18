@@ -51,6 +51,12 @@ def build_daily_pipeline_command(
     cached_strategy_top_n: int = 1,
     cached_strategy_min_score: float | None = None,
     cached_strategy_min_bars: int = 20,
+    data_source_mode: str = "legacy",
+    allow_mock_fallback: bool = False,
+    min_coverage_ratio: float = 0.8,
+    min_loaded_symbols: int = 1,
+    require_cached_research: bool = False,
+    data_source_confidence_required: str | None = None,
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -78,8 +84,21 @@ def build_daily_pipeline_command(
             args.extend(["--warmup-end", str(warmup_end)])
         args.extend(["--warmup-frequency", str(warmup_frequency)])
         args.extend(["--cache-root", str(cache_root)])
-    if use_cached_research:
-        args.append("--use-cached-research")
+    if data_source_mode != "legacy":
+        args.extend(["--data-source-mode", str(data_source_mode)])
+    if allow_mock_fallback:
+        args.append("--allow-mock-fallback")
+    if data_source_mode != "legacy" or min_coverage_ratio != 0.8:
+        args.extend(["--min-coverage-ratio", str(min_coverage_ratio)])
+    if data_source_mode != "legacy" or min_loaded_symbols != 1:
+        args.extend(["--min-loaded-symbols", str(min_loaded_symbols)])
+    if require_cached_research:
+        args.append("--require-cached-research")
+    if data_source_confidence_required:
+        args.extend(["--data-source-confidence-required", str(data_source_confidence_required)])
+    if use_cached_research or data_source_mode in {"cached", "auto"}:
+        if use_cached_research:
+            args.append("--use-cached-research")
         if "--cache-root" not in args:
             args.extend(["--cache-root", str(cache_root)])
         if research_start:
@@ -140,6 +159,12 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         cached_strategy_top_n=cfg.cached_strategy_top_n,
         cached_strategy_min_score=cfg.cached_strategy_min_score,
         cached_strategy_min_bars=cfg.cached_strategy_min_bars,
+        data_source_mode=cfg.data_source_mode,
+        allow_mock_fallback=cfg.allow_mock_fallback,
+        min_coverage_ratio=cfg.min_coverage_ratio,
+        min_loaded_symbols=cfg.min_loaded_symbols,
+        require_cached_research=cfg.require_cached_research,
+        data_source_confidence_required=cfg.data_source_confidence_required,
     )
     task_run = pipeline.metadata["display"]
     args = ["/Create", "/F", "/SC", "DAILY", "/TN", cfg.task_name, "/TR", task_run, "/ST", cfg.run_time]

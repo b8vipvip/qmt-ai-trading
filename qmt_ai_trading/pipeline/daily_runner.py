@@ -11,6 +11,7 @@ from qmt_ai_trading.common.types import TradeIntent
 from qmt_ai_trading.datahub.etf_universe import get_default_etf_universe
 from qmt_ai_trading.datahub.symbols import normalize_symbol
 from qmt_ai_trading.pipeline.models import PipelineContext, PipelineResult, PipelineStepResult
+from qmt_ai_trading.pipeline.data_source import CONFIDENCE_ORDER, build_data_source_policy, choose_pipeline_data_source
 from qmt_ai_trading.risk.trade_validator import validate_trade_intent
 from qmt_ai_trading.strategies.etf_rotation import build_candidates_from_universe, generate_etf_rotation_intents
 
@@ -59,6 +60,12 @@ def run_daily_signal_pipeline(
     cached_strategy_top_n: int = 1,
     cached_strategy_min_score: float | None = None,
     cached_strategy_min_bars: int = 20,
+    data_source_mode: str = "legacy",
+    allow_mock_fallback: bool = False,
+    min_coverage_ratio: float = 0.8,
+    min_loaded_symbols: int = 1,
+    require_cached_research: bool = False,
+    data_source_confidence_required: str | None = None,
 ) -> PipelineResult:
     """Run the generic daily signal pipeline without connecting to real QMT trading."""
 
@@ -69,7 +76,30 @@ def run_daily_signal_pipeline(
     steps: list[PipelineStepResult] = []
     result = PipelineResult(context=ctx, steps=steps)
 
-    if use_cached_research and candidates is None:
+    if data_source_mode == "legacy" and use_cached_research:
+        data_source_mode = "cached"
+    data_source_policy = build_data_source_policy(mode=data_source_mode, allow_mock_fallback=allow_mock_fallback, min_coverage_ratio=min_coverage_ratio, min_loaded_symbols=min_loaded_symbols, require_cached_research=require_cached_research, cache_root=cache_root, start_date=research_start_date, end_date=research_end_date or str(ctx.trade_date), frequency=research_frequency, min_bars=min_bars)
+    decision = choose_pipeline_data_source(data_source_policy, ctx.symbols)
+    ctx.metadata["data_source"] = decision.__dict__.copy()
+    result.metadata["data_source"] = decision.__dict__.copy()
+    _record_step(steps, "data_source_decision", True, decision.message, decision.__dict__)
+    _record_step(steps, "data_source_coverage", True, f"coverage={decision.coverage_ratio:.2%} loaded={decision.loaded_symbols}/{decision.total_symbols}", decision.__dict__)
+    required = data_source_confidence_required.upper() if data_source_confidence_required else None
+    if required and CONFIDENCE_ORDER.get(decision.confidence, 0) < CONFIDENCE_ORDER.get(required, 0):
+        decision.allow_trade_intents = False
+        decision.message = f"data source confidence {decision.confidence} below required {required}"
+        ctx.metadata["data_source"] = decision.__dict__.copy()
+        result.metadata["data_source"] = decision.__dict__.copy()
+        result.metadata["no_intent_reason"] = decision.message
+
+    if decision.selected_source == "mock_fallback":
+        ctx.metadata["mock_fallback_warning"] = True
+    if data_source_mode == "cached" and decision.selected_source != "cached_research" and candidates is None:
+        candidates = []
+        ctx.metadata["cached_research"] = {"enabled": True, "success": False, "message": decision.message, "cache_root": str(cache_root)}
+        _record_step(steps, "cached_research_load", True, f"warning: {decision.message}", dict(ctx.metadata["cached_research"]))
+        _record_step(steps, "cached_research", True, f"warning: {decision.message}", dict(ctx.metadata["cached_research"]))
+    if decision.selected_source in {"cached_research"} and candidates is None:
         try:
             from qmt_ai_trading.research.cache_scoring import score_etf_universe_from_cache
             from qmt_ai_trading.strategies.cached_etf_rotation import CachedETFSignalConfig, generate_cached_etf_rotation_signal
@@ -122,11 +152,14 @@ def run_daily_signal_pipeline(
         _record_step(steps, "load_candidates", False, "candidate loading failed; continuing with empty input", errors=[repr(exc)])
 
     try:
-        if result.trade_intents:
+        if not decision.allow_trade_intents:
+            result.trade_intents = []
+            result.metadata["no_intent_reason"] = decision.message or "data source decision disallowed TradeIntent generation"
+        elif result.trade_intents:
             pass
         else:
             result.trade_intents = generate_etf_rotation_intents(result.candidates, top_n=top_n, min_score=min_score, dry_run=True, capital=capital or initial_cash)
-        if not result.trade_intents:
+        if not result.trade_intents and "no_intent_reason" not in result.metadata:
             result.metadata["no_intent_reason"] = "no eligible candidates after strategy selection"
         _record_step(steps, "generate_trade_intents", True, f"generated {len(result.trade_intents)} dry-run intents", {"count": len(result.trade_intents)})
     except Exception as exc:
@@ -176,6 +209,12 @@ def run_etf_daily_pipeline(
     cached_strategy_top_n: int = 1,
     cached_strategy_min_score: float | None = None,
     cached_strategy_min_bars: int = 20,
+    data_source_mode: str = "legacy",
+    allow_mock_fallback: bool = False,
+    min_coverage_ratio: float = 0.8,
+    min_loaded_symbols: int = 1,
+    require_cached_research: bool = False,
+    data_source_confidence_required: str | None = None,
 ) -> PipelineResult:
     """Run the default ETF daily pipeline using the Data Hub ETF universe."""
 
@@ -184,7 +223,8 @@ def run_etf_daily_pipeline(
     if symbol_filter:
         universe = [item for item in universe if normalize_symbol(item.symbol) in symbol_filter]
     context = build_pipeline_context(trade_date, dry_run=dry_run, symbols=symbol_filter or [item.symbol for item in universe], metadata={"pipeline": "etf_daily", "simulated_only": True})
-    candidates = None if use_cached_research else build_candidates_from_universe(universe, score_by_symbol=score_by_symbol, default_score=0.0, target_percent=None)
+    effective_cached = use_cached_research or data_source_mode in {"cached", "auto"}
+    candidates = None if effective_cached else build_candidates_from_universe(universe, score_by_symbol=score_by_symbol, default_score=0.0, target_percent=None)
     return run_daily_signal_pipeline(
         context=context,
         candidates=candidates,
@@ -194,6 +234,12 @@ def run_etf_daily_pipeline(
         capital=capital,
         initial_cash=initial_cash,
         use_cached_research=use_cached_research,
+        data_source_mode=data_source_mode,
+        allow_mock_fallback=allow_mock_fallback,
+        min_coverage_ratio=min_coverage_ratio,
+        min_loaded_symbols=min_loaded_symbols,
+        require_cached_research=require_cached_research,
+        data_source_confidence_required=data_source_confidence_required,
         cache_root=cache_root,
         research_start_date=research_start_date,
         research_end_date=research_end_date,
