@@ -6,6 +6,7 @@ Only explicit QMT provider use attempts to load ``xtquant.xtdata``.
 
 from __future__ import annotations
 
+import importlib
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any, Mapping
@@ -24,7 +25,7 @@ def _import_xtdata() -> Any:
     """Import xtquant.xtdata lazily so mock/offline workflows keep working."""
 
     try:
-        from xtquant import xtdata  # type: ignore
+        xtdata = importlib.import_module("xtquant.xtdata")
     except Exception as exc:  # pragma: no cover - depends on local QMT install
         raise QmtProviderError("xtquant.xtdata is not available; install/enable MiniQMT/QMT Python environment first") from exc
     return xtdata

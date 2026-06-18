@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 from dataclasses import asdict, dataclass, field
 from typing import Any, Mapping
 
@@ -73,7 +74,7 @@ class QmtDataQualityReport:
 
 def _import_xtdata_safe() -> tuple[bool, Any, str]:
     try:
-        from xtquant import xtdata  # type: ignore
+        xtdata = importlib.import_module("xtquant.xtdata")
     except Exception as exc:  # pragma: no cover
         return False, None, str(exc)
     return True, xtdata, "import ok"
