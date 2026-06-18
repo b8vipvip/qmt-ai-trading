@@ -34,6 +34,10 @@ def build_daily_pipeline_command(
     write_reports: bool = True,
     notify_dry_run: bool = True,
     warmup_cache: bool = False,
+    warmup_universe: bool = False,
+    universe_name: str = "default_etf",
+    universe_lookback_days: int | None = None,
+    universe_lookback_years: int | None = None,
     warmup_provider: str = "mock",
     warmup_start: str | None = None,
     warmup_end: str | None = None,
@@ -43,7 +47,21 @@ def build_daily_pipeline_command(
     """Build the safe daily pipeline command used by the scheduled task."""
 
     args = [str(script_path)]
-    if warmup_cache:
+    if warmup_universe:
+        args.append("--warmup-universe")
+        args.extend(["--universe-name", str(universe_name)])
+        if universe_lookback_days is not None:
+            args.extend(["--universe-lookback-days", str(universe_lookback_days)])
+        if universe_lookback_years is not None:
+            args.extend(["--universe-lookback-years", str(universe_lookback_years)])
+        args.extend(["--warmup-provider", str(warmup_provider)])
+        if warmup_start:
+            args.extend(["--warmup-start", str(warmup_start)])
+        if warmup_end:
+            args.extend(["--warmup-end", str(warmup_end)])
+        args.extend(["--warmup-frequency", str(warmup_frequency)])
+        args.extend(["--cache-root", str(cache_root)])
+    elif warmup_cache:
         args.append("--warmup-cache")
         args.extend(["--warmup-provider", str(warmup_provider)])
         if warmup_start:
@@ -83,6 +101,10 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         write_reports=cfg.write_reports,
         notify_dry_run=cfg.notify_dry_run,
         warmup_cache=cfg.warmup_cache,
+        warmup_universe=cfg.warmup_universe,
+        universe_name=cfg.universe_name,
+        universe_lookback_days=cfg.universe_lookback_days,
+        universe_lookback_years=cfg.universe_lookback_years,
         warmup_provider=cfg.warmup_provider,
         warmup_start=cfg.warmup_start,
         warmup_end=cfg.warmup_end,

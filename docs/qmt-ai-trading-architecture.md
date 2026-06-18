@@ -477,3 +477,8 @@ Stage 11 新增 `qmt_ai_trading.scheduler` 本地调度层，用于生成 Window
 Stage 15 adds an optional historical bar cache warmup step before the scheduled dry-run ETF daily pipeline. When `--warmup-cache` is enabled, the scheduler checks the ETF universe local bar cache first, fetches missing historical bars through the selected historical provider, and saves them through `LocalBarStore` before continuing to the existing dry-run pipeline.
 
 The default warmup provider is `mock` so local tests and scheduler previews work without QMT. `provider=qmt` is supported through the QMT historical provider only; when `xtquant.xtdata` is unavailable, the warmup records a skipped/failed item with a readable warning and keeps the scheduled dry-run pipeline safe. This stage does not call `xttrader`, does not place orders, and does not query account, position, order, or trade data.
+
+
+## 阶段十六进度：ETF Universe 历史数据自动补全与项目总路线
+
+后续开发前必须先阅读 `docs/qmt-ai-trading-project-roadmap.md`。阶段十六新增 ETF Universe 历史缓存自动补全能力，默认 `provider=mock`，可选 `provider=qmt`，仅处理历史行情缓存，不调用 xttrader、不下单、不查询资金/持仓/订单/成交。

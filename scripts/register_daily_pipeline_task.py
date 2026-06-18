@@ -22,6 +22,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--report-dir", default="reports")
     parser.add_argument("--execute", action="store_true", help="Actually call schtasks /Create. Omit for dry-run preview only.")
     parser.add_argument("--warmup-cache", action="store_true", help="Include historical cache warmup before the scheduled pipeline.")
+    parser.add_argument("--warmup-universe", action="store_true", help="Include ETF universe historical cache warmup before the scheduled pipeline.")
+    parser.add_argument("--universe-name", default="default_etf")
+    parser.add_argument("--universe-lookback-days", type=int, default=None)
+    parser.add_argument("--universe-lookback-years", type=int, default=None)
     parser.add_argument("--warmup-provider", default="mock", choices=["mock", "qmt"])
     parser.add_argument("--warmup-start", default=None)
     parser.add_argument("--warmup-end", default=None)
@@ -38,6 +42,10 @@ def main(argv: list[str] | None = None) -> int:
         report_dir=Path(args.report_dir),
         dry_run=not args.execute,
         warmup_cache=args.warmup_cache,
+        warmup_universe=args.warmup_universe,
+        universe_name=args.universe_name,
+        universe_lookback_days=args.universe_lookback_days,
+        universe_lookback_years=args.universe_lookback_years,
         warmup_provider=args.warmup_provider,
         warmup_start=args.warmup_start,
         warmup_end=args.warmup_end,
@@ -49,7 +57,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Task name: {args.task_name}")
     print(f"Run time: {args.time}")
     print(f"Command: {result.command.metadata.get('display', '')}")
-    if args.warmup_cache:
+    if args.warmup_universe:
+        print(f"Universe warmup: universe={args.universe_name} provider={args.warmup_provider} lookback_days={args.universe_lookback_days} lookback_years={args.universe_lookback_years} frequency={args.warmup_frequency} cache_root={args.cache_root}")
+    elif args.warmup_cache:
         print(f"Warmup: provider={args.warmup_provider} start={args.warmup_start} end={args.warmup_end} frequency={args.warmup_frequency} cache_root={args.cache_root}")
     print(f"Result: {result.message}")
     if result.dry_run:
