@@ -488,3 +488,9 @@ The default warmup provider is `mock` so local tests and scheduler previews work
 后续开发前必须先阅读 `docs/qmt-ai-trading-project-roadmap.md`。
 
 阶段十七在 Research 层新增 cached research 入口。该入口只通过 `LocalBarStore` 读取已由 warmup 流程写入的本地历史 K 线，不承担下载或补齐职责。Research scoring 结果可转为 ETF candidates，并继续进入 ETF Strategy、TradeIntent、Risk Gate、Backtest / Shadow Replay 和 Reporting。当前阶段仍然 dry-run / shadow，不调用 `xttrader`、不调用真实 QMT 下单、不查询资金/持仓/订单/成交。
+
+## 阶段十八架构追加：Cached ETF Rotation
+
+后续开发前必须先阅读 `docs/qmt-ai-trading-project-roadmap.md`。
+
+阶段十八在 Research 与 Strategy Engine 之间增加 `qmt_ai_trading.strategies.cached_etf_rotation`：Research 继续只读本地缓存并输出 `ResearchScore`，Cached ETF Rotation 将 factor score 标准化为 `ETFCandidate`，再生成 dry-run `TradeIntent`。该路径不下载数据、不调用 QMT、不调用 `xttrader`、不下单，所有 TradeIntent 仍由 Daily Pipeline 送入 Risk Gate。

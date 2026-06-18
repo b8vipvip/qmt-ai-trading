@@ -48,6 +48,9 @@ def build_daily_pipeline_command(
     research_end: str | None = None,
     research_frequency: str = "1d",
     min_bars: int = 20,
+    cached_strategy_top_n: int = 1,
+    cached_strategy_min_score: float | None = None,
+    cached_strategy_min_bars: int = 20,
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -85,6 +88,10 @@ def build_daily_pipeline_command(
             args.extend(["--research-end", str(research_end)])
         args.extend(["--research-frequency", str(research_frequency)])
         args.extend(["--min-bars", str(min_bars)])
+        args.extend(["--cached-strategy-top-n", str(cached_strategy_top_n)])
+        args.extend(["--cached-strategy-min-bars", str(cached_strategy_min_bars)])
+        if cached_strategy_min_score is not None:
+            args.extend(["--cached-strategy-min-score", str(cached_strategy_min_score)])
     if write_reports:
         args.append("--write-reports")
     args.extend(["--report-dir", str(report_dir)])
@@ -130,6 +137,9 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         research_end=cfg.research_end,
         research_frequency=cfg.research_frequency,
         min_bars=cfg.min_bars,
+        cached_strategy_top_n=cfg.cached_strategy_top_n,
+        cached_strategy_min_score=cfg.cached_strategy_min_score,
+        cached_strategy_min_bars=cfg.cached_strategy_min_bars,
     )
     task_run = pipeline.metadata["display"]
     args = ["/Create", "/F", "/SC", "DAILY", "/TN", cfg.task_name, "/TR", task_run, "/ST", cfg.run_time]

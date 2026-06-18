@@ -38,10 +38,37 @@ def score_symbols_from_cache(
     for item in dataset.items:
         if item.success:
             score = score_symbol_from_bars(item.symbol, item.bars)
-            score.metrics.update({"source": "cached_research", "bar_count": item.bar_count, "cache_message": item.message})
+            factor_values = {((factor.factors[0].name if factor.factors else "factor")): factor.score for factor in score.factor_results}
+            reason = f"cached factor score={float(score.score):.4f}" if score.score is not None else "cached factor score unavailable"
+            if score.reason:
+                reason = f"{reason}; {score.reason}"
+            score.reason = reason
+            score.eligible = score.score is not None
+            score.metrics.update({
+                "source": "cached_research",
+                "bar_count": item.bar_count,
+                "cache_message": item.message,
+                "factor_values": factor_values,
+                "momentum": factor_values.get("momentum"),
+                "volatility": factor_values.get("volatility"),
+                "volume_factor": factor_values.get("volume"),
+                "reason": score.reason,
+            })
             scores.append(score)
         else:
-            scores.append(ResearchScore(item.symbol, None, False, item.message, metrics={"source": "cached_research", "bar_count": item.bar_count}))
+            missing = max(0, int(min_bars or 0) - int(item.bar_count or 0))
+            reason = item.message or f"insufficient cached bars: missing {missing} bars"
+            if item.bar_count < int(min_bars or 0) and "missing" not in reason and "insufficient" not in reason:
+                reason = f"insufficient cached bars: missing {missing} bars ({item.bar_count} < {int(min_bars or 0)})"
+            scores.append(ResearchScore(item.symbol, None, False, reason, metrics={
+                "source": "cached_research",
+                "bar_count": item.bar_count,
+                "factor_values": {},
+                "momentum": None,
+                "volatility": None,
+                "volume_factor": None,
+                "reason": reason,
+            }))
     return scores, dataset
 
 

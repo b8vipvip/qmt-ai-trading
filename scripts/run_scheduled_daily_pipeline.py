@@ -38,6 +38,9 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--research-end", default=None)
     parser.add_argument("--research-frequency", default="1d")
     parser.add_argument("--min-bars", type=int, default=20)
+    parser.add_argument("--cached-strategy-top-n", type=int, default=1)
+    parser.add_argument("--cached-strategy-min-score", type=float, default=None)
+    parser.add_argument("--cached-strategy-min-bars", type=int, default=20)
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -57,6 +60,9 @@ def main(argv: list[str] | None = None) -> int:
         if parsed.research_end:
             args.extend(["--research-end", parsed.research_end])
         args.extend(["--research-frequency", parsed.research_frequency, "--min-bars", str(parsed.min_bars)])
+        args.extend(["--cached-strategy-top-n", str(parsed.cached_strategy_top_n), "--cached-strategy-min-bars", str(parsed.cached_strategy_min_bars)])
+        if parsed.cached_strategy_min_score is not None:
+            args.extend(["--cached-strategy-min-score", str(parsed.cached_strategy_min_score)])
     with log_path.open("w", encoding="utf-8") as log_file:
         log_file.write("QMT AI Trading scheduled dry-run pipeline\n")
         log_file.write(f"Started at: {datetime.now().isoformat()}\n")
