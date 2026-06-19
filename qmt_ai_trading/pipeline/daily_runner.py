@@ -142,6 +142,17 @@ def run_daily_signal_pipeline(
     live_env_check_max_portfolio_weight: float = 0.2,
     live_env_check_operator_name: str = "",
     live_env_check_reviewer_name: str = "",
+    enable_final_authorization_package: bool = False,
+    final_authorization_output_dir: str = "final_authorization",
+    final_authorization_allowed_symbols: Iterable[str] | None = None,
+    final_authorization_max_total_capital: float = 5000.0,
+    final_authorization_max_single_order_value: float = 1000.0,
+    final_authorization_max_symbol_weight: float = 0.1,
+    final_authorization_max_portfolio_weight: float = 0.2,
+    final_authorization_operator_name: str = "",
+    final_authorization_reviewer_name: str = "",
+    final_authorization_risk_owner_name: str = "",
+    final_authorization_final_approver_name: str = "",
 ) -> PipelineResult:
     """Run the generic daily signal pipeline without connecting to real QMT trading."""
 
@@ -548,6 +559,45 @@ def run_daily_signal_pipeline(
             _record_step(steps, "live_env_check", False, "Live Environment Check generation failed", errors=[repr(exc)])
         result.success = all(step.success for step in steps)
 
+    if enable_final_authorization_package:
+        try:
+            from pathlib import Path
+            from qmt_ai_trading.final_authorization.safety import build_default_final_authorization_config
+            from qmt_ai_trading.final_authorization.service import run_final_authorization_package_from_files, save_final_authorization_package
+            cfg = build_default_final_authorization_config(
+                allowed_symbols=list(final_authorization_allowed_symbols or ctx.symbols or []),
+                max_total_capital=final_authorization_max_total_capital,
+                max_single_order_value=final_authorization_max_single_order_value,
+                max_symbol_weight=final_authorization_max_symbol_weight,
+                max_portfolio_weight=final_authorization_max_portfolio_weight,
+                operator_name=final_authorization_operator_name,
+                reviewer_name=final_authorization_reviewer_name,
+                risk_owner_name=final_authorization_risk_owner_name,
+                final_approver_name=final_authorization_final_approver_name,
+                metadata={"pipeline_run_id": ctx.run_id},
+            )
+            package = run_final_authorization_package_from_files(
+                config=cfg,
+                live_env_check_report=(result.metadata.get("live_env_check", {}) or {}).get("output_path") if isinstance(result.metadata.get("live_env_check"), dict) else None,
+                live_manual_prep_package=(result.metadata.get("live_manual_prep", {}) or {}).get("output_path") if isinstance(result.metadata.get("live_manual_prep"), dict) else None,
+                gray_decision_package=(result.metadata.get("gray_decision_package", {}) or {}).get("output_path") if isinstance(result.metadata.get("gray_decision_package"), dict) else None,
+                gray_rehearsal_report=(result.metadata.get("gray_rehearsal", {}) or {}).get("output_path") if isinstance(result.metadata.get("gray_rehearsal"), dict) else None,
+                live_gray_report=(result.metadata.get("live_gray_readiness", {}) or {}).get("output_path") if isinstance(result.metadata.get("live_gray_readiness"), dict) else None,
+                monitoring_report=(result.metadata.get("monitoring", {}) or {}).get("output_path") if isinstance(result.metadata.get("monitoring"), dict) else None,
+                data_quality_report=(result.metadata.get("data_quality_tracking", {}) or {}).get("output_path") if isinstance(result.metadata.get("data_quality_tracking"), dict) else None,
+                agent_memo=(result.metadata.get("agent_research", {}) or {}).get("output_path") if isinstance(result.metadata.get("agent_research"), dict) else None,
+                notification_dry_run_report=(result.metadata.get("notification_dry_run", {}) or {}).get("output_path") if isinstance(result.metadata.get("notification_dry_run"), dict) else None,
+                dashboard_path=result.metadata.get("dashboard_path"),
+            )
+            out_dir = Path(final_authorization_output_dir); md_path = out_dir / f"{ctx.run_id}.final_authorization.md"; json_path = out_dir / f"{ctx.run_id}.final_authorization.json"
+            save_final_authorization_package(package, md_path); save_final_authorization_package(package, json_path)
+            result.metadata["final_authorization_package"] = {"package_id": package.package_id, "decision": getattr(package.decision, "value", package.decision), "output_path": str(md_path), "json_output_path": str(json_path), "warnings": package.warnings, "blocked_reasons": package.blocked_reasons, "safety_note": package.safety_note}
+            _record_step(steps, "final_authorization_package", True, f"generated review-only Final Authorization Package: {md_path}", {"output_path": str(md_path)})
+        except Exception as exc:
+            result.metadata["final_authorization_package_error"] = repr(exc)
+            _record_step(steps, "final_authorization_package", False, "Final Authorization Package generation failed", errors=[repr(exc)])
+        result.success = all(step.success for step in steps)
+
     from qmt_ai_trading.pipeline.report import format_pipeline_report
 
     result.report_text = format_pipeline_report(result)
@@ -657,6 +707,17 @@ def run_etf_daily_pipeline(
     live_env_check_max_portfolio_weight: float = 0.2,
     live_env_check_operator_name: str = "",
     live_env_check_reviewer_name: str = "",
+    enable_final_authorization_package: bool = False,
+    final_authorization_output_dir: str = "final_authorization",
+    final_authorization_allowed_symbols: Iterable[str] | None = None,
+    final_authorization_max_total_capital: float = 5000.0,
+    final_authorization_max_single_order_value: float = 1000.0,
+    final_authorization_max_symbol_weight: float = 0.1,
+    final_authorization_max_portfolio_weight: float = 0.2,
+    final_authorization_operator_name: str = "",
+    final_authorization_reviewer_name: str = "",
+    final_authorization_risk_owner_name: str = "",
+    final_authorization_final_approver_name: str = "",
 ) -> PipelineResult:
     """Run the default ETF daily pipeline using the Data Hub ETF universe."""
 
@@ -769,4 +830,15 @@ def run_etf_daily_pipeline(
         live_env_check_max_portfolio_weight=live_env_check_max_portfolio_weight,
         live_env_check_operator_name=live_env_check_operator_name,
         live_env_check_reviewer_name=live_env_check_reviewer_name,
+        enable_final_authorization_package=enable_final_authorization_package,
+        final_authorization_output_dir=final_authorization_output_dir,
+        final_authorization_allowed_symbols=final_authorization_allowed_symbols,
+        final_authorization_max_total_capital=final_authorization_max_total_capital,
+        final_authorization_max_single_order_value=final_authorization_max_single_order_value,
+        final_authorization_max_symbol_weight=final_authorization_max_symbol_weight,
+        final_authorization_max_portfolio_weight=final_authorization_max_portfolio_weight,
+        final_authorization_operator_name=final_authorization_operator_name,
+        final_authorization_reviewer_name=final_authorization_reviewer_name,
+        final_authorization_risk_owner_name=final_authorization_risk_owner_name,
+        final_authorization_final_approver_name=final_authorization_final_approver_name,
     )

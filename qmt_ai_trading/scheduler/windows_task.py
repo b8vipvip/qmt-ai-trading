@@ -131,6 +131,13 @@ def build_daily_pipeline_command(
     live_env_check_max_single_order_value: float = 1000.0,
     live_env_check_max_symbol_weight: float = 0.1,
     live_env_check_max_portfolio_weight: float = 0.2,
+    enable_final_authorization_package: bool = False,
+    final_authorization_output_dir: str | Path = Path("final_authorization"),
+    final_authorization_allowed_symbols: str = "",
+    final_authorization_max_total_capital: float = 5000.0,
+    final_authorization_max_single_order_value: float = 1000.0,
+    final_authorization_max_symbol_weight: float = 0.1,
+    final_authorization_max_portfolio_weight: float = 0.2,
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -264,6 +271,13 @@ def build_daily_pipeline_command(
             args.extend(["--live-env-check-allowed-symbols", str(live_env_check_allowed_symbols)])
         args.extend(["--live-env-check-max-total-capital", str(live_env_check_max_total_capital), "--live-env-check-max-single-order-value", str(live_env_check_max_single_order_value)])
         args.extend(["--live-env-check-max-symbol-weight", str(live_env_check_max_symbol_weight), "--live-env-check-max-portfolio-weight", str(live_env_check_max_portfolio_weight)])
+    if enable_final_authorization_package:
+        args.append("--enable-final-authorization-package")
+        args.extend(["--final-authorization-output-dir", str(final_authorization_output_dir)])
+        if final_authorization_allowed_symbols:
+            args.extend(["--final-authorization-allowed-symbols", str(final_authorization_allowed_symbols)])
+        args.extend(["--final-authorization-max-total-capital", str(final_authorization_max_total_capital), "--final-authorization-max-single-order-value", str(final_authorization_max_single_order_value)])
+        args.extend(["--final-authorization-max-symbol-weight", str(final_authorization_max_symbol_weight), "--final-authorization-max-portfolio-weight", str(final_authorization_max_portfolio_weight)])
     if build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
@@ -410,6 +424,13 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         live_env_check_max_single_order_value=cfg.live_env_check_max_single_order_value,
         live_env_check_max_symbol_weight=cfg.live_env_check_max_symbol_weight,
         live_env_check_max_portfolio_weight=cfg.live_env_check_max_portfolio_weight,
+        enable_final_authorization_package=cfg.enable_final_authorization_package,
+        final_authorization_output_dir=cfg.final_authorization_output_dir,
+        final_authorization_allowed_symbols=cfg.final_authorization_allowed_symbols,
+        final_authorization_max_total_capital=cfg.final_authorization_max_total_capital,
+        final_authorization_max_single_order_value=cfg.final_authorization_max_single_order_value,
+        final_authorization_max_symbol_weight=cfg.final_authorization_max_symbol_weight,
+        final_authorization_max_portfolio_weight=cfg.final_authorization_max_portfolio_weight,
     )
     task_run = pipeline.metadata["display"]
     args = ["/Create", "/F", "/SC", "DAILY", "/TN", cfg.task_name, "/TR", task_run, "/ST", cfg.run_time]

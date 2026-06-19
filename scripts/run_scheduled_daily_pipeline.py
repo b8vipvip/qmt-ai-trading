@@ -134,6 +134,17 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--live-env-check-max-portfolio-weight", type=float, default=0.2)
     parser.add_argument("--live-env-check-operator-name", default="")
     parser.add_argument("--live-env-check-reviewer-name", default="")
+    parser.add_argument("--enable-final-authorization-package", action="store_true")
+    parser.add_argument("--final-authorization-output-dir", default="final_authorization")
+    parser.add_argument("--final-authorization-allowed-symbols", default="")
+    parser.add_argument("--final-authorization-max-total-capital", type=float, default=5000.0)
+    parser.add_argument("--final-authorization-max-single-order-value", type=float, default=1000.0)
+    parser.add_argument("--final-authorization-max-symbol-weight", type=float, default=0.1)
+    parser.add_argument("--final-authorization-max-portfolio-weight", type=float, default=0.2)
+    parser.add_argument("--final-authorization-operator-name", default="")
+    parser.add_argument("--final-authorization-reviewer-name", default="")
+    parser.add_argument("--final-authorization-risk-owner-name", default="")
+    parser.add_argument("--final-authorization-final-approver-name", default="")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -237,6 +248,14 @@ def main(argv: list[str] | None = None) -> int:
             args.extend(["--live-manual-prep-allowed-symbols", parsed.live_manual_prep_allowed_symbols])
         args.extend(["--live-manual-prep-max-total-capital", str(parsed.live_manual_prep_max_total_capital), "--live-manual-prep-max-single-order-value", str(parsed.live_manual_prep_max_single_order_value)])
         args.extend(["--live-manual-prep-max-symbol-weight", str(parsed.live_manual_prep_max_symbol_weight), "--live-manual-prep-max-portfolio-weight", str(parsed.live_manual_prep_max_portfolio_weight)])
+
+    if parsed.enable_final_authorization_package:
+        args.append("--enable-final-authorization-package")
+        args.extend(["--final-authorization-output-dir", parsed.final_authorization_output_dir])
+        if parsed.final_authorization_allowed_symbols:
+            args.extend(["--final-authorization-allowed-symbols", parsed.final_authorization_allowed_symbols])
+        args.extend(["--final-authorization-max-total-capital", str(parsed.final_authorization_max_total_capital), "--final-authorization-max-single-order-value", str(parsed.final_authorization_max_single_order_value)])
+        args.extend(["--final-authorization-max-symbol-weight", str(parsed.final_authorization_max_symbol_weight), "--final-authorization-max-portfolio-weight", str(parsed.final_authorization_max_portfolio_weight)])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])

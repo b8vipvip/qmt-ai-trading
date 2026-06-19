@@ -125,6 +125,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-env-check-max-portfolio-weight", type=float, default=0.2)
     parser.add_argument("--live-env-check-operator-name", default="")
     parser.add_argument("--live-env-check-reviewer-name", default="")
+    parser.add_argument("--enable-final-authorization-package", action="store_true")
+    parser.add_argument("--final-authorization-output-dir", default="final_authorization")
+    parser.add_argument("--final-authorization-allowed-symbols", default="")
+    parser.add_argument("--final-authorization-max-total-capital", type=float, default=5000.0)
+    parser.add_argument("--final-authorization-max-single-order-value", type=float, default=1000.0)
+    parser.add_argument("--final-authorization-max-symbol-weight", type=float, default=0.1)
+    parser.add_argument("--final-authorization-max-portfolio-weight", type=float, default=0.2)
+    parser.add_argument("--final-authorization-operator-name", default="")
+    parser.add_argument("--final-authorization-reviewer-name", default="")
+    parser.add_argument("--final-authorization-risk-owner-name", default="")
+    parser.add_argument("--final-authorization-final-approver-name", default="")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -223,6 +234,17 @@ def main(argv: list[str] | None = None) -> int:
         live_env_check_max_portfolio_weight=args.live_env_check_max_portfolio_weight,
         live_env_check_operator_name=args.live_env_check_operator_name,
         live_env_check_reviewer_name=args.live_env_check_reviewer_name,
+        enable_final_authorization_package=args.enable_final_authorization_package,
+        final_authorization_output_dir=args.final_authorization_output_dir,
+        final_authorization_allowed_symbols=[x.strip() for x in args.final_authorization_allowed_symbols.split(",") if x.strip()] or None,
+        final_authorization_max_total_capital=args.final_authorization_max_total_capital,
+        final_authorization_max_single_order_value=args.final_authorization_max_single_order_value,
+        final_authorization_max_symbol_weight=args.final_authorization_max_symbol_weight,
+        final_authorization_max_portfolio_weight=args.final_authorization_max_portfolio_weight,
+        final_authorization_operator_name=args.final_authorization_operator_name,
+        final_authorization_reviewer_name=args.final_authorization_reviewer_name,
+        final_authorization_risk_owner_name=args.final_authorization_risk_owner_name,
+        final_authorization_final_approver_name=args.final_authorization_final_approver_name,
     )
     print(result.report_text)
 
@@ -296,6 +318,8 @@ def main(argv: list[str] | None = None) -> int:
             include_live_manual_prep=args.enable_live_manual_prep,
             live_env_check_dir=args.live_env_check_output_dir,
             include_live_env_check=args.enable_live_env_check,
+            final_authorization_dir=args.final_authorization_output_dir,
+            include_final_authorization=args.enable_final_authorization_package,
         )
         _, dashboard_path = build_and_save_dashboard(dashboard_config)
         print(f"\nRead-only dashboard written: {dashboard_path}")

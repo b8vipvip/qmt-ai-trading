@@ -117,6 +117,13 @@ class ScheduleConfig:
     live_env_check_max_single_order_value: float = 1000.0
     live_env_check_max_symbol_weight: float = 0.1
     live_env_check_max_portfolio_weight: float = 0.2
+    enable_final_authorization_package: bool = False
+    final_authorization_output_dir: Path = Path("final_authorization")
+    final_authorization_allowed_symbols: str = ""
+    final_authorization_max_total_capital: float = 5000.0
+    final_authorization_max_single_order_value: float = 1000.0
+    final_authorization_max_symbol_weight: float = 0.1
+    final_authorization_max_portfolio_weight: float = 0.2
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

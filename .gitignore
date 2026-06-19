@@ -357,3 +357,27 @@ data_cache/
 !qmt_ai_trading/live_env_check/
 !qmt_ai_trading/live_env_check/*.py
 market_data_test_stage38/
+
+# Stage 39 final authorization and runtime outputs
+final_authorization/
+final_authorization_stage39/
+live_env_check_stage39/
+live_manual_prep_stage39/
+gray_decision_stage39/
+gray_rehearsal_stage39/
+notification_dryrun_stage39/
+data_quality_tracking_stage39/
+dashboard_stage39/
+agent_reports_stage39/
+monitoring_reports_stage39/
+live_gray_reports_stage39/
+reports/
+logs/
+approvals/
+paper_orders/
+market_data/
+data_cache/
+*.final_authorization.json
+*.final_authorization.md
+!qmt_ai_trading/final_authorization/
+!qmt_ai_trading/final_authorization/*.py
