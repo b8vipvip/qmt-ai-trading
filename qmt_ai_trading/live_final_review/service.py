@@ -13,8 +13,8 @@ def build_default_live_final_review_config(repo_root: str|Path='.', **kwargs: An
         if v is not None and hasattr(cfg,k): setattr(cfg,k,str(v) if isinstance(v,Path) else v)
     return cfg
 def _summary_items(decision):
-    titles=['Stage46 签字封版读取状态','Stage45 运行手册读取状态','Stage44 环境快照读取状态','Stage43 配置封存读取状态','当前材料决策','当前缺口摘要','安全声明','只读边界','Risk Gate / Human Approval 边界','Scheduler preview 边界','未来真实执行仍需单独审批声明']
-    return [GoNoGoSummaryItem(item_id=f'summary-{i}',title=t,summary=f'{t} 已纳入 Stage47 最终只读材料汇总；当前材料决策={enum_value(decision)}；不代表实盘授权。',confirmations=['只读材料状态','不调用 xttrader','不查询真实账户','不下单','不真实发送通知','未来真实执行仍需单独审批']) for i,t in enumerate(titles,1)]
+    details=[('Stage46 签字封版读取状态','确认 live_signoff、manual_signoff 与 incident_rehearsal 是否齐备。'),('Stage45 运行手册读取状态','确认运行手册、人工演练与事件预案是否可供最终复核。'),('Stage44 环境快照读取状态','确认环境快照、安全边界与忽略规则是否留痕。'),('Stage43 配置封存读取状态','确认配置冻结与签字冻结证据是否可追溯。'),('当前材料决策',f'当前 Stage47 材料决策={enum_value(decision)}，仅代表材料状态。'),('当前缺口摘要','汇总缺失证据与 NEED_MORE_EVIDENCE 项，补证前不得升级。'),('安全声明','明确不实盘、不下单、不调用 xttrader、不查询真实账户。'),('只读边界','仅读取本地 Markdown/JSON/忽略规则与运行日志索引。'),('Risk Gate / Human Approval 边界','不绕过 Risk Gate 或 Human Approval，不自动 approve。'),('Scheduler preview 边界','调度相关输出仅为 preview/dry-run，不注册真实任务。'),('未来真实执行仍需单独审批声明','任何未来真实执行均需另行人工审批与阶段验收。')]
+    return [GoNoGoSummaryItem(item_id=f'summary-{i}',title=t,summary=f'{detail} 不代表实盘授权。',confirmations=['只读材料状态','不调用 xttrader','不查询真实账户','不下单','不真实发送通知','未来真实执行仍需单独审批']) for i,(t,detail) in enumerate(details,1)]
 def _signatures():
     roles=['演练主持人签字核验','风险负责人签字核验','运行负责人签字核验','配置冻结复核人签字核验','最终授权人签字核验']
     return [SignatureVerificationItem(item_id=f'signature-{i}',role=r,statement=f'{r}确认材料仅用于最终只读 go/no-go 人工复核；不代表实盘授权；未来真实执行仍需单独审批。') for i,r in enumerate(roles,1)]

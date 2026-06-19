@@ -142,6 +142,8 @@ class ScheduleConfig:
     live_signoff_output_dir: Path = Path("live_signoff")
     enable_live_final_review: bool = False
     live_final_review_output_dir: Path = Path("live_final_review")
+    enable_live_archive: bool = False
+    live_archive_output_dir: Path = Path("live_archive")
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

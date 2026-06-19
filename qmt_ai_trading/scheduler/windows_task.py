@@ -156,6 +156,8 @@ def build_daily_pipeline_command(
     live_signoff_output_dir: Path | str = Path("live_signoff"),
     enable_live_final_review: bool = False,
     live_final_review_output_dir: Path | str = Path("live_final_review"),
+    enable_live_archive: bool = False,
+    live_archive_output_dir: Path | str = Path("live_archive"),
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -329,6 +331,9 @@ def build_daily_pipeline_command(
     if enable_live_final_review:
         args.append("--enable-live-final-review")
         args.extend(["--live-final-review-output-dir", str(live_final_review_output_dir)])
+    if enable_live_archive:
+        args.append("--enable-live-archive")
+        args.extend(["--live-archive-output-dir", str(live_archive_output_dir)])
     if build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
@@ -495,6 +500,8 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         live_signoff_output_dir=cfg.live_signoff_output_dir,
         enable_live_final_review=cfg.enable_live_final_review,
         live_final_review_output_dir=cfg.live_final_review_output_dir,
+        enable_live_archive=cfg.enable_live_archive,
+        live_archive_output_dir=cfg.live_archive_output_dir,
         final_authorization_allowed_symbols=cfg.final_authorization_allowed_symbols,
         final_authorization_max_total_capital=cfg.final_authorization_max_total_capital,
         final_authorization_max_single_order_value=cfg.final_authorization_max_single_order_value,

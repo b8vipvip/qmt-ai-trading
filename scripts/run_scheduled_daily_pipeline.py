@@ -163,6 +163,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--live-signoff-output-dir", default="live_signoff")
     parser.add_argument("--enable-live-final-review", action="store_true")
     parser.add_argument("--live-final-review-output-dir", default="live_final_review")
+    parser.add_argument("--enable-live-archive", action="store_true")
+    parser.add_argument("--live-archive-output-dir", default="live_archive")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -302,6 +304,9 @@ def main(argv: list[str] | None = None) -> int:
     if parsed.enable_live_final_review:
         args.append("--enable-live-final-review")
         args.extend(["--live-final-review-output-dir", parsed.live_final_review_output_dir])
+    if parsed.enable_live_archive:
+        args.append("--enable-live-archive")
+        args.extend(["--live-archive-output-dir", parsed.live_archive_output_dir])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])
