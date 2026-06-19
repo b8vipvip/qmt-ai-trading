@@ -6,6 +6,9 @@ from .models import LiveEnvCheckConfig, LiveEnvCheckDecision, LiveEnvCheckItem, 
 from .safety import contains_forbidden_live_env_action
 
 def _item(cid, scope, status, title, msg="", evidence=None, remediation="", metadata=None): return LiveEnvCheckItem(cid, scope, status, title, msg, list(evidence or []), remediation, dict(metadata or {}))
+def _status_value(value): return getattr(value, "value", str(value))
+def _scope_value(value): return getattr(value, "value", str(value))
+def _warning_text(item): return f"{item.check_id} [{_scope_value(item.scope)}] {item.message}"
 def _read(text=None, path=None):
     if text is not None: return text, ["inline text"]
     if not path: return "", []
@@ -34,8 +37,9 @@ def check_no_sensitive_files(repo_root):
     root=Path(repo_root); bad=[]
     for p in root.iterdir():
         n=p.name.lower()
-        if n==".env" or any(x in n for x in ("token","password","secret")): bad.append(p.name)
-    return _item("no_sensitive_files", S.SECURITY, St.FAIL if bad else St.PASS, "No obvious sensitive files at repo root", "Potential sensitive files: "+", ".join(bad) if bad else "No obvious sensitive files found at repo root; file contents were not read.", bad, "Move secrets outside repo and keep .env untracked.")
+        if n==".env" or any(x in n for x in ("token","key","password","secret")): bad.append(p.name)
+    msg="Potential sensitive files at repo root: "+", ".join(bad)+". File contents were not read." if bad else "No obvious sensitive files found at repo root; file contents were not read."
+    return _item("no_sensitive_files", S.SECURITY, St.FAIL if bad else St.PASS, "No obvious sensitive files at repo root", msg, bad, "Move secrets outside the repository root and keep .env outside repo.")
 
 def check_scheduler_preview_text(text):
     bad=contains_forbidden_live_env_action(text or "") or "--live-enabled" in (text or "") or "--execute-live" in (text or "") or "real-send" in (text or "")
@@ -68,10 +72,12 @@ def check_live_manual_prep_evidence(text=None, path=None): return _evidence_chec
 def check_risk_approval_paper_chain(text=None, path=None): return _evidence_check("risk_approval_paper_chain", S.RISK, "Risk / Approval / Paper safety chain exists", text, path)
 
 def aggregate_live_env_checks(checks, config):
-    critical={S.SECURITY.value,S.SCHEDULER.value,S.CONFIG.value,S.RISK.value,S.SECURITY,S.SCHEDULER,S.CONFIG,S.RISK}
-    fails=[c for c in checks if str(c.status)==St.FAIL.value]
-    blockers=[c for c in fails if c.scope in critical or str(c.scope) in critical]
-    missing=[c for c in checks if str(c.status)==St.WARN.value]
-    if blockers: return LiveEnvCheckDecision.BLOCKED, [f"{c.check_id}: {c.message}" for c in blockers], [c.message for c in missing]
-    if fails or missing: return LiveEnvCheckDecision.NEED_MORE_EVIDENCE, [], [c.message for c in missing+fails]
+    critical={S.SECURITY.value,S.SCHEDULER.value,S.CONFIG.value,S.RISK.value}
+    fails=[c for c in checks if _status_value(c.status)==St.FAIL.value]
+    warns=[c for c in checks if _status_value(c.status)==St.WARN.value]
+    blockers=[c for c in fails if _scope_value(c.scope) in critical]
+    warning_items=warns+fails
+    warnings=[_warning_text(c) for c in warning_items]
+    if blockers: return LiveEnvCheckDecision.BLOCKED, [_warning_text(c) for c in blockers], warnings
+    if fails or warns: return LiveEnvCheckDecision.NEED_MORE_EVIDENCE, [], warnings
     return LiveEnvCheckDecision.READY_FOR_ENV_REVIEW, [], []

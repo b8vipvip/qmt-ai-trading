@@ -65,3 +65,47 @@ def test_gitignore_and_roadmap_stage38_stage39():
 
 def test_sync_all_not_touched_expected_path_exists():
     assert (ROOT/"scripts/sync_all.ps1").exists()
+
+def test_security_fail_forces_blocked_decision():
+    env_file = ROOT / ".env"
+    try:
+        env_file.write_text("DUMMY=1\n", encoding="utf-8")
+        cfg=LiveEnvCheckConfig(allowed_symbols=["510300.SH"], max_total_capital=5000, max_single_order_value=1000)
+        report=run_live_env_check(repo_root=ROOT, config=cfg, scheduler_preview_text="safe preview text")
+        assert report.decision == LiveEnvCheckDecision.BLOCKED
+        assert any("no_sensitive_files" in x for x in report.blocked_reasons)
+    finally:
+        if env_file.exists():
+            env_file.unlink()
+
+def test_env_presence_never_ready_for_env_review():
+    env_file = ROOT / ".env"
+    try:
+        env_file.write_text("DUMMY=1\n", encoding="utf-8")
+        cfg=LiveEnvCheckConfig(allowed_symbols=["510300.SH"], max_total_capital=5000, max_single_order_value=1000)
+        report=run_live_env_check(repo_root=ROOT, config=cfg, scheduler_preview_text="safe preview text")
+        assert report.decision != LiveEnvCheckDecision.READY_FOR_ENV_REVIEW
+        assert report.decision == LiveEnvCheckDecision.BLOCKED
+    finally:
+        if env_file.exists():
+            env_file.unlink()
+
+def test_markdown_warnings_lists_warn_and_fail_items():
+    env_file = ROOT / ".env"
+    try:
+        env_file.write_text("DUMMY=1\n", encoding="utf-8")
+        cfg=LiveEnvCheckConfig(allowed_symbols=["510300.SH"], max_total_capital=5000, max_single_order_value=1000)
+        report=run_live_env_check(repo_root=ROOT, config=cfg, scheduler_preview_text="safe preview text")
+        md=format_live_env_check_report_markdown(report)
+        assert "## Warnings" in md
+        assert "no_sensitive_files [SECURITY]" in md
+        assert "scheduler_preview_missing [SCHEDULER]" not in md
+        assert "dashboard_read_only [DASHBOARD]" in md
+    finally:
+        if env_file.exists():
+            env_file.unlink()
+
+def test_markdown_has_no_known_garbled_characters():
+    md=format_live_env_check_report_markdown(LiveEnvCheckReport())
+    assert "鈥" not in md
+    assert "闃" not in md
