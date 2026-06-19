@@ -166,6 +166,8 @@ def build_daily_pipeline_command(
     live_archive_lock_output_dir: Path | str = Path("live_archive_lock"),
     enable_live_lock_consistency: bool = False,
     live_lock_consistency_output_dir: Path | str = Path("live_lock_consistency"),
+    enable_live_archive_verification: bool = False,
+    live_archive_verification_output_dir: Path | str = Path("live_archive_verification"),
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -354,6 +356,9 @@ def build_daily_pipeline_command(
     if enable_live_lock_consistency:
         args.append("--enable-live-lock-consistency")
         args.extend(["--live-lock-consistency-output-dir", str(live_lock_consistency_output_dir)])
+    if enable_live_archive_verification:
+        args.append("--enable-live-archive-verification")
+        args.extend(["--live-archive-verification-output-dir", str(live_archive_verification_output_dir)])
     if build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
@@ -530,6 +535,8 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         live_archive_lock_output_dir=cfg.live_archive_lock_output_dir,
         enable_live_lock_consistency=cfg.enable_live_lock_consistency,
         live_lock_consistency_output_dir=cfg.live_lock_consistency_output_dir,
+        enable_live_archive_verification=cfg.enable_live_archive_verification,
+        live_archive_verification_output_dir=cfg.live_archive_verification_output_dir,
         final_authorization_allowed_symbols=cfg.final_authorization_allowed_symbols,
         final_authorization_max_total_capital=cfg.final_authorization_max_total_capital,
         final_authorization_max_single_order_value=cfg.final_authorization_max_single_order_value,

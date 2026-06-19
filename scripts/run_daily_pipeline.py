@@ -164,6 +164,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-archive-lock-output-dir", default="live_archive_lock")
     parser.add_argument("--enable-live-lock-consistency", action="store_true")
     parser.add_argument("--live-lock-consistency-output-dir", default="live_lock_consistency")
+    parser.add_argument("--enable-live-archive-verification", action="store_true")
+    parser.add_argument("--live-archive-verification-output-dir", default="live_archive_verification")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -515,6 +517,20 @@ def main(argv: list[str] | None = None) -> int:
         save_human_closure_recheck_report(human_recheck_report, lc_dir / "human_closure_recheck.md", lc_dir / "human_closure_recheck.json")
         save_next_readonly_check_report(readonly_plan_report, lc_dir / "next_readonly_check_plan.md", lc_dir / "next_readonly_check_plan.json")
         print(f"\nStage52 final read-only lock consistency package written: {lc_dir / 'live_lock_consistency.md'}")
+
+    if args.enable_live_archive_verification:
+        from qmt_ai_trading.live_archive_verification.service import build_default_live_archive_verification_config, run_human_closure_recheck, run_live_archive_verification, run_locked_material_review, run_next_readonly_check, save_human_closure_recheck_report, save_live_archive_verification_report, save_locked_material_review_report, save_next_readonly_check_report
+        av_dir = Path(args.live_archive_verification_output_dir)
+        av_config = build_default_live_archive_verification_config(repo_root=ROOT, output_dir=str(av_dir))
+        av_report = run_live_archive_verification(av_config)
+        locked_report = run_locked_material_review(av_report)
+        human_recheck_report = run_human_closure_recheck(av_report)
+        readonly_plan_report = run_next_readonly_check(av_report)
+        save_live_archive_verification_report(av_report, av_dir / "live_archive_verification.md", av_dir / "live_archive_verification.json")
+        save_locked_material_review_report(locked_report, av_dir / "locked_material_review.md", av_dir / "locked_material_review.json")
+        save_human_closure_recheck_report(human_recheck_report, av_dir / "human_closure_recheck.md", av_dir / "human_closure_recheck.json")
+        save_next_readonly_check_report(readonly_plan_report, av_dir / "next_readonly_check_plan.md", av_dir / "next_readonly_check_plan.json")
+        print(f"\nStage53 final read-only archive verification package written: {av_dir / 'live_archive_verification.md'}")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
