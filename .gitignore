@@ -414,3 +414,12 @@ market_data_test_stage41/
 !qmt_ai_trading/live_gray_ledger/
 !qmt_ai_trading/live_gray_ledger/*.py
 qmt_ai_trading/live_gray_ledger/__pycache__/
+
+# stage 42 live gray review local outputs
+validation_logs/
+live_gray_review_stage42/
+live_gray_review/
+market_data_test_stage42/
+!qmt_ai_trading/live_gray_review/
+!qmt_ai_trading/live_gray_review/*.py
+qmt_ai_trading/live_gray_review/__pycache__/
