@@ -160,6 +160,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-consistency-output-dir", default="live_consistency")
     parser.add_argument("--enable-live-final-archive", action="store_true")
     parser.add_argument("--live-final-archive-output-dir", default="live_final_archive")
+    parser.add_argument("--enable-live-archive-lock", action="store_true")
+    parser.add_argument("--live-archive-lock-output-dir", default="live_archive_lock")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -483,6 +485,20 @@ def main(argv: list[str] | None = None) -> int:
         save_human_closure_report(human_closure_report, final_archive_dir / "human_closure.md", final_archive_dir / "human_closure.json")
         save_next_readonly_check_report(readonly_plan_report, final_archive_dir / "next_readonly_check_plan.md", final_archive_dir / "next_readonly_check_plan.json")
         print(f"\nStage50 final archive read-only package written: {final_archive_dir / 'live_final_archive.md'}")
+
+    if args.enable_live_archive_lock:
+        from qmt_ai_trading.live_archive_lock.service import build_default_live_archive_lock_config, run_archive_lock, run_human_closure_recheck, run_live_archive_lock, run_next_readonly_check, save_archive_lock_report, save_human_closure_recheck_report, save_live_archive_lock_report, save_next_readonly_check_report
+        lock_dir = Path(args.live_archive_lock_output_dir)
+        lock_config = build_default_live_archive_lock_config(repo_root=ROOT, output_dir=str(lock_dir))
+        lock_report = run_live_archive_lock(lock_config)
+        archive_lock_report = run_archive_lock(lock_report)
+        human_recheck_report = run_human_closure_recheck(lock_report)
+        readonly_plan_report = run_next_readonly_check(lock_report)
+        save_live_archive_lock_report(lock_report, lock_dir / "live_archive_lock.md", lock_dir / "live_archive_lock.json")
+        save_archive_lock_report(archive_lock_report, lock_dir / "archive_lock.md", lock_dir / "archive_lock.json")
+        save_human_closure_recheck_report(human_recheck_report, lock_dir / "human_closure_recheck.md", lock_dir / "human_closure_recheck.json")
+        save_next_readonly_check_report(readonly_plan_report, lock_dir / "next_readonly_check_plan.md", lock_dir / "next_readonly_check_plan.json")
+        print(f"\nStage51 final read-only archive lock package written: {lock_dir / 'live_archive_lock.md'}")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
