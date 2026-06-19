@@ -1,5 +1,5 @@
 from __future__ import annotations
-import subprocess, sys
+import importlib.util, subprocess, sys
 from pathlib import Path
 from qmt_ai_trading.final_authorization.models import FinalAuthorizationConfig, FinalAuthorizationPackage, FinalAuthorizationDecision, FinalAuthorizationEvidenceType, SAFETY_NOTE
 from qmt_ai_trading.final_authorization.safety import contains_forbidden_final_authorization_action
@@ -9,6 +9,17 @@ from qmt_ai_trading.final_authorization.formatters import format_final_authoriza
 from qmt_ai_trading.dashboard.collector import collect_final_authorization_section
 from qmt_ai_trading.dashboard.models import DashboardConfig, DashboardStatus
 ROOT=Path(__file__).resolve().parents[1]
+
+
+def test_formatters_module_exists_and_importable():
+    path = ROOT / "qmt_ai_trading/final_authorization/formatters.py"
+    assert path.exists()
+    spec = importlib.util.find_spec("qmt_ai_trading.final_authorization.formatters")
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    assert hasattr(module, "format_final_authorization_package_markdown")
 
 def test_models_instantiable():
     assert FinalAuthorizationConfig().max_total_capital == 5000.0
@@ -28,7 +39,12 @@ def test_collect_missing_and_blocker(tmp_path):
 def test_run_no_input_and_format():
     pkg=run_final_authorization_package()
     assert getattr(pkg.decision,"value",pkg.decision) in {FinalAuthorizationDecision.NEED_MORE_EVIDENCE.value, FinalAuthorizationDecision.NOT_AUTHORIZED.value}
-    assert "review-only and dry-run" in format_final_authorization_package_markdown(pkg)
+    md = format_final_authorization_package_markdown(pkg)
+    assert "review-only and dry-run" in md
+    assert "新阶段必须单独人工确认" in md
+    assert "阶段四十：实盘开关隔离与最终红线复核" in md
+    for marker in ["鏂", "闃", "鈥"]:
+        assert marker not in md
 
 def test_cli_generates_markdown_json(tmp_path):
     md=tmp_path/"final_authorization.md"; js=tmp_path/"final_authorization.json"
@@ -49,7 +65,8 @@ def test_register_preview_final_authorization_safe():
     out=r.stdout
     assert "--enable-final-authorization-package" in out
     assert "--live-enabled" not in out and "--execute-live" not in out
-    assert "--live-env-check-max-port " not in out and "  H " not in out and "500ge38" not in out and "2026-06- " not in out
+    for bad in ["--live-env-check-max-port", " H ", "500ge38", "2026-06- "]:
+        assert bad not in out
 
 def test_gitignore_and_roadmap():
     gi=(ROOT/".gitignore").read_text(encoding="utf-8")
