@@ -450,3 +450,12 @@ market_data_test_stage45/
 !qmt_ai_trading/live_runbook/
 !qmt_ai_trading/live_runbook/*.py
 qmt_ai_trading/live_runbook/__pycache__/
+
+# stage 46 live signoff local outputs
+validation_logs/
+live_signoff_stage46/
+live_signoff/
+market_data_test_stage46/
+!qmt_ai_trading/live_signoff/
+!qmt_ai_trading/live_signoff/*.py
+qmt_ai_trading/live_signoff/__pycache__/
