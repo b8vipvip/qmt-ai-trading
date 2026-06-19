@@ -148,6 +148,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-signature-freeze-output-dir", default="live_signature_freeze")
     parser.add_argument("--enable-live-env-snapshot", action="store_true")
     parser.add_argument("--live-env-snapshot-output-dir", default="live_env_snapshot")
+    parser.add_argument("--enable-live-runbook", action="store_true")
+    parser.add_argument("--live-runbook-output-dir", default="live_runbook")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -383,6 +385,19 @@ def main(argv: list[str] | None = None) -> int:
         save_live_env_snapshot_report(env_report, env_dir / "live_env_snapshot.md", env_dir / "live_env_snapshot.json")
         save_readonly_environment_snapshot_report(readonly_report, env_dir / "readonly_environment_snapshot.md", env_dir / "readonly_environment_snapshot.json")
         print(f"\nStage44 read-only live environment snapshot package written: {env_dir / 'live_env_snapshot.md'}")
+
+    if args.enable_live_runbook:
+        from qmt_ai_trading.live_runbook.service import build_default_live_runbook_config, run_incident_playbook, run_live_runbook, run_manual_rehearsal, save_incident_playbook_report, save_live_runbook_report, save_manual_rehearsal_report
+
+        rb_dir = Path(args.live_runbook_output_dir)
+        rb_config = build_default_live_runbook_config(repo_root=ROOT, output_dir=str(rb_dir))
+        rb_report = run_live_runbook(rb_config)
+        rehearsal_report = run_manual_rehearsal(rb_report)
+        incident_report = run_incident_playbook(rb_report)
+        save_live_runbook_report(rb_report, rb_dir / "live_runbook.md", rb_dir / "live_runbook.json")
+        save_manual_rehearsal_report(rehearsal_report, rb_dir / "manual_rehearsal.md", rb_dir / "manual_rehearsal.json")
+        save_incident_playbook_report(incident_report, rb_dir / "incident_playbook.md", rb_dir / "incident_playbook.json")
+        print(f"\nStage45 read-only live runbook package written: {rb_dir / 'live_runbook.md'}")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report

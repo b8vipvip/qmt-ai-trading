@@ -13,7 +13,7 @@ def _rows(items):
 def format_live_env_snapshot_report_markdown(report: LiveEnvSnapshotReport) -> str:
     ev=report.evidence
     def cat(c): return [x for x in ev if enum_value(x.category)==enum_value(c)]
-    lines=["# Stage44 Live Environment Snapshot and Config Freeze Review","","## Decision",str(enum_value(report.decision)),"","## Safety Note",report.safety_note,"本阶段不是实盘授权，不下单，不调用 xttrader，不查询真实账户，不发送真实通知。","READY_FOR_ENV_SNAPSHOT 只表示环境快照材料可供人工复核，不是实盘授权。","","## Evidence Summary",json.dumps(report.summary, ensure_ascii=False),"","| Severity | Status | Category | Path | Name/Title | Value | Summary |","| --- | --- | --- | --- | --- | --- | --- |"]
+    lines=["# Stage44 Live Environment Snapshot and Config Freeze Review","","## Decision",str(enum_value(report.decision)),"","## Safety Note",report.safety_note,"READY_FOR_ENV_SNAPSHOT 只表示环境快照材料可供人工复核，不是实盘授权。","","## Evidence Summary",json.dumps(report.summary, ensure_ascii=False),"","| Severity | Status | Category | Path | Name/Title | Value | Summary |","| --- | --- | --- | --- | --- | --- | --- |"]
     lines += _rows(ev) or ["| WARN | SKIPPED | SYSTEM | | None | | No evidence collected |"]
     for c,title in [(C.STAGE40_REDLINE_REVIEW,"Stage40 Red-line Review Evidence"),(C.STAGE41_LEDGER,"Stage41 Ledger Evidence"),(C.STAGE42_HUMAN_REVIEW,"Stage42 Human Review Evidence"),(C.STAGE43_SIGNATURE_FREEZE,"Stage43 Signature Freeze Evidence")]:
         lines += ["", f"## {title}"] + ([f"- {enum_value(x.status)} {x.path}: {x.summary}" for x in cat(c)] or ["- Not found / skipped."])
