@@ -402,3 +402,6 @@ market_data/
 data_cache/
 *.redline_review.json
 *.redline_review.md
+validation_logs/
+redline_review/
+market_data_test_stage40/
