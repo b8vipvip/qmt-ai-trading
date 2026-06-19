@@ -154,6 +154,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-signoff-output-dir", default="live_signoff")
     parser.add_argument("--enable-live-final-review", action="store_true")
     parser.add_argument("--live-final-review-output-dir", default="live_final_review")
+    parser.add_argument("--enable-live-archive", action="store_true")
+    parser.add_argument("--live-archive-output-dir", default="live_archive")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -431,6 +433,21 @@ def main(argv: list[str] | None = None) -> int:
         save_evidence_gap_report(gap_report, fr_dir / "evidence_gap_report.md", fr_dir / "evidence_gap_report.json")
         save_next_readonly_plan_report(plan_report, fr_dir / "next_readonly_plan.md", fr_dir / "next_readonly_plan.json")
         print(f"\nStage47 final read-only live review package written: {fr_dir / 'live_final_review.md'}")
+
+    if args.enable_live_archive:
+        from qmt_ai_trading.live_archive.service import build_default_live_archive_config, run_evidence_remediation, run_human_verification_summary, run_live_archive, run_next_readonly_check, save_evidence_remediation_report, save_human_verification_summary_report, save_live_archive_report, save_next_readonly_check_report
+
+        archive_dir = Path(args.live_archive_output_dir)
+        archive_config = build_default_live_archive_config(repo_root=ROOT, output_dir=str(archive_dir))
+        archive_report = run_live_archive(archive_config)
+        remediation_report = run_evidence_remediation(archive_report)
+        human_report = run_human_verification_summary(archive_report)
+        check_report = run_next_readonly_check(archive_report)
+        save_live_archive_report(archive_report, archive_dir / "live_archive.md", archive_dir / "live_archive.json")
+        save_evidence_remediation_report(remediation_report, archive_dir / "evidence_remediation_plan.md", archive_dir / "evidence_remediation_plan.json")
+        save_human_verification_summary_report(human_report, archive_dir / "human_verification_summary.md", archive_dir / "human_verification_summary.json")
+        save_next_readonly_check_report(check_report, archive_dir / "next_readonly_check_plan.md", archive_dir / "next_readonly_check_plan.json")
+        print(f"\nStage48 read-only live archive package written: {archive_dir / 'live_archive.md'}")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
