@@ -139,6 +139,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-env-snapshot-output-dir", default="live_env_snapshot")
     parser.add_argument("--enable-live-runbook", action="store_true")
     parser.add_argument("--live-runbook-output-dir", default="live_runbook")
+    parser.add_argument("--enable-live-signoff", action="store_true")
+    parser.add_argument("--live-signoff-output-dir", default="live_signoff")
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -266,6 +268,8 @@ def main(argv: list[str] | None = None) -> int:
         live_env_snapshot_output_dir=Path(args.live_env_snapshot_output_dir),
         enable_live_runbook=args.enable_live_runbook,
         live_runbook_output_dir=Path(args.live_runbook_output_dir),
+        enable_live_signoff=args.enable_live_signoff,
+        live_signoff_output_dir=Path(args.live_signoff_output_dir),
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -312,6 +316,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Stage44 Live Env Snapshot: enable_live_env_snapshot=True output_dir={args.live_env_snapshot_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.enable_live_runbook:
         print(f"Stage45 Live Runbook: enable_live_runbook=True output_dir={args.live_runbook_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+    if args.enable_live_signoff:
+        print(f"Stage46 Live Signoff: enable_live_signoff=True output_dir={args.live_signoff_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.build_dashboard:
         print(f"Dashboard: build_dashboard=True output={args.dashboard_output} title={args.dashboard_title} read_only=True no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:

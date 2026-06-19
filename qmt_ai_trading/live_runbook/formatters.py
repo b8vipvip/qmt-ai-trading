@@ -26,7 +26,7 @@ def format_live_runbook_report_markdown(report: LiveRunbookReport) -> str:
     lines += ["","## Next Stage Preview","Stage46 仍不得直接实盘；只能继续做灰度前运行手册复核、人工演练签字、配置冻结复查或更严格的只读检查。",""]
     return "\n".join(lines)
 def format_manual_rehearsal_markdown(report: ManualRehearsalReport) -> str:
-    lines=["# Stage45 Manual Rehearsal Package","","## Decision",str(enum_value(report.decision)),"","## Safety Note",report.safety_note,"READY_FOR_RUNBOOK_REVIEW 不是实盘授权。"]
+    lines=["# Stage45 Manual Rehearsal Package","","## Decision",str(enum_value(report.decision)),"","## Safety Note",report.safety_note]
     for s in report.steps: lines += ["",f"## {s.title}"]+[f"- [ ] {x}" for x in s.checklist]+[f"Expected: {s.expected_result}"]
     return "\n".join(lines)+"\n"
 def format_incident_playbook_markdown(report: IncidentPlaybookReport) -> str:

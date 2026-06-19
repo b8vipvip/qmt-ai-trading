@@ -159,6 +159,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--live-env-snapshot-output-dir", default="live_env_snapshot")
     parser.add_argument("--enable-live-runbook", action="store_true")
     parser.add_argument("--live-runbook-output-dir", default="live_runbook")
+    parser.add_argument("--enable-live-signoff", action="store_true")
+    parser.add_argument("--live-signoff-output-dir", default="live_signoff")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -292,6 +294,9 @@ def main(argv: list[str] | None = None) -> int:
     if parsed.enable_live_runbook:
         args.append("--enable-live-runbook")
         args.extend(["--live-runbook-output-dir", parsed.live_runbook_output_dir])
+    if parsed.enable_live_signoff:
+        args.append("--enable-live-signoff")
+        args.extend(["--live-signoff-output-dir", parsed.live_signoff_output_dir])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])

@@ -138,6 +138,8 @@ class ScheduleConfig:
     live_env_snapshot_output_dir: Path = Path("live_env_snapshot")
     enable_live_runbook: bool = False
     live_runbook_output_dir: Path = Path("live_runbook")
+    enable_live_signoff: bool = False
+    live_signoff_output_dir: Path = Path("live_signoff")
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

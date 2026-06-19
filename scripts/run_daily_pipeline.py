@@ -150,6 +150,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-env-snapshot-output-dir", default="live_env_snapshot")
     parser.add_argument("--enable-live-runbook", action="store_true")
     parser.add_argument("--live-runbook-output-dir", default="live_runbook")
+    parser.add_argument("--enable-live-signoff", action="store_true")
+    parser.add_argument("--live-signoff-output-dir", default="live_signoff")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -398,6 +400,19 @@ def main(argv: list[str] | None = None) -> int:
         save_manual_rehearsal_report(rehearsal_report, rb_dir / "manual_rehearsal.md", rb_dir / "manual_rehearsal.json")
         save_incident_playbook_report(incident_report, rb_dir / "incident_playbook.md", rb_dir / "incident_playbook.json")
         print(f"\nStage45 read-only live runbook package written: {rb_dir / 'live_runbook.md'}")
+
+    if args.enable_live_signoff:
+        from qmt_ai_trading.live_signoff.service import build_default_live_signoff_config, run_incident_rehearsal, run_live_signoff, run_manual_signoff, save_incident_rehearsal_report, save_live_signoff_report, save_manual_signoff_report
+
+        so_dir = Path(args.live_signoff_output_dir)
+        so_config = build_default_live_signoff_config(repo_root=ROOT, output_dir=str(so_dir))
+        so_report = run_live_signoff(so_config)
+        manual_report = run_manual_signoff(so_report)
+        incident_report = run_incident_rehearsal(so_report)
+        save_live_signoff_report(so_report, so_dir / "live_signoff.md", so_dir / "live_signoff.json")
+        save_manual_signoff_report(manual_report, so_dir / "manual_signoff.md", so_dir / "manual_signoff.json")
+        save_incident_rehearsal_report(incident_report, so_dir / "incident_rehearsal.md", so_dir / "incident_rehearsal.json")
+        print(f"\nStage46 read-only live signoff package written: {so_dir / 'live_signoff.md'}")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report

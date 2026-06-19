@@ -152,6 +152,8 @@ def build_daily_pipeline_command(
     live_env_snapshot_output_dir: Path | str = Path("live_env_snapshot"),
     enable_live_runbook: bool = False,
     live_runbook_output_dir: Path | str = Path("live_runbook"),
+    enable_live_signoff: bool = False,
+    live_signoff_output_dir: Path | str = Path("live_signoff"),
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -319,6 +321,9 @@ def build_daily_pipeline_command(
     if enable_live_runbook:
         args.append("--enable-live-runbook")
         args.extend(["--live-runbook-output-dir", str(live_runbook_output_dir)])
+    if enable_live_signoff:
+        args.append("--enable-live-signoff")
+        args.extend(["--live-signoff-output-dir", str(live_signoff_output_dir)])
     if build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
@@ -481,6 +486,8 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         live_env_snapshot_output_dir=cfg.live_env_snapshot_output_dir,
         enable_live_runbook=cfg.enable_live_runbook,
         live_runbook_output_dir=cfg.live_runbook_output_dir,
+        enable_live_signoff=cfg.enable_live_signoff,
+        live_signoff_output_dir=cfg.live_signoff_output_dir,
         final_authorization_allowed_symbols=cfg.final_authorization_allowed_symbols,
         final_authorization_max_total_capital=cfg.final_authorization_max_total_capital,
         final_authorization_max_single_order_value=cfg.final_authorization_max_single_order_value,
