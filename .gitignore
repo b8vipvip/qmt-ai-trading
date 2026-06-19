@@ -536,3 +536,12 @@ market_data_test_stage55/
 !qmt_ai_trading/qmt_dryrun_calibration/
 !qmt_ai_trading/qmt_dryrun_calibration/*.py
 qmt_ai_trading/qmt_dryrun_calibration/__pycache__/
+
+# stage 56 real cache quality runtime outputs
+validation_logs/
+real_cache_quality_stage56/
+real_cache_quality/
+market_data_test_stage56/
+!qmt_ai_trading/real_cache_quality/
+!qmt_ai_trading/real_cache_quality/*.py
+qmt_ai_trading/real_cache_quality/__pycache__/

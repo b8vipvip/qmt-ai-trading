@@ -180,6 +180,9 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--enable-qmt-dryrun-calibration", action="store_true")
     parser.add_argument("--qmt-dryrun-calibration-output-dir", default="qmt_dryrun_calibration")
     parser.add_argument("--qmt-dryrun-calibration-provider", default="mock", choices=["mock", "qmt_xtdata"])
+    parser.add_argument("--enable-real-cache-quality", action="store_true")
+    parser.add_argument("--real-cache-quality-output-dir", default="real_cache_quality")
+    parser.add_argument("--real-cache-quality-provider", default="mock", choices=["mock", "qmt_xtdata"])
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -343,6 +346,9 @@ def main(argv: list[str] | None = None) -> int:
     if parsed.enable_qmt_dryrun_calibration:
         args.append("--enable-qmt-dryrun-calibration")
         args.extend(["--qmt-dryrun-calibration-output-dir", parsed.qmt_dryrun_calibration_output_dir, "--qmt-dryrun-calibration-provider", parsed.qmt_dryrun_calibration_provider])
+    if parsed.enable_real_cache_quality:
+        args.append("--enable-real-cache-quality")
+        args.extend(["--real-cache-quality-output-dir", parsed.real_cache_quality_output_dir, "--real-cache-quality-provider", parsed.real_cache_quality_provider])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])

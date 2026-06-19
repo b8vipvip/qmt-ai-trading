@@ -159,6 +159,9 @@ class ScheduleConfig:
     enable_qmt_dryrun_calibration: bool = False
     qmt_dryrun_calibration_output_dir: Path = Path("qmt_dryrun_calibration")
     qmt_dryrun_calibration_provider: str = "mock"
+    enable_real_cache_quality: bool = False
+    real_cache_quality_output_dir: Path = Path("real_cache_quality")
+    real_cache_quality_provider: str = "mock"
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

@@ -171,6 +171,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--enable-qmt-dryrun-calibration", action="store_true")
     parser.add_argument("--qmt-dryrun-calibration-output-dir", default="qmt_dryrun_calibration")
     parser.add_argument("--qmt-dryrun-calibration-provider", default="mock", choices=["mock", "qmt_xtdata"])
+    parser.add_argument("--enable-real-cache-quality", action="store_true")
+    parser.add_argument("--real-cache-quality-output-dir", default="real_cache_quality")
+    parser.add_argument("--real-cache-quality-provider", default="mock", choices=["mock", "qmt_xtdata"])
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -562,6 +565,17 @@ def main(argv: list[str] | None = None) -> int:
         save_etf_whitelist_calibration_report(run_etf_whitelist_calibration(qr), qd / "etf_whitelist_calibration.md", qd / "etf_whitelist_calibration.json")
         save_next_real_cache_quality_plan_report(run_next_real_cache_quality_plan(qr), qd / "next_real_cache_quality_plan.md", qd / "next_real_cache_quality_plan.json")
         print(f"\nStage55 QMT dry-run calibration package written: {qd / 'qmt_dryrun_calibration.md'}")
+
+    if args.enable_real_cache_quality:
+        from qmt_ai_trading.real_cache_quality.service import build_default_real_cache_quality_config, run_real_cache_quality, run_long_sample_gap_fill_plan, run_field_quality_review, run_next_backtest_attribution_plan, save_real_cache_quality_report, save_long_sample_gap_fill_report, save_field_quality_review_report, save_next_backtest_attribution_plan_report
+        rcq_dir = Path(args.real_cache_quality_output_dir)
+        rcq_cfg = build_default_real_cache_quality_config(repo_root=ROOT, output_dir=str(rcq_dir), cache_root=args.cache_root, provider=args.real_cache_quality_provider, max_symbols=5, min_days=args.min_bars, target_days=90)
+        rcq_report = run_real_cache_quality(rcq_cfg)
+        save_real_cache_quality_report(rcq_report, rcq_dir / "real_cache_quality.md", rcq_dir / "real_cache_quality.json")
+        save_long_sample_gap_fill_report(run_long_sample_gap_fill_plan(rcq_report), rcq_dir / "long_sample_gap_fill.md", rcq_dir / "long_sample_gap_fill.json")
+        save_field_quality_review_report(run_field_quality_review(rcq_report), rcq_dir / "field_quality_review.md", rcq_dir / "field_quality_review.json")
+        save_next_backtest_attribution_plan_report(run_next_backtest_attribution_plan(rcq_report), rcq_dir / "next_backtest_attribution_plan.md", rcq_dir / "next_backtest_attribution_plan.json")
+        print(f"\nStage56 real cache quality package written: {rcq_dir / 'real_cache_quality.md'}")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
