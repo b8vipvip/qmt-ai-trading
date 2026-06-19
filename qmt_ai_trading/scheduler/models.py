@@ -134,6 +134,8 @@ class ScheduleConfig:
     live_gray_review_output_dir: Path = Path("live_gray_review")
     enable_live_signature_freeze: bool = False
     live_signature_freeze_output_dir: Path = Path("live_signature_freeze")
+    enable_live_env_snapshot: bool = False
+    live_env_snapshot_output_dir: Path = Path("live_env_snapshot")
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

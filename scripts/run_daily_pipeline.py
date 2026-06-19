@@ -146,6 +146,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-gray-review-output-dir", default="live_gray_review")
     parser.add_argument("--enable-live-signature-freeze", action="store_true")
     parser.add_argument("--live-signature-freeze-output-dir", default="live_signature_freeze")
+    parser.add_argument("--enable-live-env-snapshot", action="store_true")
+    parser.add_argument("--live-env-snapshot-output-dir", default="live_env_snapshot")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -370,6 +372,17 @@ def main(argv: list[str] | None = None) -> int:
         save_live_signature_freeze_report(sig_report, sig_dir / "live_signature_freeze.md", sig_dir / "live_signature_freeze.json")
         save_config_freeze_report(freeze_report, sig_dir / "config_freeze.md", sig_dir / "config_freeze.json")
         print(f"\nStage43 read-only live signature freeze package written: {sig_dir / 'live_signature_freeze.md'}")
+
+    if args.enable_live_env_snapshot:
+        from qmt_ai_trading.live_env_snapshot.service import build_default_live_env_snapshot_config, run_live_env_snapshot, run_readonly_environment_snapshot, save_live_env_snapshot_report, save_readonly_environment_snapshot_report
+
+        env_dir = Path(args.live_env_snapshot_output_dir)
+        env_config = build_default_live_env_snapshot_config(repo_root=ROOT, output_dir=str(env_dir))
+        env_report = run_live_env_snapshot(env_config)
+        readonly_report = run_readonly_environment_snapshot(env_report)
+        save_live_env_snapshot_report(env_report, env_dir / "live_env_snapshot.md", env_dir / "live_env_snapshot.json")
+        save_readonly_environment_snapshot_report(readonly_report, env_dir / "readonly_environment_snapshot.md", env_dir / "readonly_environment_snapshot.json")
+        print(f"\nStage44 read-only live environment snapshot package written: {env_dir / 'live_env_snapshot.md'}")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
