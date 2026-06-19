@@ -1,6 +1,13 @@
 from __future__ import annotations
 import json
 from pathlib import Path
+
+def _safe_relative_path(path: Path, root: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(root.resolve()))
+    except Exception:
+        return str(path)
+
 from .models import *
 ROADMAP_KEYS=['完整工程阶段计划与前端 UI 产品化路线（Stage 1-75）','Stage61：API Gateway 基础层','Stage75：本地控制台封版 / 可选桌面化','UI 不直接访问 QMT','UI 不能绕过 Risk Gate','UI 不能绕过 Human Approval','UI 不能自动 approve']
 def _decision(obj):
@@ -14,7 +21,7 @@ def _read_json(path:Path):
     try: return json.loads(path.read_text(encoding='utf-8'))
     except Exception: return None
 def _evidence(root:Path,path:Path,cat,title):
-    rel=str(path.relative_to(root)) if path.exists() and path.is_relative_to(root) else str(path)
+    rel=_safe_relative_path(path, root)
     if not path.exists():
         return LiveGapClearanceEvidence(category=cat,status=LiveGapClearanceStatus.SKIPPED,severity=LiveGapClearanceSeverity.WARN,path=rel,title=title,summary=f'{title} 缺失，记录为补证项；Stage54 不崩溃且不授权实盘。')
     obj=_read_json(path) if path.suffix.lower()=='.json' else None; dec=_decision(obj); crit=_critical(obj)
@@ -22,7 +29,7 @@ def _evidence(root:Path,path:Path,cat,title):
     st=LiveGapClearanceStatus.FAIL if sev==LiveGapClearanceSeverity.CRITICAL else LiveGapClearanceStatus.PASS
     return LiveGapClearanceEvidence(category=cat,status=st,severity=sev,path=rel,title=title,summary=f'{title} 已读取；decision={dec or "N/A"}; critical={crit}; 仅用于材料复核，不代表实盘授权。',decision=dec,metadata={'critical':crit})
 def _roadmap(root:Path,path:Path):
-    rel=str(path.relative_to(root)) if path.exists() and path.is_relative_to(root) else str(path)
+    rel=_safe_relative_path(path, root)
     if not path.exists(): missing=ROADMAP_KEYS
     else:
         txt=path.read_text(encoding='utf-8'); missing=[k for k in ROADMAP_KEYS if k not in txt]
