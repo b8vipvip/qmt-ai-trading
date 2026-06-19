@@ -36,8 +36,10 @@ def run_live_runbook(config: LiveRunbookConfig|None=None, **kwargs: Any) -> Live
     cfg=config or build_default_live_runbook_config(**kwargs); assert_stage45_read_only(cfg.read_only,cfg.dry_run_only,cfg.no_trade_authorization,cfg.live_trading_enabled)
     evidence=collect_live_runbook_evidence(cfg); decision,blocking=_decide(evidence)
     warnings=[x.summary for x in evidence if x.severity==Sev.WARN or x.status in {S.WARN,S.SKIPPED}]
-    summary={'total_evidence':len(evidence),'critical':len(blocking),'warnings':len(warnings),'read_only':True,'dry_run_only':True,'no_trade_authorization':True,'live_trading_enabled':False,'ready_for_runbook_review_not_trade_authorization':True}
-    return LiveRunbookReport(decision=decision, config=cfg, evidence=evidence, runbook_sections=_sections(), manual_steps=_steps(), incident_items=_incidents(), blocking_reasons=blocking, warnings=warnings, summary=summary)
+    incident_items=_incidents()
+    incident_scenario_critical=sum(1 for item in incident_items if item.severity==Sev.CRITICAL)
+    summary={'total_evidence':len(evidence),'critical':len(blocking),'incident_scenario_critical':incident_scenario_critical,'warnings':len(warnings),'read_only':True,'dry_run_only':True,'no_trade_authorization':True,'live_trading_enabled':False,'ready_for_runbook_review_not_trade_authorization':True}
+    return LiveRunbookReport(decision=decision, config=cfg, evidence=evidence, runbook_sections=_sections(), manual_steps=_steps(), incident_items=incident_items, blocking_reasons=blocking, warnings=warnings, summary=summary)
 def save_live_runbook_report(report: LiveRunbookReport, output_path: str|Path, json_output: str|Path|None=None):
     p=Path(output_path); p.parent.mkdir(parents=True,exist_ok=True); p.write_text(format_live_runbook_report_json(report) if p.suffix.lower()=='.json' else format_live_runbook_report_markdown(report),encoding='utf-8')
     if json_output: Path(json_output).parent.mkdir(parents=True,exist_ok=True); Path(json_output).write_text(format_live_runbook_report_json(report),encoding='utf-8')
