@@ -170,6 +170,9 @@ def build_daily_pipeline_command(
     live_archive_verification_output_dir: Path | str = Path("live_archive_verification"),
     enable_live_gap_clearance: bool = False,
     live_gap_clearance_output_dir: Path | str = Path("live_gap_clearance"),
+    enable_qmt_dryrun_calibration: bool = False,
+    qmt_dryrun_calibration_output_dir: Path | str = Path("qmt_dryrun_calibration"),
+    qmt_dryrun_calibration_provider: str = "mock",
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -364,6 +367,9 @@ def build_daily_pipeline_command(
     if enable_live_gap_clearance:
         args.append("--enable-live-gap-clearance")
         args.extend(["--live-gap-clearance-output-dir", str(live_gap_clearance_output_dir)])
+    if enable_qmt_dryrun_calibration:
+        args.append("--enable-qmt-dryrun-calibration")
+        args.extend(["--qmt-dryrun-calibration-output-dir", str(qmt_dryrun_calibration_output_dir), "--qmt-dryrun-calibration-provider", str(qmt_dryrun_calibration_provider)])
     if build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
@@ -544,6 +550,9 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         live_archive_verification_output_dir=cfg.live_archive_verification_output_dir,
         enable_live_gap_clearance=cfg.enable_live_gap_clearance,
         live_gap_clearance_output_dir=cfg.live_gap_clearance_output_dir,
+        enable_qmt_dryrun_calibration=cfg.enable_qmt_dryrun_calibration,
+        qmt_dryrun_calibration_output_dir=cfg.qmt_dryrun_calibration_output_dir,
+        qmt_dryrun_calibration_provider=cfg.qmt_dryrun_calibration_provider,
         final_authorization_allowed_symbols=cfg.final_authorization_allowed_symbols,
         final_authorization_max_total_capital=cfg.final_authorization_max_total_capital,
         final_authorization_max_single_order_value=cfg.final_authorization_max_single_order_value,

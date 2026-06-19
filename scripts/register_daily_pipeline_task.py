@@ -157,6 +157,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-archive-verification-output-dir", default="live_archive_verification")
     parser.add_argument("--enable-live-gap-clearance", action="store_true")
     parser.add_argument("--live-gap-clearance-output-dir", default="live_gap_clearance")
+    parser.add_argument("--enable-qmt-dryrun-calibration", action="store_true")
+    parser.add_argument("--qmt-dryrun-calibration-output-dir", default="qmt_dryrun_calibration")
+    parser.add_argument("--qmt-dryrun-calibration-provider", default="mock", choices=["mock", "qmt_xtdata"])
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -302,6 +305,9 @@ def main(argv: list[str] | None = None) -> int:
         live_archive_verification_output_dir=Path(args.live_archive_verification_output_dir),
         enable_live_gap_clearance=args.enable_live_gap_clearance,
         live_gap_clearance_output_dir=Path(args.live_gap_clearance_output_dir),
+        enable_qmt_dryrun_calibration=args.enable_qmt_dryrun_calibration,
+        qmt_dryrun_calibration_output_dir=Path(args.qmt_dryrun_calibration_output_dir),
+        qmt_dryrun_calibration_provider=args.qmt_dryrun_calibration_provider,
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -366,6 +372,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Stage53 Live Archive Verification: enable_live_archive_verification=True output_dir={args.live_archive_verification_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.enable_live_gap_clearance:
         print(f"Stage54 Live Gap Clearance: enable_live_gap_clearance=True output_dir={args.live_gap_clearance_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+    if args.enable_qmt_dryrun_calibration:
+        print(f"Stage55 QMT Dry-run Calibration: enable_qmt_dryrun_calibration=True output_dir={args.qmt_dryrun_calibration_output_dir} provider={args.qmt_dryrun_calibration_provider} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.build_dashboard:
         print(f"Dashboard: build_dashboard=True output={args.dashboard_output} title={args.dashboard_title} read_only=True no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:

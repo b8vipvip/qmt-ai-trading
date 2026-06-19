@@ -156,6 +156,9 @@ class ScheduleConfig:
     live_archive_verification_output_dir: Path = Path("live_archive_verification")
     enable_live_gap_clearance: bool = False
     live_gap_clearance_output_dir: Path = Path("live_gap_clearance")
+    enable_qmt_dryrun_calibration: bool = False
+    qmt_dryrun_calibration_output_dir: Path = Path("qmt_dryrun_calibration")
+    qmt_dryrun_calibration_provider: str = "mock"
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

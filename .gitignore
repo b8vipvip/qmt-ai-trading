@@ -529,3 +529,10 @@ market_data_test_stage54/
 !qmt_ai_trading/live_gap_clearance/
 !qmt_ai_trading/live_gap_clearance/*.py
 qmt_ai_trading/live_gap_clearance/__pycache__/
+validation_logs/
+qmt_dryrun_calibration_stage55/
+qmt_dryrun_calibration/
+market_data_test_stage55/
+!qmt_ai_trading/qmt_dryrun_calibration/
+!qmt_ai_trading/qmt_dryrun_calibration/*.py
+qmt_ai_trading/qmt_dryrun_calibration/__pycache__/
