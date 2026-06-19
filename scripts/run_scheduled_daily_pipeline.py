@@ -165,6 +165,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--live-final-review-output-dir", default="live_final_review")
     parser.add_argument("--enable-live-archive", action="store_true")
     parser.add_argument("--live-archive-output-dir", default="live_archive")
+    parser.add_argument("--enable-live-consistency", action="store_true")
+    parser.add_argument("--live-consistency-output-dir", default="live_consistency")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -307,6 +309,9 @@ def main(argv: list[str] | None = None) -> int:
     if parsed.enable_live_archive:
         args.append("--enable-live-archive")
         args.extend(["--live-archive-output-dir", parsed.live_archive_output_dir])
+    if parsed.enable_live_consistency:
+        args.append("--enable-live-consistency")
+        args.extend(["--live-consistency-output-dir", parsed.live_consistency_output_dir])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])

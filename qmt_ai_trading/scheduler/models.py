@@ -144,6 +144,8 @@ class ScheduleConfig:
     live_final_review_output_dir: Path = Path("live_final_review")
     enable_live_archive: bool = False
     live_archive_output_dir: Path = Path("live_archive")
+    enable_live_consistency: bool = False
+    live_consistency_output_dir: Path = Path("live_consistency")
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
