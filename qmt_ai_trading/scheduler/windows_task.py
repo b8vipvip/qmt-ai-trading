@@ -160,6 +160,8 @@ def build_daily_pipeline_command(
     live_archive_output_dir: Path | str = Path("live_archive"),
     enable_live_consistency: bool = False,
     live_consistency_output_dir: Path | str = Path("live_consistency"),
+    enable_live_final_archive: bool = False,
+    live_final_archive_output_dir: Path | str = Path("live_final_archive"),
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -339,6 +341,9 @@ def build_daily_pipeline_command(
     if enable_live_consistency:
         args.append("--enable-live-consistency")
         args.extend(["--live-consistency-output-dir", str(live_consistency_output_dir)])
+    if enable_live_final_archive:
+        args.append("--enable-live-final-archive")
+        args.extend(["--live-final-archive-output-dir", str(live_final_archive_output_dir)])
     if build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
@@ -509,6 +514,8 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         live_archive_output_dir=cfg.live_archive_output_dir,
         enable_live_consistency=cfg.enable_live_consistency,
         live_consistency_output_dir=cfg.live_consistency_output_dir,
+        enable_live_final_archive=cfg.enable_live_final_archive,
+        live_final_archive_output_dir=cfg.live_final_archive_output_dir,
         final_authorization_allowed_symbols=cfg.final_authorization_allowed_symbols,
         final_authorization_max_total_capital=cfg.final_authorization_max_total_capital,
         final_authorization_max_single_order_value=cfg.final_authorization_max_single_order_value,
