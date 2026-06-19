@@ -153,6 +153,10 @@ def run_daily_signal_pipeline(
     final_authorization_reviewer_name: str = "",
     final_authorization_risk_owner_name: str = "",
     final_authorization_final_approver_name: str = "",
+    enable_redline_review: bool = False,
+    redline_review_output_dir: str = "redline_review",
+    redline_review_operator_name: str = "",
+    redline_review_reviewer_name: str = "",
 ) -> PipelineResult:
     """Run the generic daily signal pipeline without connecting to real QMT trading."""
 
@@ -601,6 +605,31 @@ def run_daily_signal_pipeline(
     from qmt_ai_trading.pipeline.report import format_pipeline_report
 
     result.report_text = format_pipeline_report(result)
+
+    if enable_redline_review:
+        try:
+            from pathlib import Path
+            from qmt_ai_trading.redline_review.safety import build_default_redline_review_config
+            from qmt_ai_trading.redline_review.service import run_redline_review, save_redline_review_report
+            cfg = build_default_redline_review_config(
+                repo_root=Path.cwd(),
+                operator_name=redline_review_operator_name,
+                reviewer_name=redline_review_reviewer_name,
+                metadata={"pipeline_run_id": ctx.run_id},
+            )
+            report = run_redline_review(config=cfg, dashboard_path_or_text=result.metadata.get("dashboard_path"))
+            out_dir = Path(redline_review_output_dir)
+            md_path = out_dir / f"{ctx.run_id}.redline_review.md"
+            json_path = out_dir / f"{ctx.run_id}.redline_review.json"
+            save_redline_review_report(report, md_path)
+            save_redline_review_report(report, json_path)
+            result.metadata["redline_review"] = {"report_id": report.report_id, "decision": getattr(report.decision, "value", report.decision), "output_path": str(md_path), "json_output_path": str(json_path), "warnings": report.warnings, "blocked_reasons": report.blocked_reasons, "safety_note": report.safety_note}
+            _record_step(steps, "redline_review", True, f"generated review-only Red-line Review: {md_path}", {"output_path": str(md_path)})
+        except Exception as exc:
+            result.metadata["redline_review_error"] = repr(exc)
+            _record_step(steps, "redline_review", False, "Red-line Review generation failed", errors=[repr(exc)])
+        result.success = all(step.success for step in steps)
+
     return result
 
 
@@ -718,6 +747,10 @@ def run_etf_daily_pipeline(
     final_authorization_reviewer_name: str = "",
     final_authorization_risk_owner_name: str = "",
     final_authorization_final_approver_name: str = "",
+    enable_redline_review: bool = False,
+    redline_review_output_dir: str = "redline_review",
+    redline_review_operator_name: str = "",
+    redline_review_reviewer_name: str = "",
 ) -> PipelineResult:
     """Run the default ETF daily pipeline using the Data Hub ETF universe."""
 
@@ -841,4 +874,8 @@ def run_etf_daily_pipeline(
         final_authorization_reviewer_name=final_authorization_reviewer_name,
         final_authorization_risk_owner_name=final_authorization_risk_owner_name,
         final_authorization_final_approver_name=final_authorization_final_approver_name,
+        enable_redline_review=enable_redline_review,
+        redline_review_output_dir=redline_review_output_dir,
+        redline_review_operator_name=redline_review_operator_name,
+        redline_review_reviewer_name=redline_review_reviewer_name,
     )

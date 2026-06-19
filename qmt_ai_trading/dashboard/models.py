@@ -80,6 +80,8 @@ class DashboardConfig:
     live_env_check_dir: str = "live_env_check"
     include_final_authorization: bool = False
     final_authorization_dir: str = "final_authorization"
+    include_redline_review: bool = False
+    redline_review_dir: str = "redline_review"
     read_only: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
 

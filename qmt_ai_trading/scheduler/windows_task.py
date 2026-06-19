@@ -138,6 +138,10 @@ def build_daily_pipeline_command(
     final_authorization_max_single_order_value: float = 1000.0,
     final_authorization_max_symbol_weight: float = 0.1,
     final_authorization_max_portfolio_weight: float = 0.2,
+    enable_redline_review: bool = False,
+    redline_review_output_dir: Path | str = Path("redline_review"),
+    redline_review_operator_name: str = "",
+    redline_review_reviewer_name: str = "",
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -283,6 +287,13 @@ def build_daily_pipeline_command(
             args.extend(["--final-authorization-allowed-symbols", str(final_authorization_allowed_symbols)])
         args.extend(["--final-authorization-max-total-capital", str(final_authorization_max_total_capital), "--final-authorization-max-single-order-value", str(final_authorization_max_single_order_value)])
         args.extend(["--final-authorization-max-symbol-weight", str(final_authorization_max_symbol_weight), "--final-authorization-max-portfolio-weight", str(final_authorization_max_portfolio_weight)])
+    if enable_redline_review:
+        args.append("--enable-redline-review")
+        args.extend(["--redline-review-output-dir", str(redline_review_output_dir)])
+        if redline_review_operator_name:
+            args.extend(["--redline-review-operator-name", str(redline_review_operator_name)])
+        if redline_review_reviewer_name:
+            args.extend(["--redline-review-reviewer-name", str(redline_review_reviewer_name)])
     if build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
@@ -431,6 +442,10 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         live_env_check_max_portfolio_weight=cfg.live_env_check_max_portfolio_weight,
         enable_final_authorization_package=cfg.enable_final_authorization_package,
         final_authorization_output_dir=cfg.final_authorization_output_dir,
+        enable_redline_review=cfg.enable_redline_review,
+        redline_review_output_dir=cfg.redline_review_output_dir,
+        redline_review_operator_name=cfg.redline_review_operator_name,
+        redline_review_reviewer_name=cfg.redline_review_reviewer_name,
         final_authorization_allowed_symbols=cfg.final_authorization_allowed_symbols,
         final_authorization_max_total_capital=cfg.final_authorization_max_total_capital,
         final_authorization_max_single_order_value=cfg.final_authorization_max_single_order_value,

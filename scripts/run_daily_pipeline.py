@@ -136,6 +136,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--final-authorization-reviewer-name", default="")
     parser.add_argument("--final-authorization-risk-owner-name", default="")
     parser.add_argument("--final-authorization-final-approver-name", default="")
+    parser.add_argument("--enable-redline-review", action="store_true")
+    parser.add_argument("--redline-review-output-dir", default="redline_review")
+    parser.add_argument("--redline-review-operator-name", default="")
+    parser.add_argument("--redline-review-reviewer-name", default="")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -245,6 +249,10 @@ def main(argv: list[str] | None = None) -> int:
         final_authorization_reviewer_name=args.final_authorization_reviewer_name,
         final_authorization_risk_owner_name=args.final_authorization_risk_owner_name,
         final_authorization_final_approver_name=args.final_authorization_final_approver_name,
+        enable_redline_review=args.enable_redline_review,
+        redline_review_output_dir=args.redline_review_output_dir,
+        redline_review_operator_name=args.redline_review_operator_name,
+        redline_review_reviewer_name=args.redline_review_reviewer_name,
     )
     print(result.report_text)
 
@@ -320,6 +328,8 @@ def main(argv: list[str] | None = None) -> int:
             include_live_env_check=args.enable_live_env_check,
             final_authorization_dir=args.final_authorization_output_dir,
             include_final_authorization=args.enable_final_authorization_package,
+            redline_review_dir=args.redline_review_output_dir,
+            include_redline_review=args.enable_redline_review,
         )
         _, dashboard_path = build_and_save_dashboard(dashboard_config)
         print(f"\nRead-only dashboard written: {dashboard_path}")

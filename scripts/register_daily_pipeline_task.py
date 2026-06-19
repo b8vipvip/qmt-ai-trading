@@ -125,6 +125,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--final-authorization-allowed-symbols", default="")
     parser.add_argument("--final-authorization-max-total-capital", type=float, default=5000.0)
     parser.add_argument("--final-authorization-max-single-order-value", type=float, default=1000.0)
+    parser.add_argument("--enable-redline-review", action="store_true")
+    parser.add_argument("--redline-review-output-dir", default="redline_review")
+    parser.add_argument("--redline-review-operator-name", default="")
+    parser.add_argument("--redline-review-reviewer-name", default="")
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -238,6 +242,10 @@ def main(argv: list[str] | None = None) -> int:
         final_authorization_allowed_symbols=args.final_authorization_allowed_symbols,
         final_authorization_max_total_capital=args.final_authorization_max_total_capital,
         final_authorization_max_single_order_value=args.final_authorization_max_single_order_value,
+        enable_redline_review=args.enable_redline_review,
+        redline_review_output_dir=Path(args.redline_review_output_dir),
+        redline_review_operator_name=args.redline_review_operator_name,
+        redline_review_reviewer_name=args.redline_review_reviewer_name,
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -272,6 +280,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Live Environment Check: enable_live_env_check=True output_dir={args.live_env_check_output_dir} allowed_symbols={args.live_env_check_allowed_symbols} read_only=True")
     if args.enable_final_authorization_package:
         print(f"Final Authorization Package: enable_final_authorization_package=True output_dir={args.final_authorization_output_dir} allowed_symbols={args.final_authorization_allowed_symbols} review_only=True")
+    if args.enable_redline_review:
+        print(f"Red-line Review: enable_redline_review=True output_dir={args.redline_review_output_dir} review_only=True dry_run_only=True")
     if args.build_dashboard:
         print(f"Dashboard: build_dashboard=True output={args.dashboard_output} title={args.dashboard_title} read_only=True no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:
@@ -279,7 +289,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Cached ETF rotation: top_n={args.cached_strategy_top_n} min_score={args.cached_strategy_min_score} min_bars={args.cached_strategy_min_bars}")
     print(f"Result: {result.message}")
     if result.dry_run:
-        print("DRY-RUN ONLY: no task registered. Re-run with --execute to register on Windows.")
+        print("DRY-RUN ONLY: no task registered. A separate future stage is required before real registration.")
     return 0 if result.success else 1
 
 

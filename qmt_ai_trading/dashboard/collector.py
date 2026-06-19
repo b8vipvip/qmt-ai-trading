@@ -123,6 +123,12 @@ def collect_final_authorization_section(config: DashboardConfig) -> DashboardSec
     directory = config.report_dirs.get("final_authorization") or getattr(config, "final_authorization_dir", "final_authorization")
     return _section_from_latest("final_authorization", "Final Authorization Package", directory, ("*.md", "*.json"))
 
+def collect_redline_review_section(config: DashboardConfig) -> DashboardSection:
+    directory = config.report_dirs.get("redline_review") or getattr(config, "redline_review_dir", "redline_review")
+    section = _section_from_latest("redline_review", "Red-line Review", directory, ("*.redline_review.md", "*.redline_review.json", "*.md", "*.json"))
+    section.summary = "Read-only Red-line Review section; no order entry is provided." if section.status != DashboardStatus.EMPTY else section.summary
+    return section
+
 def collect_dashboard_sections(config: DashboardConfig) -> list[DashboardSection]:
     sections: list[DashboardSection] = []
     if config.include_daily_report:
@@ -143,6 +149,8 @@ def collect_dashboard_sections(config: DashboardConfig) -> list[DashboardSection
         sections.append(collect_live_env_check_section(config))
     if getattr(config, "include_final_authorization", False):
         sections.append(collect_final_authorization_section(config))
+    if getattr(config, "include_redline_review", False):
+        sections.append(collect_redline_review_section(config))
     if config.include_monitoring:
         sections.append(collect_monitoring_section(config))
     if config.include_agent_research:
