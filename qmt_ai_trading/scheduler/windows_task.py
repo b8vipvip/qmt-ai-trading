@@ -255,8 +255,10 @@ def build_daily_pipeline_command(
         args.extend(["--gray-decision-output-dir", str(gray_decision_output_dir)])
         if gray_decision_allowed_symbols:
             args.extend(["--gray-decision-allowed-symbols", str(gray_decision_allowed_symbols)])
-        args.extend(["--gray-decision-max-total-capital", str(gray_decision_max_total_capital), "--gray-decision-max-single-order-value", str(gray_decision_max_single_order_value)])
-        args.extend(["--gray-decision-max-symbol-weight", str(gray_decision_max_symbol_weight), "--gray-decision-max-portfolio-weight", str(gray_decision_max_portfolio_weight)])
+        args.extend(["--gray-decision-max-total-capital", str(gray_decision_max_total_capital)])
+        args.extend(["--gray-decision-max-single-order-value", str(gray_decision_max_single_order_value)])
+        args.extend(["--gray-decision-max-symbol-weight", str(gray_decision_max_symbol_weight)])
+        args.extend(["--gray-decision-max-portfolio-weight", str(gray_decision_max_portfolio_weight)])
     if enable_live_manual_prep:
         args.append("--enable-live-manual-prep")
         args.extend(["--live-manual-prep-output-dir", str(live_manual_prep_output_dir)])
