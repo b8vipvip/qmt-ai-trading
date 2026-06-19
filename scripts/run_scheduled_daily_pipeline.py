@@ -175,6 +175,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--live-lock-consistency-output-dir", default="live_lock_consistency")
     parser.add_argument("--enable-live-archive-verification", action="store_true")
     parser.add_argument("--live-archive-verification-output-dir", default="live_archive_verification")
+    parser.add_argument("--enable-live-gap-clearance", action="store_true")
+    parser.add_argument("--live-gap-clearance-output-dir", default="live_gap_clearance")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -332,6 +334,9 @@ def main(argv: list[str] | None = None) -> int:
     if parsed.enable_live_archive_verification:
         args.append("--enable-live-archive-verification")
         args.extend(["--live-archive-verification-output-dir", parsed.live_archive_verification_output_dir])
+    if parsed.enable_live_gap_clearance:
+        args.append("--enable-live-gap-clearance")
+        args.extend(["--live-gap-clearance-output-dir", parsed.live_gap_clearance_output_dir])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])

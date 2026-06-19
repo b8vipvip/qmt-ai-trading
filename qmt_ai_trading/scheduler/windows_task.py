@@ -168,6 +168,8 @@ def build_daily_pipeline_command(
     live_lock_consistency_output_dir: Path | str = Path("live_lock_consistency"),
     enable_live_archive_verification: bool = False,
     live_archive_verification_output_dir: Path | str = Path("live_archive_verification"),
+    enable_live_gap_clearance: bool = False,
+    live_gap_clearance_output_dir: Path | str = Path("live_gap_clearance"),
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -359,6 +361,9 @@ def build_daily_pipeline_command(
     if enable_live_archive_verification:
         args.append("--enable-live-archive-verification")
         args.extend(["--live-archive-verification-output-dir", str(live_archive_verification_output_dir)])
+    if enable_live_gap_clearance:
+        args.append("--enable-live-gap-clearance")
+        args.extend(["--live-gap-clearance-output-dir", str(live_gap_clearance_output_dir)])
     if build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
@@ -537,6 +542,8 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         live_lock_consistency_output_dir=cfg.live_lock_consistency_output_dir,
         enable_live_archive_verification=cfg.enable_live_archive_verification,
         live_archive_verification_output_dir=cfg.live_archive_verification_output_dir,
+        enable_live_gap_clearance=cfg.enable_live_gap_clearance,
+        live_gap_clearance_output_dir=cfg.live_gap_clearance_output_dir,
         final_authorization_allowed_symbols=cfg.final_authorization_allowed_symbols,
         final_authorization_max_total_capital=cfg.final_authorization_max_total_capital,
         final_authorization_max_single_order_value=cfg.final_authorization_max_single_order_value,
