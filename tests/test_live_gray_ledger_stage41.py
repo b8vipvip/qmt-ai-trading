@@ -1,7 +1,11 @@
 import json, subprocess, sys
 from pathlib import Path
 
-from qmt_ai_trading.live_gray_ledger.formatters import format_live_gray_ledger_report_markdown
+from qmt_ai_trading.live_gray_ledger.formatters import (
+    HUMAN_REVIEW_CHECKLIST_ITEMS,
+    NEXT_STAGE_PREVIEW_TEXT,
+    format_live_gray_ledger_report_markdown,
+)
 from qmt_ai_trading.live_gray_ledger.models import LiveGrayLedgerConfig, LiveGrayLedgerDecision, LiveGrayLedgerReport, LiveGrayLedgerSeverity, LiveGrayLedgerStatus
 from qmt_ai_trading.live_gray_ledger.safety import classify_ledger_marker, scan_ledger_text_for_forbidden_markers
 from qmt_ai_trading.live_gray_ledger.service import build_default_live_gray_ledger_config, run_live_gray_ledger
@@ -45,6 +49,23 @@ def test_formatter_contains_safety_note():
     text = format_live_gray_ledger_report_markdown(LiveGrayLedgerReport())
     assert "## Safety Note" in text
     assert "不是实盘授权" in text
+    assert "## Human Review Checklist" in text
+    assert "## Next Stage Preview" in text
+    for checklist_item in HUMAN_REVIEW_CHECKLIST_ITEMS:
+        assert checklist_item in text
+    assert NEXT_STAGE_PREVIEW_TEXT in text
+
+
+def test_all_python_sources_are_utf8():
+    bad = []
+    for path in Path(".").rglob("*.py"):
+        if ".git" in path.parts:
+            continue
+        try:
+            path.read_text(encoding="utf-8")
+        except UnicodeDecodeError as exc:
+            bad.append(f"{path}: {exc}")
+    assert not bad
 
 
 def test_cli_generates_markdown_json(tmp_path):
