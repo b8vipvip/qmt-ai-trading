@@ -439,3 +439,13 @@ Dashboard 只生成单文件 HTML；`scripts/build_dashboard.py` 可从本地报
 ## 阶段三十九：极小资金灰度最终人工授权包（仍不执行）
 
 阶段三十九计划在仍不执行实盘的前提下，把阶段三十八只读环境核验结果和全部前置材料整理为最终人工授权包。阶段三十九仍不下单、不调用 `xttrader`、不真实发送通知、不查询账户资金持仓订单成交。
+
+## 阶段三十九：极小资金灰度最终人工授权包（仍不执行）
+
+阶段三十九新增 Final Authorization Package，用于把阶段三十八 Live Env Check 和前置 Live Manual Prep、Gray Decision Package、Gray Rehearsal、Live Gray Readiness、Live Readiness Audit、Risk Gate、Human Approval、Paper Trading、Monitoring、Data Quality Tracking、Agent Research、Notification Dry Run、Dashboard、Final Acceptance 证据汇总为最终人工审阅材料包。该阶段已完成 review-only Markdown / JSON 输出、CLI、Daily Pipeline 可选区块、Scheduled / register 参数透传和 Dashboard 只读 section。
+
+`READY_FOR_FINAL_SIGNOFF_REVIEW` 只代表材料可以交人工最终签字审阅，不代表允许实盘、不代表交易授权、不代表自动 GO。阶段三十九不启用实盘、不调用 QMT 交易接口、不调用 xttrader、不查询账户/资金/持仓/订单/成交、不真实发送通知、不下单。
+
+## 阶段四十：实盘开关隔离与最终红线复核（仍默认关闭）
+
+阶段四十计划在仍不执行实盘的前提下，对所有 live 开关、execute 开关、真实通知开关、QMT/xttrader 边界、账户查询边界和计划任务注册边界做最终红线复核。阶段四十仍默认关闭实盘，不下单、不调用 xttrader、不真实发送通知、不查询账户资金持仓订单成交。

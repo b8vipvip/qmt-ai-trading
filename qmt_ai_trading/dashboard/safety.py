@@ -37,6 +37,8 @@ def build_default_dashboard_config(
     include_live_manual_prep: bool = False,
     live_env_check_dir: str = "live_env_check",
     include_live_env_check: bool = False,
+    final_authorization_dir: str = "final_authorization",
+    include_final_authorization: bool = False,
     title: str = "QMT AI Trading Dashboard",
 ) -> DashboardConfig:
     return DashboardConfig(
@@ -54,6 +56,7 @@ def build_default_dashboard_config(
             "gray_decision": gray_decision_dir,
             "live_manual_prep": live_manual_prep_dir,
             "live_env_check": live_env_check_dir,
+            "final_authorization": final_authorization_dir,
         },
         output_path=output_path,
         include_data_quality_tracking=include_data_quality_tracking,
@@ -68,6 +71,8 @@ def build_default_dashboard_config(
         live_manual_prep_dir=live_manual_prep_dir,
         include_live_env_check=include_live_env_check,
         live_env_check_dir=live_env_check_dir,
+        include_final_authorization=include_final_authorization,
+        final_authorization_dir=final_authorization_dir,
         read_only=True,
         metadata={"title": title, "stage": "stage31-ui-dashboard"},
     )

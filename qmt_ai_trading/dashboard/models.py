@@ -78,6 +78,8 @@ class DashboardConfig:
     live_manual_prep_dir: str = "live_manual_prep"
     include_live_env_check: bool = False
     live_env_check_dir: str = "live_env_check"
+    include_final_authorization: bool = False
+    final_authorization_dir: str = "final_authorization"
     read_only: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
 
