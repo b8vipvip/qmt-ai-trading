@@ -144,6 +144,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-gray-ledger-output-dir", default="live_gray_ledger")
     parser.add_argument("--enable-live-gray-review", action="store_true")
     parser.add_argument("--live-gray-review-output-dir", default="live_gray_review")
+    parser.add_argument("--enable-live-signature-freeze", action="store_true")
+    parser.add_argument("--live-signature-freeze-output-dir", default="live_signature_freeze")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -357,6 +359,17 @@ def main(argv: list[str] | None = None) -> int:
         save_live_gray_review_report(review_report, review_dir / "live_gray_review.md", review_dir / "live_gray_review.json")
         save_readonly_rehearsal_report(review_report.rehearsal, review_dir / "readonly_rehearsal.md", review_dir / "readonly_rehearsal.json")
         print(f"\nStage42 read-only live gray review package written: {review_dir / 'live_gray_review.md'}")
+
+    if args.enable_live_signature_freeze:
+        from qmt_ai_trading.live_signature_freeze.service import build_default_live_signature_freeze_config, run_config_freeze_summary, run_live_signature_freeze, save_config_freeze_report, save_live_signature_freeze_report
+
+        sig_dir = Path(args.live_signature_freeze_output_dir)
+        sig_config = build_default_live_signature_freeze_config(repo_root=ROOT, output_dir=str(sig_dir))
+        sig_report = run_live_signature_freeze(sig_config)
+        freeze_report = run_config_freeze_summary(sig_report)
+        save_live_signature_freeze_report(sig_report, sig_dir / "live_signature_freeze.md", sig_dir / "live_signature_freeze.json")
+        save_config_freeze_report(freeze_report, sig_dir / "config_freeze.md", sig_dir / "config_freeze.json")
+        print(f"\nStage43 read-only live signature freeze package written: {sig_dir / 'live_signature_freeze.md'}")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report

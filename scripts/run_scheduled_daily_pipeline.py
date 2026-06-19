@@ -153,6 +153,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--live-gray-ledger-output-dir", default="live_gray_ledger")
     parser.add_argument("--enable-live-gray-review", action="store_true")
     parser.add_argument("--live-gray-review-output-dir", default="live_gray_review")
+    parser.add_argument("--enable-live-signature-freeze", action="store_true")
+    parser.add_argument("--live-signature-freeze-output-dir", default="live_signature_freeze")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -277,6 +279,9 @@ def main(argv: list[str] | None = None) -> int:
     if parsed.enable_live_gray_review:
         args.append("--enable-live-gray-review")
         args.extend(["--live-gray-review-output-dir", parsed.live_gray_review_output_dir])
+    if parsed.enable_live_signature_freeze:
+        args.append("--enable-live-signature-freeze")
+        args.extend(["--live-signature-freeze-output-dir", parsed.live_signature_freeze_output_dir])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])

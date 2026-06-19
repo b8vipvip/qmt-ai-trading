@@ -132,6 +132,8 @@ class ScheduleConfig:
     live_gray_ledger_output_dir: Path = Path("live_gray_ledger")
     enable_live_gray_review: bool = False
     live_gray_review_output_dir: Path = Path("live_gray_review")
+    enable_live_signature_freeze: bool = False
+    live_signature_freeze_output_dir: Path = Path("live_signature_freeze")
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

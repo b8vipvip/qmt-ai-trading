@@ -423,3 +423,12 @@ market_data_test_stage42/
 !qmt_ai_trading/live_gray_review/
 !qmt_ai_trading/live_gray_review/*.py
 qmt_ai_trading/live_gray_review/__pycache__/
+
+# stage 43 live signature freeze local outputs
+validation_logs/
+live_signature_freeze_stage43/
+live_signature_freeze/
+market_data_test_stage43/
+!qmt_ai_trading/live_signature_freeze/
+!qmt_ai_trading/live_signature_freeze/*.py
+qmt_ai_trading/live_signature_freeze/__pycache__/
