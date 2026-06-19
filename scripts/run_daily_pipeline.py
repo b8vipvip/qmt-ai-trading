@@ -158,6 +158,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-archive-output-dir", default="live_archive")
     parser.add_argument("--enable-live-consistency", action="store_true")
     parser.add_argument("--live-consistency-output-dir", default="live_consistency")
+    parser.add_argument("--enable-live-final-archive", action="store_true")
+    parser.add_argument("--live-final-archive-output-dir", default="live_final_archive")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -466,6 +468,21 @@ def main(argv: list[str] | None = None) -> int:
         save_human_recheck_report(human_report, consistency_dir / "human_recheck.md", consistency_dir / "human_recheck.json")
         save_next_gray_check_report(plan_report, consistency_dir / "next_gray_check_plan.md", consistency_dir / "next_gray_check_plan.json")
         print(f"\nStage49 read-only live consistency package written: {consistency_dir / 'live_consistency.md'}")
+
+    if args.enable_live_final_archive:
+        from qmt_ai_trading.live_final_archive.service import build_default_live_final_archive_config, run_human_closure, run_live_final_archive, run_material_seal, run_next_readonly_check, save_human_closure_report, save_live_final_archive_report, save_material_seal_report, save_next_readonly_check_report
+
+        final_archive_dir = Path(args.live_final_archive_output_dir)
+        final_archive_config = build_default_live_final_archive_config(repo_root=ROOT, output_dir=str(final_archive_dir))
+        final_archive_report = run_live_final_archive(final_archive_config)
+        seal_report = run_material_seal(final_archive_report)
+        human_closure_report = run_human_closure(final_archive_report)
+        readonly_plan_report = run_next_readonly_check(final_archive_report)
+        save_live_final_archive_report(final_archive_report, final_archive_dir / "live_final_archive.md", final_archive_dir / "live_final_archive.json")
+        save_material_seal_report(seal_report, final_archive_dir / "material_seal.md", final_archive_dir / "material_seal.json")
+        save_human_closure_report(human_closure_report, final_archive_dir / "human_closure.md", final_archive_dir / "human_closure.json")
+        save_next_readonly_check_report(readonly_plan_report, final_archive_dir / "next_readonly_check_plan.md", final_archive_dir / "next_readonly_check_plan.json")
+        print(f"\nStage50 final archive read-only package written: {final_archive_dir / 'live_final_archive.md'}")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report

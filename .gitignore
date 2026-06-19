@@ -486,3 +486,10 @@ market_data_test_stage49/
 !qmt_ai_trading/live_consistency/
 !qmt_ai_trading/live_consistency/*.py
 qmt_ai_trading/live_consistency/__pycache__/
+validation_logs/
+live_final_archive_stage50/
+live_final_archive/
+market_data_test_stage50/
+!qmt_ai_trading/live_final_archive/
+!qmt_ai_trading/live_final_archive/*.py
+qmt_ai_trading/live_final_archive/__pycache__/
