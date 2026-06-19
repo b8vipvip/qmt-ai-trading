@@ -142,6 +142,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--redline-review-reviewer-name", default="")
     parser.add_argument("--enable-live-gray-ledger", action="store_true")
     parser.add_argument("--live-gray-ledger-output-dir", default="live_gray_ledger")
+    parser.add_argument("--enable-live-gray-review", action="store_true")
+    parser.add_argument("--live-gray-review-output-dir", default="live_gray_review")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -345,6 +347,16 @@ def main(argv: list[str] | None = None) -> int:
         ledger_report = run_live_gray_ledger(ledger_config)
         save_live_gray_ledger_report(ledger_report, ledger_dir / "live_gray_ledger.md", ledger_dir / "live_gray_ledger.json")
         print(f"\nStage41 read-only ledger written: {ledger_dir / 'live_gray_ledger.md'}")
+
+    if args.enable_live_gray_review:
+        from qmt_ai_trading.live_gray_review.service import build_default_live_gray_review_config, run_live_gray_review, save_live_gray_review_report, save_readonly_rehearsal_report
+
+        review_dir = Path(args.live_gray_review_output_dir)
+        review_config = build_default_live_gray_review_config(repo_root=ROOT, output_dir=str(review_dir))
+        review_report = run_live_gray_review(review_config)
+        save_live_gray_review_report(review_report, review_dir / "live_gray_review.md", review_dir / "live_gray_review.json")
+        save_readonly_rehearsal_report(review_report.rehearsal, review_dir / "readonly_rehearsal.md", review_dir / "readonly_rehearsal.json")
+        print(f"\nStage42 read-only live gray review package written: {review_dir / 'live_gray_review.md'}")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report

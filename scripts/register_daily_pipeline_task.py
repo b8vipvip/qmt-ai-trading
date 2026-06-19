@@ -131,6 +131,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--redline-review-reviewer-name", default="")
     parser.add_argument("--enable-live-gray-ledger", action="store_true")
     parser.add_argument("--live-gray-ledger-output-dir", default="live_gray_ledger")
+    parser.add_argument("--enable-live-gray-review", action="store_true")
+    parser.add_argument("--live-gray-review-output-dir", default="live_gray_review")
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -250,6 +252,8 @@ def main(argv: list[str] | None = None) -> int:
         redline_review_reviewer_name=args.redline_review_reviewer_name,
         enable_live_gray_ledger=args.enable_live_gray_ledger,
         live_gray_ledger_output_dir=Path(args.live_gray_ledger_output_dir),
+        enable_live_gray_review=args.enable_live_gray_review,
+        live_gray_review_output_dir=Path(args.live_gray_review_output_dir),
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -288,6 +292,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Red-line Review: enable_redline_review=True output_dir={args.redline_review_output_dir} review_only=True dry_run_only=True")
     if args.enable_live_gray_ledger:
         print(f"Stage41 Live Gray Ledger: enable_live_gray_ledger=True output_dir={args.live_gray_ledger_output_dir} read_only=True dry_run_only=True no_task_registered=True")
+    if args.enable_live_gray_review:
+        print(f"Stage42 Live Gray Review: enable_live_gray_review=True output_dir={args.live_gray_review_output_dir} read_only=True dry_run_only=True no_task_registered=True")
     if args.build_dashboard:
         print(f"Dashboard: build_dashboard=True output={args.dashboard_output} title={args.dashboard_title} read_only=True no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:
