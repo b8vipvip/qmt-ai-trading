@@ -140,6 +140,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--redline-review-output-dir", default="redline_review")
     parser.add_argument("--redline-review-operator-name", default="")
     parser.add_argument("--redline-review-reviewer-name", default="")
+    parser.add_argument("--enable-live-gray-ledger", action="store_true")
+    parser.add_argument("--live-gray-ledger-output-dir", default="live_gray_ledger")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -333,6 +335,16 @@ def main(argv: list[str] | None = None) -> int:
         )
         _, dashboard_path = build_and_save_dashboard(dashboard_config)
         print(f"\nRead-only dashboard written: {dashboard_path}")
+
+
+    if args.enable_live_gray_ledger:
+        from qmt_ai_trading.live_gray_ledger.service import build_default_live_gray_ledger_config, run_live_gray_ledger, save_live_gray_ledger_report
+
+        ledger_dir = Path(args.live_gray_ledger_output_dir)
+        ledger_config = build_default_live_gray_ledger_config(repo_root=ROOT, output_dir=str(ledger_dir))
+        ledger_report = run_live_gray_ledger(ledger_config)
+        save_live_gray_ledger_report(ledger_report, ledger_dir / "live_gray_ledger.md", ledger_dir / "live_gray_ledger.json")
+        print(f"\nStage41 read-only ledger written: {ledger_dir / 'live_gray_ledger.md'}")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report

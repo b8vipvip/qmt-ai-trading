@@ -405,3 +405,12 @@ data_cache/
 validation_logs/
 redline_review/
 market_data_test_stage40/
+
+# stage 41 live gray ledger local outputs
+validation_logs/
+live_gray_ledger_stage41/
+live_gray_ledger/
+market_data_test_stage41/
+!qmt_ai_trading/live_gray_ledger/
+!qmt_ai_trading/live_gray_ledger/*.py
+qmt_ai_trading/live_gray_ledger/__pycache__/

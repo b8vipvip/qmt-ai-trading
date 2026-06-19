@@ -128,6 +128,8 @@ class ScheduleConfig:
     redline_review_output_dir: Path = Path("redline_review")
     redline_review_operator_name: str = ""
     redline_review_reviewer_name: str = ""
+    enable_live_gray_ledger: bool = False
+    live_gray_ledger_output_dir: Path = Path("live_gray_ledger")
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
