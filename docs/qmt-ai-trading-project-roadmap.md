@@ -678,3 +678,17 @@ Stage45 建议名称为“阶段四十五：灰度前只读运行手册与人工
 Stage53 是“最终只读归档核验与锁定材料复核”，只生成最终只读归档核验包、锁定材料复核包、人工闭环复查包和下一阶段只读检查计划。`READY_FOR_ARCHIVE_VERIFICATION_REVIEW`、`NEED_MORE_EVIDENCE`、`NO_GO` 均只代表材料状态，不代表实盘授权。
 
 Stage54 建议为“灰度前最终缺口清零计划”。Stage54 仍不能直接实盘，只能继续做灰度前最终缺口清零计划、补证项复核、人工闭环复查或更严格的灰度前检查；仍不能自动 approve，不能调用 `xttrader`，不能查询真实账户，不能真实通知。
+
+### Stage54 完成说明：灰度前最终缺口清零计划
+
+- Stage54 属于 Stage53-60：灰度前真实数据 / QMT dry-run / 小资金灰度准备，不属于 Stage61-75 UI 产品化阶段。
+- Stage54 只生成灰度前最终缺口清零计划、补证项复核包、人工闭环复查包和下一阶段只读检查计划。
+- Stage54 不等于实盘授权，不调用 `xttrader`，不真实下单，不查询资金/持仓/订单/成交，不真实发送通知。
+- `READY_FOR_GAP_CLEARANCE_REVIEW` 只表示灰度前最终缺口清零计划材料可供人工复核，不代表实盘授权。
+- 完整 Stage1-75 工程阶段计划与 Stage61-75 UI 产品化路线继续保留；UI 仍不能直接访问 QMT，不能绕过 Risk Gate，不能绕过 Human Approval，不能自动 approve。
+
+### Stage55 预告：QMT 实机 dry-run 环境最终校准
+
+- Stage55 仍不是实盘，不真实下单。
+- Stage55 只在 Stage54 灰度前最终缺口清零计划基础上，校准 MiniQMT / QMT 客户端路径、`xtdata` 可用性、行情拉取能力、本地缓存写入、字段映射、交易日/时间字段和 ETF 标的白名单。
+- Stage55 只允许使用 `xtdata`，不得调用 `xttrader`，不得查询真实资金、持仓、订单、成交，不得下单。

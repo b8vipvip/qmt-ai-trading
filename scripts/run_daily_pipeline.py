@@ -166,6 +166,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-lock-consistency-output-dir", default="live_lock_consistency")
     parser.add_argument("--enable-live-archive-verification", action="store_true")
     parser.add_argument("--live-archive-verification-output-dir", default="live_archive_verification")
+    parser.add_argument("--enable-live-gap-clearance", action="store_true")
+    parser.add_argument("--live-gap-clearance-output-dir", default="live_gap_clearance")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -531,6 +533,21 @@ def main(argv: list[str] | None = None) -> int:
         save_human_closure_recheck_report(human_recheck_report, av_dir / "human_closure_recheck.md", av_dir / "human_closure_recheck.json")
         save_next_readonly_check_report(readonly_plan_report, av_dir / "next_readonly_check_plan.md", av_dir / "next_readonly_check_plan.json")
         print(f"\nStage53 final read-only archive verification package written: {av_dir / 'live_archive_verification.md'}")
+
+
+    if args.enable_live_gap_clearance:
+        from qmt_ai_trading.live_gap_clearance.service import build_default_live_gap_clearance_config, run_evidence_remediation, run_human_closure_recheck, run_live_gap_clearance, run_next_readonly_check, save_evidence_remediation_report, save_human_closure_recheck_report, save_live_gap_clearance_report, save_next_readonly_check_report
+        lg_dir = Path(args.live_gap_clearance_output_dir)
+        lg_config = build_default_live_gap_clearance_config(repo_root=ROOT, output_dir=str(lg_dir))
+        lg_report = run_live_gap_clearance(lg_config)
+        remediation_report = run_evidence_remediation(lg_report)
+        human_recheck_report = run_human_closure_recheck(lg_report)
+        readonly_plan_report = run_next_readonly_check(lg_report)
+        save_live_gap_clearance_report(lg_report, lg_dir / "live_gap_clearance.md", lg_dir / "live_gap_clearance.json")
+        save_evidence_remediation_report(remediation_report, lg_dir / "evidence_remediation.md", lg_dir / "evidence_remediation.json")
+        save_human_closure_recheck_report(human_recheck_report, lg_dir / "human_closure_recheck.md", lg_dir / "human_closure_recheck.json")
+        save_next_readonly_check_report(readonly_plan_report, lg_dir / "next_readonly_check_plan.md", lg_dir / "next_readonly_check_plan.json")
+        print(f"\nStage54 final pre-gray gap clearance package written: {lg_dir / 'live_gap_clearance.md'}")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report

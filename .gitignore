@@ -520,3 +520,12 @@ market_data_test_stage53/
 !qmt_ai_trading/live_archive_verification/
 !qmt_ai_trading/live_archive_verification/*.py
 qmt_ai_trading/live_archive_verification/__pycache__/
+
+# stage 54 final pre-gray gap clearance local outputs
+validation_logs/
+live_gap_clearance_stage54/
+live_gap_clearance/
+market_data_test_stage54/
+!qmt_ai_trading/live_gap_clearance/
+!qmt_ai_trading/live_gap_clearance/*.py
+qmt_ai_trading/live_gap_clearance/__pycache__/
