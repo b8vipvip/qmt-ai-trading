@@ -511,3 +511,12 @@ market_data_test_stage52/
 !qmt_ai_trading/live_lock_consistency/
 !qmt_ai_trading/live_lock_consistency/*.py
 qmt_ai_trading/live_lock_consistency/__pycache__/
+
+# stage 53 final read-only archive verification local outputs
+validation_logs/
+live_archive_verification_stage53/
+live_archive_verification/
+market_data_test_stage53/
+!qmt_ai_trading/live_archive_verification/
+!qmt_ai_trading/live_archive_verification/*.py
+qmt_ai_trading/live_archive_verification/__pycache__/

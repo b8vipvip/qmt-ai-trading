@@ -601,3 +601,80 @@ Stage45 建议名称为“阶段四十五：灰度前只读运行手册与人工
 - 阶段五十二：最终只读锁定复核与归档一致性核验，新增 `qmt_ai_trading/live_lock_consistency/`、`scripts/run_live_lock_consistency.py` 和 `scripts/validate_stage52.ps1`，只读取 Stage48/49/50/51 本地证据并生成只读材料。
 - Stage52 不等于实盘授权，不调用 `xttrader`，不真实下单，不查询真实资金/持仓/订单/成交，不真实发送通知。
 - Stage53 建议为“最终只读归档核验与锁定材料复核”，仍只能继续做最终只读归档核验、锁定材料复核、人工闭环复查或更严格的灰度前检查。
+
+## 完整工程阶段计划与前端 UI 产品化路线（Stage 1-75）
+
+> Stage53 权威追加：本章节自 Stage53 起作为后续阶段提示词与验收的强制阅读内容。更新 roadmap 不代表打开实盘，不改变 Stage52 已完成状态，也不授予任何真实交易权限。
+
+### 总体阶段口径与进度
+
+- 后端 / 安全 / 灰度前核心链路暂定 60 阶段。
+- 完整产品化闭环包含前端 UI，本项目总阶段调整为 75 阶段。
+- 当前 Stage52 完成后，总体产品进度约 52/75 ≈ 69%。
+- 后端核心链路进度约 52/60 ≈ 87%。
+- UI 不作为绕过交易风控的入口。
+- UI 只调用后端 API。
+- UI 不能直接访问 QMT。
+- UI 不直接访问 QMT。
+- UI 不能直接下单。
+- UI 不能绕过 Risk Gate。
+- UI 不能绕过 Human Approval。
+- UI 不能自动 approve。
+- UI 默认不能开启 live。
+
+### 完整阶段计划摘要
+
+- Stage 1-22：基础交易工程闭环
+- Stage 23-31：实盘前核心能力补齐
+- Stage 32-40：最终授权、安全红线、灰度前封锁
+- Stage 41-52：只读台账、签字、归档、锁定、一致性复核
+- Stage 53-60：灰度前真实数据 / QMT dry-run / 小资金灰度准备
+- Stage 61-75：前端 UI / 本地控制台 / 操作闭环
+
+### Stage53-60 后端 / 安全 / 灰度前收尾计划
+
+- Stage53：最终只读归档核验与锁定材料复核
+- Stage54：灰度前最终缺口清零计划
+- Stage55：QMT 实机 dry-run 环境最终校准
+- Stage56：真实缓存质量复核与长期样本补齐
+- Stage57：小资金灰度候选计划生成
+- Stage58：小资金灰度前最终人工审批包
+- Stage59：灰度执行开关隔离与双重确认机制
+- Stage60：小资金灰度实盘预备验收
+
+### Stage61-75 前端 UI 产品化计划
+
+- Stage61：API Gateway 基础层
+- Stage62：前端工程初始化
+- Stage63：Dashboard 总览页面
+- Stage64：行情缓存与数据质量 UI
+- Stage65：Research / Strategy / ETF Rotation UI
+- Stage66：Portfolio / Risk Gate UI
+- Stage67：Human Approval UI
+- Stage68：Paper Trading UI
+- Stage69：Daily Pipeline / Scheduler UI
+- Stage70：Backtest / Shadow Replay UI
+- Stage71：报告中心 UI
+- Stage72：灰度前安全审计 UI
+- Stage73：系统设置 / 权限 / 审计日志 UI
+- Stage74：UI 安全验收与端到端测试
+- Stage75：本地控制台封版 / 可选桌面化
+
+### UI 安全红线
+
+- UI 只能作为后端 API 的操作界面和材料查看入口。
+- UI 不能直接访问 QMT，也不能引入任何直接 QMT 交易调用。
+- UI 不能直接下单，不能绕过 Risk Gate，不能绕过 Human Approval。
+- UI 不能自动 approve，不能默认开启 live，不能把材料状态解释为实盘授权。
+- UI 中任何“提交 / 确认 / 执行”动作都必须沿用后端已定义的风控、审批、dry-run / paper / gray 边界。
+
+### 后续强制阅读规则
+
+从 Stage53 起，任何新阶段 Codex 开发前，除原有 roadmap、architecture、最近阶段文档外，还必须阅读 `docs/qmt-ai-trading-project-roadmap.md` 中的“完整工程阶段计划与前端 UI 产品化路线（Stage 1-75）”章节。
+任何阶段提示词也必须确认：当前阶段是否属于 Stage1-60 后端/安全链路，还是 Stage61-75 UI 产品化链路。
+
+### Stage53 完成说明与 Stage54 预告
+
+Stage53 是“最终只读归档核验与锁定材料复核”，只生成最终只读归档核验包、锁定材料复核包、人工闭环复查包和下一阶段只读检查计划。`READY_FOR_ARCHIVE_VERIFICATION_REVIEW`、`NEED_MORE_EVIDENCE`、`NO_GO` 均只代表材料状态，不代表实盘授权。
+
+Stage54 建议为“灰度前最终缺口清零计划”。Stage54 仍不能直接实盘，只能继续做灰度前最终缺口清零计划、补证项复核、人工闭环复查或更严格的灰度前检查；仍不能自动 approve，不能调用 `xttrader`，不能查询真实账户，不能真实通知。

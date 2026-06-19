@@ -153,6 +153,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-archive-lock-output-dir", default="live_archive_lock")
     parser.add_argument("--enable-live-lock-consistency", action="store_true")
     parser.add_argument("--live-lock-consistency-output-dir", default="live_lock_consistency")
+    parser.add_argument("--enable-live-archive-verification", action="store_true")
+    parser.add_argument("--live-archive-verification-output-dir", default="live_archive_verification")
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -294,6 +296,8 @@ def main(argv: list[str] | None = None) -> int:
         live_archive_lock_output_dir=Path(args.live_archive_lock_output_dir),
         enable_live_lock_consistency=args.enable_live_lock_consistency,
         live_lock_consistency_output_dir=Path(args.live_lock_consistency_output_dir),
+        enable_live_archive_verification=args.enable_live_archive_verification,
+        live_archive_verification_output_dir=Path(args.live_archive_verification_output_dir),
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -354,6 +358,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Stage51 Live Archive Lock: enable_live_archive_lock=True output_dir={args.live_archive_lock_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.enable_live_lock_consistency:
         print(f"Stage52 Live Lock Consistency: enable_live_lock_consistency=True output_dir={args.live_lock_consistency_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+    if args.enable_live_archive_verification:
+        print(f"Stage53 Live Archive Verification: enable_live_archive_verification=True output_dir={args.live_archive_verification_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.build_dashboard:
         print(f"Dashboard: build_dashboard=True output={args.dashboard_output} title={args.dashboard_title} read_only=True no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:

@@ -152,6 +152,8 @@ class ScheduleConfig:
     live_archive_lock_output_dir: Path = Path("live_archive_lock")
     enable_live_lock_consistency: bool = False
     live_lock_consistency_output_dir: Path = Path("live_lock_consistency")
+    enable_live_archive_verification: bool = False
+    live_archive_verification_output_dir: Path = Path("live_archive_verification")
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
