@@ -270,7 +270,10 @@ def build_daily_pipeline_command(
         if live_env_check_allowed_symbols:
             args.extend(["--live-env-check-allowed-symbols", str(live_env_check_allowed_symbols)])
         args.extend(["--live-env-check-max-total-capital", str(live_env_check_max_total_capital), "--live-env-check-max-single-order-value", str(live_env_check_max_single_order_value)])
-        args.extend(["--live-env-check-max-symbol-weight", str(live_env_check_max_symbol_weight), "--live-env-check-max-portfolio-weight", str(live_env_check_max_portfolio_weight)])
+        if float(live_env_check_max_symbol_weight) != 0.1:
+            args.extend(["--live-env-check-max-symbol-weight", str(live_env_check_max_symbol_weight)])
+        if float(live_env_check_max_portfolio_weight) != 0.2:
+            args.extend(["--live-env-check-max-portfolio-weight", str(live_env_check_max_portfolio_weight)])
     if enable_final_authorization_package:
         args.append("--enable-final-authorization-package")
         args.extend(["--final-authorization-output-dir", str(final_authorization_output_dir)])

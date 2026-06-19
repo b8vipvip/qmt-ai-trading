@@ -64,8 +64,67 @@ def test_register_preview_final_authorization_safe():
     assert r.returncode == 0, r.stderr
     out=r.stdout
     assert "--enable-final-authorization-package" in out
-    assert "--live-enabled" not in out and "--execute-live" not in out
-    for bad in ["--live-env-check-max-port", " H ", "500ge38", "2026-06- "]:
+    assert "--final-authorization-output-dir final_authorization" in out
+    assert "--final-authorization-allowed-symbols 510300.SH,510500.SH" in out
+    assert "--final-authorization-max-total-capital 5000.0" in out
+    assert "--final-authorization-max-single-order-value 1000.0" in out
+    assert "--live-enabled" not in out and "--execute-live" not in out and "real-send" not in out
+    for bad in ["--gray-decisio2", "--live-env-check-max-port", " H ", "500ge38", "123ge39", "2026-06- "]:
+        assert bad not in out
+
+
+def test_register_preview_full_stage39_command_safe():
+    args = [
+        "--warmup-universe", "--warmup-provider", "mock", "--universe-lookback-days", "40",
+        "--warmup-frequency", "1d", "--cache-root", "market_data",
+        "--data-source-mode", "cached_real_first", "--research-start", "2026-05-09",
+        "--research-end", "2026-06-18", "--research-frequency", "1d", "--min-bars", "20",
+        "--cached-strategy-top-n", "2", "--enable-portfolio-plan", "--portfolio-method",
+        "score_weight", "--portfolio-top-n", "2", "--portfolio-total-asset", "1000000",
+        "--portfolio-cash-reserve-ratio", "0.2", "--portfolio-max-symbol-weight", "0.3",
+        "--portfolio-max-weight", "0.8", "--enable-monitoring", "--monitoring-output-dir",
+        "monitoring_reports", "--monitoring-dry-run-alerts", "--enable-agent-research",
+        "--agent-research-output-dir", "agent_reports", "--agent-research-mode", "local_rules",
+        "--enable-live-gray-readiness", "--live-gray-output-dir", "live_gray_reports",
+        "--live-gray-allowed-symbols", "510300.SH,510500.SH", "--live-gray-max-total-capital",
+        "5000", "--live-gray-max-single-order-value", "1000", "--live-gray-max-symbol-weight",
+        "0.1", "--live-gray-max-portfolio-weight", "0.2", "--build-dashboard",
+        "--dashboard-output", "dashboard/daily_dashboard.html", "--dashboard-title",
+        "QMT AI Trading Dashboard", "--enable-data-quality-tracking",
+        "--data-quality-tracking-output-dir", "data_quality_tracking",
+        "--data-quality-tracking-report-dir", "qmt_data_quality_reports",
+        "--enable-notification-dry-run", "--notification-dry-run-output-dir", "notification_dryrun",
+        "--notification-dry-run-channels", "FILE,CONSOLE,EMAIL,TELEGRAM,WECHAT",
+        "--enable-gray-rehearsal", "--gray-rehearsal-output-dir", "gray_rehearsal",
+        "--gray-rehearsal-allowed-symbols", "510300.SH,510500.SH",
+        "--gray-rehearsal-max-total-capital", "5000", "--gray-rehearsal-max-single-order-value",
+        "1000", "--enable-gray-decision-package", "--gray-decision-output-dir", "gray_decision",
+        "--gray-decision-allowed-symbols", "510300.SH,510500.SH",
+        "--gray-decision-max-total-capital", "5000", "--gray-decision-max-single-order-value",
+        "1000", "--enable-live-manual-prep", "--live-manual-prep-output-dir",
+        "live_manual_prep", "--live-manual-prep-allowed-symbols", "510300.SH,510500.SH",
+        "--live-manual-prep-max-total-capital", "5000",
+        "--live-manual-prep-max-single-order-value", "1000", "--enable-live-env-check",
+        "--live-env-check-output-dir", "live_env_check", "--live-env-check-allowed-symbols",
+        "510300.SH,510500.SH", "--live-env-check-max-total-capital", "5000",
+        "--live-env-check-max-single-order-value", "1000", "--enable-final-authorization-package",
+        "--final-authorization-output-dir", "final_authorization",
+        "--final-authorization-allowed-symbols", "510300.SH,510500.SH",
+        "--final-authorization-max-total-capital", "5000",
+        "--final-authorization-max-single-order-value", "1000", "--time", "15:30",
+    ]
+    r = subprocess.run([sys.executable, str(ROOT / "scripts/register_daily_pipeline_task.py"), *args], cwd=ROOT, text=True, capture_output=True)
+    assert r.returncode == 0, r.stderr
+    out = r.stdout
+    for required in [
+        "--enable-final-authorization-package",
+        "--final-authorization-output-dir final_authorization",
+        "--final-authorization-allowed-symbols 510300.SH,510500.SH",
+        "--final-authorization-max-total-capital 5000.0",
+        "--final-authorization-max-single-order-value 1000.0",
+    ]:
+        assert required in out
+    for bad in ["--gray-decisio2", "--live-env-check-max-port", " H ", "500ge38", "123ge39", "2026-06- ", "--live-enabled", "--execute-live", "real-send"]:
         assert bad not in out
 
 def test_gitignore_and_roadmap():
