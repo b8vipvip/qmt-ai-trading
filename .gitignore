@@ -441,3 +441,12 @@ market_data_test_stage44/
 !qmt_ai_trading/live_env_snapshot/
 !qmt_ai_trading/live_env_snapshot/*.py
 qmt_ai_trading/live_env_snapshot/__pycache__/
+
+# stage 45 read-only live runbook local outputs
+validation_logs/
+live_runbook_stage45/
+live_runbook/
+market_data_test_stage45/
+!qmt_ai_trading/live_runbook/
+!qmt_ai_trading/live_runbook/*.py
+qmt_ai_trading/live_runbook/__pycache__/
