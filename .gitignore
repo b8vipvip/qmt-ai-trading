@@ -432,3 +432,12 @@ market_data_test_stage43/
 !qmt_ai_trading/live_signature_freeze/
 !qmt_ai_trading/live_signature_freeze/*.py
 qmt_ai_trading/live_signature_freeze/__pycache__/
+
+# stage 44 live environment snapshot local outputs
+validation_logs/
+live_env_snapshot_stage44/
+live_env_snapshot/
+market_data_test_stage44/
+!qmt_ai_trading/live_env_snapshot/
+!qmt_ai_trading/live_env_snapshot/*.py
+qmt_ai_trading/live_env_snapshot/__pycache__/

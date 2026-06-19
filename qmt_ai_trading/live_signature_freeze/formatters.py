@@ -17,7 +17,7 @@ def format_live_signature_freeze_report_markdown(report: LiveSignatureFreezeRepo
     lines += ["","## Config Freeze Summary"] + ([f"- {x.name}: {x.frozen_value} — {x.summary}" for x in report.config_freeze_items] or ["- Config freeze summary will be generated with the same read-only boundary."])
     lines += ["","## Required Manual Sign-offs"] + [f"- [ ] {x}" for x in report.required_manual_signoffs]
     lines += ["","## Blocking Reasons"] + ([f"- {x}" for x in report.blocking_reasons] or ["- None"])
-    lines += ["","## Warnings"] + ([f"- {x}" for x in report.warnings] or ["- None"])
+    lines += ["","## Warnings"] + ([f"- {x}" for x in report.warnings if str(x).strip()] or ["- None"])
     lines += ["","## Next Stage Preview","Stage44 仍不得直接实盘；只能继续做配置封存复核、人工签字校验、只读环境快照或更严格的灰度前检查。",""]
     return "\n".join(lines)
 
@@ -25,7 +25,7 @@ def format_config_freeze_report_markdown(report: ConfigFreezeReport) -> str:
     lines=["# Stage43 Config Freeze Summary","","## Decision",str(enum_value(report.decision)),"","## Safety Note",report.safety_note,"","## Frozen Items"]
     lines += [f"- {x.name}: {x.frozen_value} — {x.summary}" for x in report.items] or ["- No config freeze items."]
     lines += ["","## Blocking Reasons"] + ([f"- {x}" for x in report.blocking_reasons] or ["- None"])
-    lines += ["","## Warnings"] + ([f"- {x}" for x in report.warnings] or ["- None"])
+    lines += ["","## Warnings"] + ([f"- {x}" for x in report.warnings if str(x).strip()] or ["- None"])
     lines += ["","## Summary",json.dumps(report.summary, ensure_ascii=False),""]
     return "\n".join(lines)
 

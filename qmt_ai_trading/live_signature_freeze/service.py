@@ -32,7 +32,7 @@ def run_live_signature_freeze(config: LiveSignatureFreezeConfig|None=None, **kwa
     cfg=config or build_default_live_signature_freeze_config(**kwargs)
     evidence,items=collect_live_signature_freeze_evidence(cfg)
     decision,blocked=_decide(evidence,items)
-    warnings=[f"{getattr(x,'path','')}: {getattr(x,'summary',getattr(x,'message',''))}" for x in [*evidence,*items] if getattr(x,'severity',None)==Sev.WARN or getattr(x,'status',None) in {S.WARN,S.SKIPPED}]
+    warnings=[f"{getattr(x,'path','')}: {(getattr(x,'summary','') or getattr(x,'message','') or 'Warning details unavailable; manual review required.')}" for x in [*evidence,*items] if (getattr(x,'severity',None)==Sev.WARN or getattr(x,'status',None) in {S.WARN,S.SKIPPED})]
     freeze_items=_config_items(cfg)
     summary={'total_evidence':len(evidence),'total_checklist_items':len(items),'critical':len(blocked),'warnings':len(warnings),'ready_for_signature_not_trade_authorization':True,'stage43_read_only':True}
     return LiveSignatureFreezeReport(decision=decision, config=cfg, evidence=evidence, checklist=items, config_freeze_items=freeze_items, blocking_reasons=blocked, warnings=warnings, summary=summary)

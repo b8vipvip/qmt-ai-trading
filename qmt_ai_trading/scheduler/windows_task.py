@@ -148,6 +148,8 @@ def build_daily_pipeline_command(
     live_gray_review_output_dir: Path | str = Path("live_gray_review"),
     enable_live_signature_freeze: bool = False,
     live_signature_freeze_output_dir: Path | str = Path("live_signature_freeze"),
+    enable_live_env_snapshot: bool = False,
+    live_env_snapshot_output_dir: Path | str = Path("live_env_snapshot"),
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -309,6 +311,9 @@ def build_daily_pipeline_command(
     if enable_live_signature_freeze:
         args.append("--enable-live-signature-freeze")
         args.extend(["--live-signature-freeze-output-dir", str(live_signature_freeze_output_dir)])
+    if enable_live_env_snapshot:
+        args.append("--enable-live-env-snapshot")
+        args.extend(["--live-env-snapshot-output-dir", str(live_env_snapshot_output_dir)])
     if build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
@@ -467,6 +472,8 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         live_gray_review_output_dir=cfg.live_gray_review_output_dir,
         enable_live_signature_freeze=cfg.enable_live_signature_freeze,
         live_signature_freeze_output_dir=cfg.live_signature_freeze_output_dir,
+        enable_live_env_snapshot=cfg.enable_live_env_snapshot,
+        live_env_snapshot_output_dir=cfg.live_env_snapshot_output_dir,
         final_authorization_allowed_symbols=cfg.final_authorization_allowed_symbols,
         final_authorization_max_total_capital=cfg.final_authorization_max_total_capital,
         final_authorization_max_single_order_value=cfg.final_authorization_max_single_order_value,
