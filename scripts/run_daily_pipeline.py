@@ -162,6 +162,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-final-archive-output-dir", default="live_final_archive")
     parser.add_argument("--enable-live-archive-lock", action="store_true")
     parser.add_argument("--live-archive-lock-output-dir", default="live_archive_lock")
+    parser.add_argument("--enable-live-lock-consistency", action="store_true")
+    parser.add_argument("--live-lock-consistency-output-dir", default="live_lock_consistency")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -499,6 +501,20 @@ def main(argv: list[str] | None = None) -> int:
         save_human_closure_recheck_report(human_recheck_report, lock_dir / "human_closure_recheck.md", lock_dir / "human_closure_recheck.json")
         save_next_readonly_check_report(readonly_plan_report, lock_dir / "next_readonly_check_plan.md", lock_dir / "next_readonly_check_plan.json")
         print(f"\nStage51 final read-only archive lock package written: {lock_dir / 'live_archive_lock.md'}")
+
+    if args.enable_live_lock_consistency:
+        from qmt_ai_trading.live_lock_consistency.service import build_default_live_lock_consistency_config, run_archive_consistency, run_human_closure_recheck, run_live_lock_consistency, run_next_readonly_check, save_archive_consistency_report, save_human_closure_recheck_report, save_live_lock_consistency_report, save_next_readonly_check_report
+        lc_dir = Path(args.live_lock_consistency_output_dir)
+        lc_config = build_default_live_lock_consistency_config(repo_root=ROOT, output_dir=str(lc_dir))
+        lc_report = run_live_lock_consistency(lc_config)
+        archive_consistency_report = run_archive_consistency(lc_report)
+        human_recheck_report = run_human_closure_recheck(lc_report)
+        readonly_plan_report = run_next_readonly_check(lc_report)
+        save_live_lock_consistency_report(lc_report, lc_dir / "live_lock_consistency.md", lc_dir / "live_lock_consistency.json")
+        save_archive_consistency_report(archive_consistency_report, lc_dir / "archive_consistency.md", lc_dir / "archive_consistency.json")
+        save_human_closure_recheck_report(human_recheck_report, lc_dir / "human_closure_recheck.md", lc_dir / "human_closure_recheck.json")
+        save_next_readonly_check_report(readonly_plan_report, lc_dir / "next_readonly_check_plan.md", lc_dir / "next_readonly_check_plan.json")
+        print(f"\nStage52 final read-only lock consistency package written: {lc_dir / 'live_lock_consistency.md'}")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
