@@ -12,8 +12,14 @@ def _critical_count(data):
     s=data.get('summary') or {}; c=s.get('critical',0)
     return c if isinstance(c,int) else 0
 
+def _safe_relative_path(path: Path, root: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(root.resolve()))
+    except Exception:
+        return str(path)
+
 def _evidence(root:Path,path:Path,cat,title):
-    rel=str(path.relative_to(root)) if path.exists() and path.is_relative_to(root) else str(path)
+    rel=_safe_relative_path(path, root)
     if not path.exists():
         return LiveFinalArchiveEvidence(category=cat,status=LiveFinalArchiveStatus.SKIPPED,severity=LiveFinalArchiveSeverity.WARN,path=rel,title=title,summary=f'{title} 缺失；Stage50 继续生成只读封版材料但需要补证。')
     data=_read_json(path) if path.suffix=='.json' else None
