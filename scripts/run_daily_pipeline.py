@@ -168,6 +168,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-archive-verification-output-dir", default="live_archive_verification")
     parser.add_argument("--enable-live-gap-clearance", action="store_true")
     parser.add_argument("--live-gap-clearance-output-dir", default="live_gap_clearance")
+    parser.add_argument("--enable-qmt-dryrun-calibration", action="store_true")
+    parser.add_argument("--qmt-dryrun-calibration-output-dir", default="qmt_dryrun_calibration")
+    parser.add_argument("--qmt-dryrun-calibration-provider", default="mock", choices=["mock", "qmt_xtdata"])
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -548,6 +551,17 @@ def main(argv: list[str] | None = None) -> int:
         save_human_closure_recheck_report(human_recheck_report, lg_dir / "human_closure_recheck.md", lg_dir / "human_closure_recheck.json")
         save_next_readonly_check_report(readonly_plan_report, lg_dir / "next_readonly_check_plan.md", lg_dir / "next_readonly_check_plan.json")
         print(f"\nStage54 final pre-gray gap clearance package written: {lg_dir / 'live_gap_clearance.md'}")
+
+    if args.enable_qmt_dryrun_calibration:
+        from qmt_ai_trading.qmt_dryrun_calibration.service import build_default_qmt_dryrun_calibration_config, run_qmt_dryrun_calibration, run_xtdata_capability_check, run_etf_whitelist_calibration, run_next_real_cache_quality_plan, save_qmt_dryrun_calibration_report, save_xtdata_capability_report, save_etf_whitelist_calibration_report, save_next_real_cache_quality_plan_report
+        qd = Path(args.qmt_dryrun_calibration_output_dir)
+        qc = build_default_qmt_dryrun_calibration_config(repo_root=ROOT, output_dir=str(qd), provider=args.qmt_dryrun_calibration_provider)
+        qr = run_qmt_dryrun_calibration(qc)
+        save_qmt_dryrun_calibration_report(qr, qd / "qmt_dryrun_calibration.md", qd / "qmt_dryrun_calibration.json")
+        save_xtdata_capability_report(run_xtdata_capability_check(qr), qd / "xtdata_capability.md", qd / "xtdata_capability.json")
+        save_etf_whitelist_calibration_report(run_etf_whitelist_calibration(qr), qd / "etf_whitelist_calibration.md", qd / "etf_whitelist_calibration.json")
+        save_next_real_cache_quality_plan_report(run_next_real_cache_quality_plan(qr), qd / "next_real_cache_quality_plan.md", qd / "next_real_cache_quality_plan.json")
+        print(f"\nStage55 QMT dry-run calibration package written: {qd / 'qmt_dryrun_calibration.md'}")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report

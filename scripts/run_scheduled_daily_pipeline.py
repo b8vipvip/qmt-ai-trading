@@ -177,6 +177,9 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--live-archive-verification-output-dir", default="live_archive_verification")
     parser.add_argument("--enable-live-gap-clearance", action="store_true")
     parser.add_argument("--live-gap-clearance-output-dir", default="live_gap_clearance")
+    parser.add_argument("--enable-qmt-dryrun-calibration", action="store_true")
+    parser.add_argument("--qmt-dryrun-calibration-output-dir", default="qmt_dryrun_calibration")
+    parser.add_argument("--qmt-dryrun-calibration-provider", default="mock", choices=["mock", "qmt_xtdata"])
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -337,6 +340,9 @@ def main(argv: list[str] | None = None) -> int:
     if parsed.enable_live_gap_clearance:
         args.append("--enable-live-gap-clearance")
         args.extend(["--live-gap-clearance-output-dir", parsed.live_gap_clearance_output_dir])
+    if parsed.enable_qmt_dryrun_calibration:
+        args.append("--enable-qmt-dryrun-calibration")
+        args.extend(["--qmt-dryrun-calibration-output-dir", parsed.qmt_dryrun_calibration_output_dir, "--qmt-dryrun-calibration-provider", parsed.qmt_dryrun_calibration_provider])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])
