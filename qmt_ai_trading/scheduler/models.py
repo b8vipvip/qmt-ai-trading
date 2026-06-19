@@ -124,6 +124,10 @@ class ScheduleConfig:
     final_authorization_max_single_order_value: float = 1000.0
     final_authorization_max_symbol_weight: float = 0.1
     final_authorization_max_portfolio_weight: float = 0.2
+    enable_redline_review: bool = False
+    redline_review_output_dir: Path = Path("redline_review")
+    redline_review_operator_name: str = ""
+    redline_review_reviewer_name: str = ""
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

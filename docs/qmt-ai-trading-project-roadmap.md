@@ -449,3 +449,13 @@ Dashboard 只生成单文件 HTML；`scripts/build_dashboard.py` 可从本地报
 ## 阶段四十：实盘开关隔离与最终红线复核（仍默认关闭）
 
 阶段四十计划在仍不执行实盘的前提下，对所有 live 开关、execute 开关、真实通知开关、QMT/xttrader 边界、账户查询边界和计划任务注册边界做最终红线复核。阶段四十仍默认关闭实盘，不下单、不调用 xttrader、不真实发送通知、不查询账户资金持仓订单成交。
+
+## 阶段四十：实盘开关隔离与最终红线复核（仍默认关闭）
+
+阶段四十已新增 Red-line Review 能力：扫描 live / execute / real-send / xttrader / QMT 交易 API / 账户资金持仓订单成交查询 / scheduler preview / Dashboard order entry / 敏感文件边界，并生成 review-only Markdown / JSON 报告。`READY_FOR_REDLINE_REVIEW` 只代表材料可交人工红线复核，不代表允许实盘。本阶段不启用实盘、不调用 QMT、不调用 xttrader、不真实发送通知、不下单。
+
+## 阶段四十一：极小资金灰度实盘前只读确认台账（仍不执行）
+
+下一阶段计划在仍不执行实盘的前提下，把阶段四十红线复核结果、阶段三十九最终人工授权包、阶段三十八只读环境核验和全部前置证据整理为只读确认台账。阶段四十一仍不下单、不调用 xttrader、不真实发送通知、不查询账户资金持仓订单成交。
+
+后续开发前必须先读 roadmap。小修复优先本地脚本修，不要大改架构。

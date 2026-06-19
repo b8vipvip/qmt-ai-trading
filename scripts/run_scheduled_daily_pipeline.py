@@ -145,6 +145,10 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--final-authorization-reviewer-name", default="")
     parser.add_argument("--final-authorization-risk-owner-name", default="")
     parser.add_argument("--final-authorization-final-approver-name", default="")
+    parser.add_argument("--enable-redline-review", action="store_true")
+    parser.add_argument("--redline-review-output-dir", default="redline_review")
+    parser.add_argument("--redline-review-operator-name", default="")
+    parser.add_argument("--redline-review-reviewer-name", default="")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -256,6 +260,13 @@ def main(argv: list[str] | None = None) -> int:
             args.extend(["--final-authorization-allowed-symbols", parsed.final_authorization_allowed_symbols])
         args.extend(["--final-authorization-max-total-capital", str(parsed.final_authorization_max_total_capital), "--final-authorization-max-single-order-value", str(parsed.final_authorization_max_single_order_value)])
         args.extend(["--final-authorization-max-symbol-weight", str(parsed.final_authorization_max_symbol_weight), "--final-authorization-max-portfolio-weight", str(parsed.final_authorization_max_portfolio_weight)])
+    if parsed.enable_redline_review:
+        args.append("--enable-redline-review")
+        args.extend(["--redline-review-output-dir", parsed.redline_review_output_dir])
+        if parsed.redline_review_operator_name:
+            args.extend(["--redline-review-operator-name", parsed.redline_review_operator_name])
+        if parsed.redline_review_reviewer_name:
+            args.extend(["--redline-review-reviewer-name", parsed.redline_review_reviewer_name])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])
