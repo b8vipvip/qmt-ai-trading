@@ -49,3 +49,33 @@ def test_gitignore_sync_all_and_stage45_dedup():
     from qmt_ai_trading.live_runbook.formatters import format_manual_rehearsal_markdown
     from qmt_ai_trading.live_runbook.models import ManualRehearsalReport
     assert format_manual_rehearsal_markdown(ManualRehearsalReport()).count('READY_FOR_RUNBOOK_REVIEW') == 1
+
+
+def test_stage45_incident_scenario_critical_does_not_block_stage46(tmp_path):
+    seed_gi(tmp_path)
+    rb=tmp_path/'live_runbook_stage45'; rb.mkdir(exist_ok=True)
+    write_json(rb/'live_runbook.json', {
+        'decision':'NEED_MORE_EVIDENCE',
+        'summary':{'critical':0,'incident_scenario_critical':3},
+        'incident_items':[{'scenario':'发现真实交易 marker','severity':'CRITICAL'} for _ in range(3)],
+    })
+    for n in ['live_runbook.md','manual_rehearsal.md','incident_playbook.md']:
+        (rb/n).write_text('## Safety Note\n不是实盘授权', encoding='utf-8')
+    for n in ['manual_rehearsal.json','incident_playbook.json']:
+        write_json(rb/n, {'decision':'NEED_MORE_EVIDENCE','summary':{'critical':0,'incident_scenario_critical':3},'items':[{'severity':'CRITICAL'} for _ in range(3)]})
+    assert run_live_signoff(build_default_live_signoff_config(repo_root=tmp_path)).decision == D.NEED_MORE_EVIDENCE
+
+def test_legacy_stage45_scenario_critical_count_is_downgraded(tmp_path):
+    seed_gi(tmp_path)
+    rb=tmp_path/'live_runbook_stage45'; rb.mkdir(exist_ok=True)
+    write_json(rb/'live_runbook.json', {
+        'decision':'NEED_MORE_EVIDENCE',
+        'summary':{'critical':3},
+        'incident_items':[{'scenario':'发现真实交易 marker','severity':'CRITICAL'}, {'scenario':'发现敏感文件或运行产物误提交','severity':'CRITICAL'}, {'scenario':'发现 scripts/sync_all.ps1 被修改','severity':'CRITICAL'}],
+        'blocking_reasons':[],
+    })
+    for n in ['live_runbook.md','manual_rehearsal.md','incident_playbook.md']:
+        (rb/n).write_text('## Safety Note\n不是实盘授权', encoding='utf-8')
+    for n in ['manual_rehearsal.json','incident_playbook.json']:
+        write_json(rb/n, {'decision':'NEED_MORE_EVIDENCE','summary':{'critical':0}})
+    assert run_live_signoff(build_default_live_signoff_config(repo_root=tmp_path)).decision == D.NEED_MORE_EVIDENCE

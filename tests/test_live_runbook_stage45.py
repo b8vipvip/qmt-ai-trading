@@ -71,3 +71,10 @@ def test_register_preview_contains_stage45():
     assert res.returncode==0
     assert 'Stage45 Live Runbook' in res.stdout
     assert 'read_only=True' in res.stdout and 'dry_run_only=True' in res.stdout and 'no_task_registered=True' in res.stdout
+
+
+def test_incident_scenarios_are_not_real_critical_blockers(tmp_path):
+    r=run_live_runbook(build_default_live_runbook_config(repo_root=tmp_path))
+    assert r.summary['critical'] == 0
+    assert r.summary['incident_scenario_critical'] == 3
+    assert sum(1 for item in r.incident_items if item.severity == Sev.CRITICAL) == 3

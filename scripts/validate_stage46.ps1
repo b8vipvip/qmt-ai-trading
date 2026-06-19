@@ -6,14 +6,18 @@ $LogDir = Join-Path $Root "validation_logs"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 $Stamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $LogPath = Join-Path $LogDir "stage46_validation_$Stamp.log"
-function Invoke-LoggedCommand { param([string]$Command)
+function Invoke-LoggedCommand { param([string]$Command, [switch]$ContinueOnFailure)
     Add-Content -Path $LogPath -Encoding UTF8 -Value "`n>>> $Command"
     $output = & powershell -NoProfile -Command $Command 2>&1
     $code = $LASTEXITCODE
     if ($null -ne $output) { Add-Content -Path $LogPath -Encoding UTF8 -Value ($output | Out-String) }
     Add-Content -Path $LogPath -Encoding UTF8 -Value "EXIT_CODE=$code"
-    if ($code -ne 0) { throw "Command failed with EXIT_CODE=$code`: $Command" }
+    if ($code -ne 0) {
+        if ($ContinueOnFailure) { $script:HadFailure = $true; return }
+        throw "Command failed with EXIT_CODE=$code`: $Command"
+    }
 }
+$HadFailure = $false
 Add-Content -Path $LogPath -Encoding UTF8 -Value "Stage46 validation started $(Get-Date -Format o)"
 $commands = @(
 'py -m compileall -q qmt_ai_trading',
@@ -36,4 +40,4 @@ $commands = @(
 'powershell -ExecutionPolicy Bypass -File ./scripts/sync_all.ps1 -Mode scan',
 'powershell -ExecutionPolicy Bypass -File ./scripts/sync_all.ps1 -Mode status'
 )
-try { foreach ($cmd in $commands) { Invoke-LoggedCommand $cmd }; Add-Content -Path $LogPath -Encoding UTF8 -Value "Stage46 validation finished $(Get-Date -Format o) EXIT_CODE=0"; Write-Host "Stage46 validation passed. Log: $LogPath"; exit 0 } catch { Add-Content -Path $LogPath -Encoding UTF8 -Value "ERROR=$($_.Exception.Message)"; Add-Content -Path $LogPath -Encoding UTF8 -Value "Stage46 validation finished $(Get-Date -Format o) EXIT_CODE=1"; Write-Error "Stage46 validation failed. Log: $LogPath"; exit 1 }
+try { foreach ($cmd in $commands) { Invoke-LoggedCommand $cmd -ContinueOnFailure:($cmd -like 'py scripts/run_live_signoff.py*') }; if ($HadFailure) { throw "One or more continue-on-failure commands failed" }; Add-Content -Path $LogPath -Encoding UTF8 -Value "Stage46 validation finished $(Get-Date -Format o) EXIT_CODE=0"; Write-Host "Stage46 validation passed. Log: $LogPath"; exit 0 } catch { Add-Content -Path $LogPath -Encoding UTF8 -Value "ERROR=$($_.Exception.Message)"; Add-Content -Path $LogPath -Encoding UTF8 -Value "Stage46 validation finished $(Get-Date -Format o) EXIT_CODE=1"; Write-Error "Stage46 validation failed. Log: $LogPath"; exit 1 }

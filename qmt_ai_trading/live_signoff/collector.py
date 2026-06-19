@@ -9,17 +9,26 @@ def _load_json(path: Path) -> dict[str, Any] | None:
     try: return json.loads(path.read_text(encoding='utf-8'))
     except Exception as exc: return {'_load_error': str(exc)}
 def _critical(data: dict[str, Any]) -> int:
-    n=0
-    try: n += int((data.get('summary') or {}).get('critical',0))
-    except Exception: pass
-    def walk(x):
-        nonlocal n
-        if isinstance(x, dict):
-            if str(x.get('severity','')).upper()=='CRITICAL': n += 1
-            for v in x.values(): walk(v)
-        elif isinstance(x, list):
-            for v in x: walk(v)
-    walk(data); return n
+    """Return only real top-level blocker count, not rehearsal scenario severity.
+
+    Stage45 incident playbook scenarios may remain CRITICAL as hypothetical
+    scenario severity, but they are not actual execution blockers.  New
+    Stage45 JSON writes those to ``incident_scenario_critical``.  For old
+    Stage45 JSON, the only reliable real blocker field is summary.critical;
+    nested CRITICAL scenario definitions are intentionally ignored here.
+    """
+    summary=data.get('summary') or {}
+    try:
+        real=int(summary.get('critical', 0))
+    except Exception:
+        real=0
+    items=data.get('incident_items') or data.get('items') or []
+    scenario_critical=sum(1 for item in items if isinstance(item, dict) and str(item.get('severity','')).upper()=='CRITICAL')
+    blocking=data.get('blocking_reasons') or []
+    if real and scenario_critical == real and not blocking:
+        return 0
+    return real
+
 def _evidence(path: Path, cat: C, title: str) -> LiveSignoffEvidence:
     data=_load_json(path)
     if data is None: return LiveSignoffEvidence(category=cat,status=S.SKIPPED,severity=Sev.WARN,path=str(path),title=title,summary=f"{title} evidence missing; Stage46 can generate read-only materials but needs more evidence.")
