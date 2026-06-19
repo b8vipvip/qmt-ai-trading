@@ -493,3 +493,12 @@ market_data_test_stage50/
 !qmt_ai_trading/live_final_archive/
 !qmt_ai_trading/live_final_archive/*.py
 qmt_ai_trading/live_final_archive/__pycache__/
+
+# stage 51 final read-only seal archive lock local outputs
+validation_logs/
+live_archive_lock_stage51/
+live_archive_lock/
+market_data_test_stage51/
+!qmt_ai_trading/live_archive_lock/
+!qmt_ai_trading/live_archive_lock/*.py
+qmt_ai_trading/live_archive_lock/__pycache__/
