@@ -156,6 +156,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-final-review-output-dir", default="live_final_review")
     parser.add_argument("--enable-live-archive", action="store_true")
     parser.add_argument("--live-archive-output-dir", default="live_archive")
+    parser.add_argument("--enable-live-consistency", action="store_true")
+    parser.add_argument("--live-consistency-output-dir", default="live_consistency")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -448,6 +450,22 @@ def main(argv: list[str] | None = None) -> int:
         save_human_verification_summary_report(human_report, archive_dir / "human_verification_summary.md", archive_dir / "human_verification_summary.json")
         save_next_readonly_check_report(check_report, archive_dir / "next_readonly_check_plan.md", archive_dir / "next_readonly_check_plan.json")
         print(f"\nStage48 read-only live archive package written: {archive_dir / 'live_archive.md'}")
+
+
+    if args.enable_live_consistency:
+        from qmt_ai_trading.live_consistency.service import build_default_live_consistency_config, run_human_recheck, run_live_consistency, run_material_consistency, run_next_gray_check, save_human_recheck_report, save_live_consistency_report, save_material_consistency_report, save_next_gray_check_report
+
+        consistency_dir = Path(args.live_consistency_output_dir)
+        consistency_config = build_default_live_consistency_config(repo_root=ROOT, output_dir=str(consistency_dir))
+        consistency_report = run_live_consistency(consistency_config)
+        material_report = run_material_consistency(consistency_report)
+        human_report = run_human_recheck(consistency_report)
+        plan_report = run_next_gray_check(consistency_report)
+        save_live_consistency_report(consistency_report, consistency_dir / "live_consistency.md", consistency_dir / "live_consistency.json")
+        save_material_consistency_report(material_report, consistency_dir / "material_consistency.md", consistency_dir / "material_consistency.json")
+        save_human_recheck_report(human_report, consistency_dir / "human_recheck.md", consistency_dir / "human_recheck.json")
+        save_next_gray_check_report(plan_report, consistency_dir / "next_gray_check_plan.md", consistency_dir / "next_gray_check_plan.json")
+        print(f"\nStage49 read-only live consistency package written: {consistency_dir / 'live_consistency.md'}")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report

@@ -477,3 +477,12 @@ market_data_test_stage48/
 !qmt_ai_trading/live_archive/
 !qmt_ai_trading/live_archive/*.py
 qmt_ai_trading/live_archive/__pycache__/
+
+# stage 49 remediation consistency review local outputs
+validation_logs/
+live_consistency_stage49/
+live_consistency/
+market_data_test_stage49/
+!qmt_ai_trading/live_consistency/
+!qmt_ai_trading/live_consistency/*.py
+qmt_ai_trading/live_consistency/__pycache__/

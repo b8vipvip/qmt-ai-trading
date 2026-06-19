@@ -145,6 +145,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-final-review-output-dir", default="live_final_review")
     parser.add_argument("--enable-live-archive", action="store_true")
     parser.add_argument("--live-archive-output-dir", default="live_archive")
+    parser.add_argument("--enable-live-consistency", action="store_true")
+    parser.add_argument("--live-consistency-output-dir", default="live_consistency")
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -278,6 +280,8 @@ def main(argv: list[str] | None = None) -> int:
         live_final_review_output_dir=Path(args.live_final_review_output_dir),
         enable_live_archive=args.enable_live_archive,
         live_archive_output_dir=Path(args.live_archive_output_dir),
+        enable_live_consistency=args.enable_live_consistency,
+        live_consistency_output_dir=Path(args.live_consistency_output_dir),
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -330,6 +334,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Stage47 Live Final Review: enable_live_final_review=True output_dir={args.live_final_review_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.enable_live_archive:
         print(f"Stage48 Live Archive: enable_live_archive=True output_dir={args.live_archive_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+    if args.enable_live_consistency:
+        print(f"Stage49 Live Consistency: enable_live_consistency=True output_dir={args.live_consistency_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.build_dashboard:
         print(f"Dashboard: build_dashboard=True output={args.dashboard_output} title={args.dashboard_title} read_only=True no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:
