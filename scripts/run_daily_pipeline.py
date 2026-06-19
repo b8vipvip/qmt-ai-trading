@@ -152,6 +152,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-runbook-output-dir", default="live_runbook")
     parser.add_argument("--enable-live-signoff", action="store_true")
     parser.add_argument("--live-signoff-output-dir", default="live_signoff")
+    parser.add_argument("--enable-live-final-review", action="store_true")
+    parser.add_argument("--live-final-review-output-dir", default="live_final_review")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -413,6 +415,22 @@ def main(argv: list[str] | None = None) -> int:
         save_manual_signoff_report(manual_report, so_dir / "manual_signoff.md", so_dir / "manual_signoff.json")
         save_incident_rehearsal_report(incident_report, so_dir / "incident_rehearsal.md", so_dir / "incident_rehearsal.json")
         print(f"\nStage46 read-only live signoff package written: {so_dir / 'live_signoff.md'}")
+
+
+    if args.enable_live_final_review:
+        from qmt_ai_trading.live_final_review.service import build_default_live_final_review_config, run_evidence_gap_report, run_live_final_review, run_next_readonly_plan, run_signature_verification, save_evidence_gap_report, save_live_final_review_report, save_next_readonly_plan_report, save_signature_verification_report
+
+        fr_dir = Path(args.live_final_review_output_dir)
+        fr_config = build_default_live_final_review_config(repo_root=ROOT, output_dir=str(fr_dir))
+        fr_report = run_live_final_review(fr_config)
+        sig_report = run_signature_verification(fr_report)
+        gap_report = run_evidence_gap_report(fr_report)
+        plan_report = run_next_readonly_plan(fr_report)
+        save_live_final_review_report(fr_report, fr_dir / "live_final_review.md", fr_dir / "live_final_review.json")
+        save_signature_verification_report(sig_report, fr_dir / "signature_verification.md", fr_dir / "signature_verification.json")
+        save_evidence_gap_report(gap_report, fr_dir / "evidence_gap_report.md", fr_dir / "evidence_gap_report.json")
+        save_next_readonly_plan_report(plan_report, fr_dir / "next_readonly_plan.md", fr_dir / "next_readonly_plan.json")
+        print(f"\nStage47 final read-only live review package written: {fr_dir / 'live_final_review.md'}")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report

@@ -1,0 +1,34 @@
+# 阶段四十七：最终只读 go/no-go 材料汇总与人工签字核验
+
+Stage47 在 Stage46 灰度前运行手册复核与人工演练签字封版材料基础上，生成最终只读 go/no-go 材料汇总、人工签字核验清单、缺口列表和下一阶段只读检查计划。
+
+## 安全边界
+
+- Stage47 是最终只读 go/no-go 材料汇总与人工签字核验。
+- Stage47 不等于实盘授权。
+- Stage47 不调用 xttrader。
+- Stage47 不调用 QMT 交易接口。
+- Stage47 不真实下单。
+- Stage47 不查询资金、持仓、订单、成交。
+- Stage47 不真实发送通知。
+- Stage47 不自动 approve，不绕过 Risk Gate，不绕过 Human Approval。
+- `READY_FOR_FINAL_REVIEW` 只表示最终只读 go/no-go 材料可供人工复核，不代表可以实盘。
+
+## 输出材料
+
+默认输出目录为 `live_final_review_stage47/`，运行产物不提交：
+
+- `live_final_review.md` / `live_final_review.json`
+- `signature_verification.md` / `signature_verification.json`
+- `evidence_gap_report.md` / `evidence_gap_report.json`
+- `next_readonly_plan.md` / `next_readonly_plan.json`
+
+## 决策语义
+
+- `NO_GO`：存在 CRITICAL 或 Stage43/44/45/46 明确 NO_GO / critical > 0。
+- `NEED_MORE_EVIDENCE`：缺少证据但没有 CRITICAL；Stage46 `NEED_MORE_EVIDENCE` 且 critical=0 时，Stage47 仍可生成最终只读材料并保持该状态。
+- `READY_FOR_FINAL_REVIEW`：只表示最终只读 go/no-go 材料可供人工复核；不是实盘授权。
+
+## 下一阶段预告
+
+Stage48 建议为“最终只读材料归档与缺口补证计划”。Stage48 仍不能直接实盘，只能继续做最终只读材料归档、缺口补证、人工核验结果汇总或更严格的灰度前检查。Stage48 仍不能自动 approve，不能调用 xttrader，不能查询真实账户，不能真实通知。
