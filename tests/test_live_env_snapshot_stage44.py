@@ -38,6 +38,35 @@ def test_marker_classification_warn_and_critical():
     assert classify_env_snapshot_marker('tests/test_safety.py','place_order') == Sev.WARN
     assert classify_env_snapshot_marker('qmt_ai_trading/gateway/live.py','query_stock_asset') == Sev.CRITICAL
 
+
+def test_stage43_generated_markdown_xttrader_text_is_warn_not_no_go(tmp_path):
+    seed_gitignore(tmp_path)
+    sig=tmp_path/'live_signature_freeze_stage43'
+    sig.mkdir(parents=True)
+    (sig/'live_signature_freeze.json').write_text(json.dumps({'decision':'NEED_MORE_EVIDENCE','summary':{'critical':0},'safety_note':'does not call xttrader; read-only; not trade authorization'}), encoding='utf-8')
+    (sig/'live_signature_freeze.md').write_text('## Safety Note\nStage44 does not call xttrader. Human Checklist: 不调用 xttrader; dry-run only; not trade authorization. place_order query_stock_asset are forbidden examples.', encoding='utf-8')
+    r=run_live_env_snapshot(cfg(tmp_path))
+    assert r.decision == D.NEED_MORE_EVIDENCE
+    assert r.summary['critical'] == 0
+    assert any('xttrader' in w for w in r.warnings)
+
+
+def test_stage43_generated_json_xttrader_text_is_warn_not_no_go(tmp_path):
+    seed_gitignore(tmp_path)
+    sig=tmp_path/'live_signature_freeze_stage43'
+    sig.mkdir(parents=True)
+    (sig/'live_signature_freeze.json').write_text(json.dumps({'decision':'NEED_MORE_EVIDENCE','summary':{'critical':0},'warnings':['Safety Note: does not call xttrader; read-only; dry-run only; not trade authorization; no place_order or query_stock_asset execution path']}), encoding='utf-8')
+    r=run_live_env_snapshot(cfg(tmp_path))
+    assert r.decision == D.NEED_MORE_EVIDENCE
+    assert r.summary['critical'] == 0
+
+
+def test_real_python_execution_marker_still_no_go(tmp_path):
+    seed_gitignore(tmp_path)
+    bad=tmp_path/'qmt_ai_trading/gateway/live.py'
+    assert classify_env_snapshot_marker(bad, 'xttrader', 'import xttrader\nxttrader.connect()') == Sev.CRITICAL
+
+
 def test_formatter_safety_note():
     md=format_live_env_snapshot_report_markdown(LiveEnvSnapshotReport(decision=D.READY_FOR_ENV_SNAPSHOT))
     assert '## Safety Note' in md and 'READY_FOR_ENV_SNAPSHOT 只表示环境快照材料可供人工复核' in md and '不是实盘授权' in md

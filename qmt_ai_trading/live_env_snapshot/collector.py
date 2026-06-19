@@ -39,7 +39,12 @@ def collect_live_env_snapshot_evidence(config: LiveEnvSnapshotConfig):
     for d in ['validation_logs','live_env_snapshot_stage44','live_signature_freeze_stage43','live_gray_review_stage42','live_gray_ledger_stage41','redline_review_stage40','market_data_test_stage44']:
         p=root/d; exists=p.exists(); snapshots.append(_snap(f'runtime-{d}', C.RUNTIME_ARTIFACT, d, exists, S.WARN if exists else S.PASS, Sev.WARN if exists else Sev.INFO, 'Runtime artifact directory exists locally and must remain ignored.' if exists else 'No local runtime artifact directory found.'))
     snapshots += [_snap('env-read-only',C.DRY_RUN_MODE,'read_only',True), _snap('env-dry-run-only',C.DRY_RUN_MODE,'dry_run_only',True), _snap('env-live-switch',C.LIVE_SWITCH,'live_trading_enabled',False), _snap('env-qmt-boundary',C.QMT_BOUNDARY,'xttrader_called',False,'PASS','INFO','Stage44 does not import/call xttrader.'), _snap('env-notify',C.NOTIFICATION_DRY_RUN,'real_notification_sent',False)]
-    for path in [root/config.signature_freeze_dir/'live_signature_freeze.md', root/config.signature_freeze_dir/'config_freeze.md']:
+    for path in [
+        root/config.signature_freeze_dir/'live_signature_freeze.md',
+        root/config.signature_freeze_dir/'live_signature_freeze.json',
+        root/config.signature_freeze_dir/'config_freeze.md',
+        root/config.signature_freeze_dir/'config_freeze.json',
+    ]:
         if path.exists() and path.stat().st_size < 500_000:
             freeze.extend(scan_env_snapshot_text_for_forbidden_markers(path.read_text(encoding='utf-8', errors='replace'), path))
     return evidence, freeze, snapshots
