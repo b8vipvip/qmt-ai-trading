@@ -459,3 +459,17 @@ Dashboard 只生成单文件 HTML；`scripts/build_dashboard.py` 可从本地报
 下一阶段计划在仍不执行实盘的前提下，把阶段四十红线复核结果、阶段三十九最终人工授权包、阶段三十八只读环境核验和全部前置证据整理为只读确认台账。阶段四十一仍不下单、不调用 xttrader、不真实发送通知、不查询账户资金持仓订单成交。
 
 后续开发前必须先读 roadmap。小修复优先本地脚本修，不要大改架构。
+
+### 阶段四十一：极小资金灰度实盘前只读确认台账
+
+- 当前状态：已完成。
+- 新增 `qmt_ai_trading.live_gray_ledger`，只读汇总 Stage37 / Stage38 / Stage39 / Stage40 本地证据。
+- 输出 `live_gray_ledger.md` / `live_gray_ledger.json`，明确 `READY_FOR_MANUAL_REVIEW` 只表示材料可供人工复核，不是实盘授权。
+- 本阶段不调用 `xttrader`，不调用 QMT 交易接口，不下单，不查询真实资金/持仓/订单/成交，不发送真实通知。
+- Daily Pipeline / Scheduled Pipeline / register preview 仅增加可选 ledger dry-run 参数，默认不开启，不改变默认行为。
+
+### 阶段四十二：灰度前人工复核包与只读演练封版（预告）
+
+- Stage42 仍不是实盘，不真实下单。
+- 只在 Stage41 台账基础上生成更严格的人工复核包、只读演练清单和最终 go/no-go 决策材料。
+- 仍不能自动 approve，不能调用 `xttrader`，不能查询真实账户，不能真实通知。

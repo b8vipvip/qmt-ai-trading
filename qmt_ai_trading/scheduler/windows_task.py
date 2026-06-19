@@ -142,6 +142,8 @@ def build_daily_pipeline_command(
     redline_review_output_dir: Path | str = Path("redline_review"),
     redline_review_operator_name: str = "",
     redline_review_reviewer_name: str = "",
+    enable_live_gray_ledger: bool = False,
+    live_gray_ledger_output_dir: Path | str = Path("live_gray_ledger"),
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -294,6 +296,9 @@ def build_daily_pipeline_command(
             args.extend(["--redline-review-operator-name", str(redline_review_operator_name)])
         if redline_review_reviewer_name:
             args.extend(["--redline-review-reviewer-name", str(redline_review_reviewer_name)])
+    if enable_live_gray_ledger:
+        args.append("--enable-live-gray-ledger")
+        args.extend(["--live-gray-ledger-output-dir", str(live_gray_ledger_output_dir)])
     if build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
@@ -446,6 +451,8 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         redline_review_output_dir=cfg.redline_review_output_dir,
         redline_review_operator_name=cfg.redline_review_operator_name,
         redline_review_reviewer_name=cfg.redline_review_reviewer_name,
+        enable_live_gray_ledger=cfg.enable_live_gray_ledger,
+        live_gray_ledger_output_dir=cfg.live_gray_ledger_output_dir,
         final_authorization_allowed_symbols=cfg.final_authorization_allowed_symbols,
         final_authorization_max_total_capital=cfg.final_authorization_max_total_capital,
         final_authorization_max_single_order_value=cfg.final_authorization_max_single_order_value,

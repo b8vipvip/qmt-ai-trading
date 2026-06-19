@@ -149,6 +149,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--redline-review-output-dir", default="redline_review")
     parser.add_argument("--redline-review-operator-name", default="")
     parser.add_argument("--redline-review-reviewer-name", default="")
+    parser.add_argument("--enable-live-gray-ledger", action="store_true")
+    parser.add_argument("--live-gray-ledger-output-dir", default="live_gray_ledger")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -267,6 +269,9 @@ def main(argv: list[str] | None = None) -> int:
             args.extend(["--redline-review-operator-name", parsed.redline_review_operator_name])
         if parsed.redline_review_reviewer_name:
             args.extend(["--redline-review-reviewer-name", parsed.redline_review_reviewer_name])
+    if parsed.enable_live_gray_ledger:
+        args.append("--enable-live-gray-ledger")
+        args.extend(["--live-gray-ledger-output-dir", parsed.live_gray_ledger_output_dir])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])
