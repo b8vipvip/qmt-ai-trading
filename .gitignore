@@ -459,3 +459,12 @@ market_data_test_stage46/
 !qmt_ai_trading/live_signoff/
 !qmt_ai_trading/live_signoff/*.py
 qmt_ai_trading/live_signoff/__pycache__/
+
+# stage 47 final read-only review local outputs
+validation_logs/
+live_final_review_stage47/
+live_final_review/
+market_data_test_stage47/
+!qmt_ai_trading/live_final_review/
+!qmt_ai_trading/live_final_review/*.py
+qmt_ai_trading/live_final_review/__pycache__/
