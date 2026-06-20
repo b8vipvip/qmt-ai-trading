@@ -178,6 +178,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-gray-candidate-output-dir", default="live_gray_candidate")
     parser.add_argument("--enable-live-gray-final-approval", action="store_true")
     parser.add_argument("--live-gray-final-approval-output-dir", default="live_gray_final_approval")
+    parser.add_argument("--enable-live-gray-readonly-seal", action="store_true")
+    parser.add_argument("--live-gray-readonly-seal-output-dir", default="live_gray_readonly_seal")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -605,6 +607,19 @@ def main(argv: list[str] | None = None) -> int:
         save_final_signoff_checklist_report(run_final_signoff_checklist(lga_report), lga_dir / "final_signoff_checklist.md", lga_dir / "final_signoff_checklist.json")
         save_next_readonly_seal_plan_report(run_next_readonly_seal_plan(lga_report), lga_dir / "next_readonly_seal_plan.md", lga_dir / "next_readonly_seal_plan.json")
         print(f"\nStage58 live gray final approval package written: {lga_dir / 'live_gray_final_approval.md'} read_only=True dry_run_only=True no_trade_authorization=True")
+
+    if args.enable_live_gray_readonly_seal:
+        from qmt_ai_trading.live_gray_readonly_seal.service import build_default_live_gray_readonly_seal_config, run_live_gray_readonly_seal, run_material_lock_report, run_pre_run_checklist, run_readonly_seal_manifest, run_final_signoff_recheck, run_next_pre_gray_review_plan, save_live_gray_readonly_seal_report, save_material_lock_report, save_pre_run_checklist_report, save_readonly_seal_manifest_report, save_final_signoff_recheck_report, save_next_pre_gray_review_plan_report
+        seal_dir = Path(args.live_gray_readonly_seal_output_dir)
+        seal_cfg = build_default_live_gray_readonly_seal_config(repo_root=ROOT, output_dir=str(seal_dir))
+        seal_report = run_live_gray_readonly_seal(seal_cfg)
+        save_live_gray_readonly_seal_report(seal_report, seal_dir / "live_gray_readonly_seal.md", seal_dir / "live_gray_readonly_seal.json")
+        save_material_lock_report(run_material_lock_report(seal_report), seal_dir / "material_lock.md", seal_dir / "material_lock.json")
+        save_pre_run_checklist_report(run_pre_run_checklist(seal_report), seal_dir / "pre_run_checklist.md", seal_dir / "pre_run_checklist.json")
+        save_readonly_seal_manifest_report(run_readonly_seal_manifest(seal_report), seal_dir / "readonly_seal_manifest.md", seal_dir / "readonly_seal_manifest.json")
+        save_final_signoff_recheck_report(run_final_signoff_recheck(seal_report), seal_dir / "final_signoff_recheck.md", seal_dir / "final_signoff_recheck.json")
+        save_next_pre_gray_review_plan_report(run_next_pre_gray_review_plan(seal_report), seal_dir / "next_pre_gray_review_plan.md", seal_dir / "next_pre_gray_review_plan.json")
+        print(f"\nStage59 live gray readonly seal package written: {seal_dir / 'live_gray_readonly_seal.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
