@@ -615,3 +615,11 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+validation_logs/
+local_console_shell_stage65/
+local_console_shell/
+market_data_test_stage65/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/

@@ -190,6 +190,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--local-console-detail-review-output-dir", default="local_console_detail")
     parser.add_argument("--enable-local-console-dashboard-review", action="store_true")
     parser.add_argument("--local-console-dashboard-review-output-dir", default="local_console_dashboard")
+    parser.add_argument("--enable-local-console-shell-review", action="store_true")
+    parser.add_argument("--local-console-shell-review-output-dir", default="local_console_shell")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -694,6 +696,20 @@ def main(argv: list[str] | None = None) -> int:
         save_safety_boundary_status_report(build_safety_boundary_status_report(lcdash_report), lcdash_dir / "safety_boundary_status.md", lcdash_dir / "safety_boundary_status.json")
         save_next_console_shell_plan_report(build_next_console_shell_plan_report(lcdash_cfg), lcdash_dir / "next_console_shell_plan.md", lcdash_dir / "next_console_shell_plan.json")
         print(f"\nStage64 local console dashboard review package written: {lcdash_dir / 'local_console_dashboard_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+
+    if args.enable_local_console_shell_review:
+        from qmt_ai_trading.local_console.shell_service import build_default_local_console_shell_config, run_local_console_shell_review, save_local_console_shell_report, save_shell_manifest_report, build_shell_route_map_report, save_shell_route_map_report, build_shell_asset_index_report, save_shell_asset_index_report, build_data_binding_placeholder_report, save_data_binding_placeholder_report, build_static_safety_report, save_static_safety_report, build_next_console_data_binding_plan_report, save_next_console_data_binding_plan_report
+        shell_dir = Path(args.local_console_shell_review_output_dir)
+        shell_cfg = build_default_local_console_shell_config(repo_root=ROOT, output_dir=str(shell_dir))
+        shell_report = run_local_console_shell_review(shell_cfg)
+        save_local_console_shell_report(shell_report, shell_dir / "local_console_shell_report.md", shell_dir / "local_console_shell_report.json")
+        save_shell_manifest_report(shell_report, shell_dir / "shell_manifest.md", shell_dir / "shell_manifest.json")
+        save_shell_route_map_report(build_shell_route_map_report(shell_report), shell_dir / "route_map.md", shell_dir / "route_map.json")
+        save_shell_asset_index_report(build_shell_asset_index_report(shell_report), shell_dir / "asset_index.md", shell_dir / "asset_index.json")
+        save_data_binding_placeholder_report(build_data_binding_placeholder_report(shell_report), shell_dir / "data_binding_placeholders.md", shell_dir / "data_binding_placeholders.json")
+        save_static_safety_report(build_static_safety_report(shell_cfg), shell_dir / "static_safety_boundary.md", shell_dir / "static_safety_boundary.json")
+        save_next_console_data_binding_plan_report(build_next_console_data_binding_plan_report(shell_cfg), shell_dir / "next_console_data_binding_plan.md", shell_dir / "next_console_data_binding_plan.json")
+        print(f"\nStage65 local console shell review package written: {shell_dir / 'local_console_shell_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
