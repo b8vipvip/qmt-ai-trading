@@ -163,6 +163,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--enable-real-cache-quality", action="store_true")
     parser.add_argument("--real-cache-quality-output-dir", default="real_cache_quality")
     parser.add_argument("--real-cache-quality-provider", default="mock", choices=["mock", "qmt_xtdata"])
+    parser.add_argument("--enable-live-gray-candidate", action="store_true")
+    parser.add_argument("--live-gray-candidate-output-dir", default="live_gray_candidate")
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -314,6 +316,8 @@ def main(argv: list[str] | None = None) -> int:
         enable_real_cache_quality=args.enable_real_cache_quality,
         real_cache_quality_output_dir=Path(args.real_cache_quality_output_dir),
         real_cache_quality_provider=args.real_cache_quality_provider,
+        enable_live_gray_candidate=args.enable_live_gray_candidate,
+        live_gray_candidate_output_dir=Path(args.live_gray_candidate_output_dir),
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -382,6 +386,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Stage55 QMT Dry-run Calibration: enable_qmt_dryrun_calibration=True output_dir={args.qmt_dryrun_calibration_output_dir} provider={args.qmt_dryrun_calibration_provider} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.enable_real_cache_quality:
         print(f"Stage56 Real Cache Quality: enable_real_cache_quality=True output_dir={args.real_cache_quality_output_dir} provider={args.real_cache_quality_provider} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+    if args.enable_live_gray_candidate:
+        print(f"Stage57 Live Gray Candidate: enable_live_gray_candidate=True output_dir={args.live_gray_candidate_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.build_dashboard:
         print(f"Dashboard: build_dashboard=True output={args.dashboard_output} title={args.dashboard_title} read_only=True no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:

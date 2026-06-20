@@ -174,6 +174,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--enable-real-cache-quality", action="store_true")
     parser.add_argument("--real-cache-quality-output-dir", default="real_cache_quality")
     parser.add_argument("--real-cache-quality-provider", default="mock", choices=["mock", "qmt_xtdata"])
+    parser.add_argument("--enable-live-gray-candidate", action="store_true")
+    parser.add_argument("--live-gray-candidate-output-dir", default="live_gray_candidate")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -576,6 +578,18 @@ def main(argv: list[str] | None = None) -> int:
         save_field_quality_review_report(run_field_quality_review(rcq_report), rcq_dir / "field_quality_review.md", rcq_dir / "field_quality_review.json")
         save_next_backtest_attribution_plan_report(run_next_backtest_attribution_plan(rcq_report), rcq_dir / "next_backtest_attribution_plan.md", rcq_dir / "next_backtest_attribution_plan.json")
         print(f"\nStage56 real cache quality package written: {rcq_dir / 'real_cache_quality.md'}")
+
+    if args.enable_live_gray_candidate:
+        from qmt_ai_trading.live_gray_candidate.service import build_default_live_gray_candidate_config, run_live_gray_candidate, run_gray_risk_limit_review, run_gray_approval_checklist, run_gray_rollback_circuit_breaker_plan, run_next_gray_approval_package_plan, save_live_gray_candidate_report, save_gray_risk_limit_report, save_gray_approval_checklist_report, save_gray_rollback_circuit_breaker_report, save_next_gray_approval_package_plan_report
+        lgc_dir = Path(args.live_gray_candidate_output_dir)
+        lgc_cfg = build_default_live_gray_candidate_config(repo_root=ROOT, output_dir=str(lgc_dir))
+        lgc_report = run_live_gray_candidate(lgc_cfg)
+        save_live_gray_candidate_report(lgc_report, lgc_dir / "live_gray_candidate.md", lgc_dir / "live_gray_candidate.json")
+        save_gray_risk_limit_report(run_gray_risk_limit_review(lgc_report), lgc_dir / "gray_risk_limits.md", lgc_dir / "gray_risk_limits.json")
+        save_gray_approval_checklist_report(run_gray_approval_checklist(lgc_report), lgc_dir / "gray_approval_checklist.md", lgc_dir / "gray_approval_checklist.json")
+        save_gray_rollback_circuit_breaker_report(run_gray_rollback_circuit_breaker_plan(lgc_report), lgc_dir / "gray_rollback_circuit_breaker.md", lgc_dir / "gray_rollback_circuit_breaker.json")
+        save_next_gray_approval_package_plan_report(run_next_gray_approval_package_plan(lgc_report), lgc_dir / "next_gray_approval_package_plan.md", lgc_dir / "next_gray_approval_package_plan.json")
+        print(f"\nStage57 live gray candidate package written: {lgc_dir / 'live_gray_candidate.md'} read_only=True dry_run_only=True no_trade_authorization=True")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report

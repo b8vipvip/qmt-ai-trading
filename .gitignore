@@ -545,3 +545,12 @@ market_data_test_stage56/
 !qmt_ai_trading/real_cache_quality/
 !qmt_ai_trading/real_cache_quality/*.py
 qmt_ai_trading/real_cache_quality/__pycache__/
+
+# stage 57 small-money gray candidate runtime outputs
+validation_logs/
+live_gray_candidate_stage57/
+live_gray_candidate/
+market_data_test_stage57/
+!qmt_ai_trading/live_gray_candidate/
+!qmt_ai_trading/live_gray_candidate/*.py
+qmt_ai_trading/live_gray_candidate/__pycache__/
