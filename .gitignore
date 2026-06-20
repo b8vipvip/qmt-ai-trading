@@ -637,3 +637,13 @@ validation_logs/
 local_console_preview_stage67/
 local_console_preview/
 market_data_test_stage67/
+
+# stage 68 local console refresh runtime outputs
+validation_logs/
+local_console_refresh_stage68/
+local_console_refresh/
+market_data_test_stage68/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/

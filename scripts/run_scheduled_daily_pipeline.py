@@ -205,6 +205,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--local-console-binding-review-output-dir", default="local_console_binding")
     parser.add_argument("--enable-local-console-preview-review", action="store_true")
     parser.add_argument("--local-console-preview-review-output-dir", default="local_console_preview")
+    parser.add_argument("--enable-local-console-refresh-review", action="store_true")
+    parser.add_argument("--local-console-refresh-review-output-dir", default="local_console_refresh")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -404,6 +406,9 @@ def main(argv: list[str] | None = None) -> int:
     if parsed.enable_local_console_preview_review:
         args.append("--enable-local-console-preview-review")
         args.extend(["--local-console-preview-review-output-dir", parsed.local_console_preview_review_output_dir])
+    if parsed.enable_local_console_refresh_review:
+        args.append("--enable-local-console-refresh-review")
+        args.extend(["--local-console-refresh-review-output-dir", parsed.local_console_refresh_review_output_dir])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])

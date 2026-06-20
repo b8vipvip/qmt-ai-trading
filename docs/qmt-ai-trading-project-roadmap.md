@@ -851,3 +851,11 @@ Stage66 预告：阶段六十六为本地控制台静态数据绑定层，仍不
 ### Stage68 预告：本地控制台刷新与导航增强层
 
 Stage68 将基于 Stage67 本地只读预览服务增强页面导航、只读刷新按钮、hash route 切换、错误占位、数据更新时间显示和本地静态 bundle 重载体验；仍不得直接实盘，不调用 `xttrader`，不查询真实资金、持仓、订单、成交，不下单。
+
+### Stage68 完成说明：本地控制台刷新与导航增强层
+
+- Stage68 属于 Stage61-75：API Gateway / 本地控制台 / UI 产品化路线。
+- Stage68 基于 Stage67 本地只读预览服务层，新增本地静态控制台刷新按钮、hash route 导航、bundle reload、latest updated 显示、loading / error / empty state 占位、前端安全分类和 Stage69 状态分组与筛选体验计划。
+- Stage68 不等于实盘授权；不调用 `xttrader`；不查询真实账户；不真实下单；不发送真实通知；不自动 approve；UI 不能绕过 Risk Gate / Human Approval，不能直接访问 QMT，不能自动 approve。
+- 完整工程阶段计划与前端 UI 产品化路线（Stage 1-75）继续保留；Stage61-75 前端 UI 产品化计划继续保留。
+- Stage69 预告：阶段六十九为本地控制台状态分组与筛选体验层，仍不得直接实盘，不调用 `xttrader`，不查询真实账户，不下单。
