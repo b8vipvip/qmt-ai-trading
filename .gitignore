@@ -623,3 +623,13 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+
+# stage 66 local console static data binding runtime outputs
+validation_logs/
+local_console_binding_stage66/
+local_console_binding/
+market_data_test_stage66/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
