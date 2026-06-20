@@ -595,3 +595,13 @@ __pycache__/
 *.pyc
 !qmt_ai_trading/local_console/
 !qmt_ai_trading/local_console/**
+
+# stage 63 local console detail runtime outputs
+validation_logs/
+local_console_detail_stage63/
+local_console_detail/
+market_data_test_stage63/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
