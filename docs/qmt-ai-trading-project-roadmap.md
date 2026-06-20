@@ -839,3 +839,15 @@ Stage66 预告：阶段六十六为本地控制台静态数据绑定层，仍不
 
 - Stage67 基于 Stage66 静态数据绑定层，提供本地只读预览服务或静态文件服务。
 - 只绑定 `127.0.0.1`，默认 dry-run，只读，不提供 POST/PUT/PATCH/DELETE，不访问 QMT，不查询真实账户，不发通知，不下单。
+
+### Stage67 完成说明：本地只读预览服务层
+
+- Stage67 属于 Stage61-75：API Gateway / 本地控制台 / UI 产品化路线。
+- Stage67 只提供本地 `127.0.0.1:8767` 静态文件只读预览服务，默认 dry-run/read-only。
+- Stage67 不等于实盘授权，不调用 `xttrader`，不查询真实账户，不下单，不真实发送通知，不自动 approve。
+- `READY_FOR_LOCAL_CONSOLE_PREVIEW_REVIEW` 只表示本地只读预览服务层材料可供人工复核。
+- 完整 Stage1-75 工程阶段计划与 Stage61-75 前端 UI 产品化路线继续保留；UI 仍不能直接访问 QMT，不能绕过 Risk Gate，不能绕过 Human Approval，不能自动 approve。
+
+### Stage68 预告：本地控制台刷新与导航增强层
+
+Stage68 将基于 Stage67 本地只读预览服务增强页面导航、只读刷新按钮、hash route 切换、错误占位、数据更新时间显示和本地静态 bundle 重载体验；仍不得直接实盘，不调用 `xttrader`，不查询真实资金、持仓、订单、成交，不下单。

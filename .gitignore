@@ -633,3 +633,7 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+validation_logs/
+local_console_preview_stage67/
+local_console_preview/
+market_data_test_stage67/
