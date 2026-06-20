@@ -196,6 +196,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--local-console-binding-review-output-dir", default="local_console_binding")
     parser.add_argument("--enable-local-console-preview-review", action="store_true")
     parser.add_argument("--local-console-preview-review-output-dir", default="local_console_preview")
+    parser.add_argument("--enable-local-console-refresh-review", action="store_true")
+    parser.add_argument("--local-console-refresh-review-output-dir", default="local_console_refresh")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -741,6 +743,20 @@ def main(argv: list[str] | None = None) -> int:
         save_preview_safety_report(build_preview_safety_report(preview_report), preview_dir / "preview_safety_boundary.md", preview_dir / "preview_safety_boundary.json")
         save_next_console_refresh_plan_report(build_next_console_refresh_plan_report(preview_cfg), preview_dir / "next_console_refresh_plan.md", preview_dir / "next_console_refresh_plan.json")
         print(f"\nStage67 local console preview review package written: {preview_dir / 'local_console_preview_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+
+
+    if args.enable_local_console_refresh_review:
+        from qmt_ai_trading.local_console.refresh_service import build_default_local_console_refresh_config, run_local_console_refresh_review, save_local_console_refresh_report, build_navigation_route_map_report, save_navigation_route_map_report, build_refresh_manifest_report, save_refresh_manifest_report, build_ui_state_placeholder_report, save_ui_state_placeholder_report, build_frontend_safety_report, save_frontend_safety_report, build_next_console_grouping_filter_plan_report, save_next_console_grouping_filter_plan_report
+        refresh_dir = Path(args.local_console_refresh_review_output_dir)
+        refresh_cfg = build_default_local_console_refresh_config(repo_root=ROOT, output_dir=str(refresh_dir), binding_dir="local_console_binding_stage66", preview_dir="local_console_preview_stage67")
+        refresh_report = run_local_console_refresh_review(refresh_cfg)
+        save_local_console_refresh_report(refresh_report, refresh_dir / "local_console_refresh_report.md", refresh_dir / "local_console_refresh_report.json")
+        save_navigation_route_map_report(build_navigation_route_map_report(refresh_report), refresh_dir / "navigation_route_map.md", refresh_dir / "navigation_route_map.json")
+        save_refresh_manifest_report(build_refresh_manifest_report(refresh_report), refresh_dir / "refresh_manifest.md", refresh_dir / "refresh_manifest.json")
+        save_ui_state_placeholder_report(build_ui_state_placeholder_report(refresh_report), refresh_dir / "ui_state_placeholders.md", refresh_dir / "ui_state_placeholders.json")
+        save_frontend_safety_report(build_frontend_safety_report(refresh_report), refresh_dir / "frontend_safety_report.md", refresh_dir / "frontend_safety_report.json")
+        save_next_console_grouping_filter_plan_report(build_next_console_grouping_filter_plan_report(refresh_cfg), refresh_dir / "next_console_grouping_filter_plan.md", refresh_dir / "next_console_grouping_filter_plan.json")
+        print(f"\nStage68 local console refresh review package written: {refresh_dir / 'local_console_refresh_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report

@@ -185,6 +185,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--local-console-binding-review-output-dir", default="local_console_binding")
     parser.add_argument("--enable-local-console-preview-review", action="store_true")
     parser.add_argument("--local-console-preview-review-output-dir", default="local_console_preview")
+    parser.add_argument("--enable-local-console-refresh-review", action="store_true")
+    parser.add_argument("--local-console-refresh-review-output-dir", default="local_console_refresh")
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -438,6 +440,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Stage66 Local Console Binding Review: enable_local_console_binding_review=True output_dir={args.local_console_binding_review_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.enable_local_console_preview_review:
         print(f"Stage67 Local Console Preview Review: enable_local_console_preview_review=True output_dir={args.local_console_preview_review_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+    if args.enable_local_console_refresh_review:
+        print(f"Stage68 Local Console Refresh Review: enable_local_console_refresh_review=True output_dir={args.local_console_refresh_review_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.build_dashboard:
         print(f"Dashboard: build_dashboard=True output={args.dashboard_output} title={args.dashboard_title} read_only=True no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:
