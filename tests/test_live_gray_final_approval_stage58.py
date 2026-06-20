@@ -47,6 +47,33 @@ def test_safety_marker_classification():
     assert classify_live_gray_final_approval_marker('xttrader','generated final approval').value == 'WARN'
     assert scan_live_gray_final_approval_text_for_forbidden_markers('xtdata xtquant.xtdata','actual executable') == []
 
+def test_generated_stage55_stage56_stage57_safety_notes_are_not_critical():
+    samples=[
+        ('qmt_dryrun_calibration_stage55/qmt_dryrun_calibration.md','Stage55 不调用 xttrader，不真实下单。'),
+        ('real_cache_quality_stage56/real_cache_quality.json','{"safety_note":"Stage56 不调用 xttrader，不查询资金。"}'),
+        ('live_gray_candidate_stage57/live_gray_candidate.md','Stage57 禁止调用 xttrader，READY_FOR_GRAY_CANDIDATE_REVIEW 不是实盘授权。'),
+    ]
+    for context, text in samples:
+        findings=scan_live_gray_final_approval_text_for_forbidden_markers(text, context)
+        assert findings
+        assert all(f['severity'] != 'CRITICAL' for f in findings)
+
+def test_docs_and_tests_marker_definitions_are_warn():
+    docs=scan_live_gray_final_approval_text_for_forbidden_markers('禁止调用 xttrader；不真实下单。','docs/stage58-final-human-approval-before-small-money-gray.md')
+    tests=scan_live_gray_final_approval_text_for_forbidden_markers("FORBIDDEN=['xttrader','order_stock']  # safety marker definitions",'tests/test_live_gray_final_approval_stage58.py')
+    assert docs and tests
+    assert all(f['severity'] == 'WARN' for f in docs + tests)
+
+def test_executable_python_dangerous_markers_are_critical():
+    samples=[
+        ('import xttrader','xttrader'),
+        ('from xtquant import xttrader\ntrader = XtQuantTrader()','XtQuantTrader'),
+        ('order_stock("510300.SH", 100)\nplace_order({})\nquery_stock_asset()','order_stock'),
+    ]
+    for text, expected in samples:
+        findings=scan_live_gray_final_approval_text_for_forbidden_markers(text, 'qmt_ai_trading/gateway/live_executor.py')
+        assert any(f['marker'] == expected and f['severity'] == 'CRITICAL' for f in findings)
+
 def test_formatter_safety_note(tmp_path):
     md=format_live_gray_final_approval_report_markdown(run_live_gray_final_approval(_base(tmp_path)))
     assert '## Safety Note' in md and 'READY_FOR_FINAL_APPROVAL_REVIEW 只表示' in md and '不是实盘授权' in md
@@ -57,6 +84,7 @@ def test_cli_generates_all_outputs(tmp_path):
     cmd=[sys.executable,'scripts/run_live_gray_final_approval.py','--repo-root',str(tmp_path),'--output-dir',str(out),'--output',str(out/'live_gray_final_approval.md'),'--json-output',str(out/'live_gray_final_approval.json'),'--capital-output',str(out/'capital_position_approval.md'),'--capital-json-output',str(out/'capital_position_approval.json'),'--risk-output',str(out/'risk_human_approval_review.md'),'--risk-json-output',str(out/'risk_human_approval_review.json'),'--rollback-output',str(out/'rollback_circuit_approval.md'),'--rollback-json-output',str(out/'rollback_circuit_approval.json'),'--signoff-output',str(out/'final_signoff_checklist.md'),'--signoff-json-output',str(out/'final_signoff_checklist.json'),'--plan-output',str(out/'next_readonly_seal_plan.md'),'--plan-json-output',str(out/'next_readonly_seal_plan.json')]
     res=subprocess.run(cmd, cwd=Path(__file__).resolve().parents[1], text=True, capture_output=True)
     assert res.returncode == 0, res.stderr
+    assert 'decision=READY_FOR_FINAL_APPROVAL_REVIEW' in res.stdout
     for name in ['live_gray_final_approval','capital_position_approval','risk_human_approval_review','rollback_circuit_approval','final_signoff_checklist','next_readonly_seal_plan']:
         assert (out/f'{name}.md').exists() and (out/f'{name}.json').exists()
 
