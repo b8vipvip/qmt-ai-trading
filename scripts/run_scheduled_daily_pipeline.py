@@ -197,6 +197,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--local-console-review-output-dir", default="local_console")
     parser.add_argument("--enable-local-console-detail-review", action="store_true")
     parser.add_argument("--local-console-detail-review-output-dir", default="local_console_detail")
+    parser.add_argument("--enable-local-console-dashboard-review", action="store_true")
+    parser.add_argument("--local-console-dashboard-review-output-dir", default="local_console_dashboard")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -384,6 +386,9 @@ def main(argv: list[str] | None = None) -> int:
     if parsed.enable_local_console_detail_review:
         args.append("--enable-local-console-detail-review")
         args.extend(["--local-console-detail-review-output-dir", parsed.local_console_detail_review_output_dir])
+    if parsed.enable_local_console_dashboard_review:
+        args.append("--enable-local-console-dashboard-review")
+        args.extend(["--local-console-dashboard-review-output-dir", parsed.local_console_dashboard_review_output_dir])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])

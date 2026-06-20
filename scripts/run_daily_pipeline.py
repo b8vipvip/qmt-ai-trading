@@ -188,6 +188,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--local-console-review-output-dir", default="local_console")
     parser.add_argument("--enable-local-console-detail-review", action="store_true")
     parser.add_argument("--local-console-detail-review-output-dir", default="local_console_detail")
+    parser.add_argument("--enable-local-console-dashboard-review", action="store_true")
+    parser.add_argument("--local-console-dashboard-review-output-dir", default="local_console_dashboard")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -676,6 +678,22 @@ def main(argv: list[str] | None = None) -> int:
         save_console_validation_detail_report(build_console_validation_detail_report(lcd_report), lcd_dir / "validation_detail.md", lcd_dir / "validation_detail.json")
         save_next_console_overview_plan_report(build_next_console_overview_plan_report(lcd_cfg), lcd_dir / "next_console_overview_plan.md", lcd_dir / "next_console_overview_plan.json")
         print(f"\nStage63 local console detail review package written: {lcd_dir / 'local_console_detail_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+
+
+    if args.enable_local_console_dashboard_review:
+        from qmt_ai_trading.local_console.dashboard_service import build_default_local_console_dashboard_config, run_local_console_dashboard_review, save_local_console_dashboard_report, build_dashboard_card_index_report, save_dashboard_card_index_report, build_stage_status_cards_report, save_stage_status_cards_report, build_warning_blocking_stats_report, save_warning_blocking_stats_report, build_manifest_hash_status_report, save_manifest_hash_status_report, build_scheduler_preview_status_report, save_scheduler_preview_status_report, build_safety_boundary_status_report, save_safety_boundary_status_report, build_next_console_shell_plan_report, save_next_console_shell_plan_report
+        lcdash_dir = Path(args.local_console_dashboard_review_output_dir)
+        lcdash_cfg = build_default_local_console_dashboard_config(repo_root=ROOT, output_dir=str(lcdash_dir))
+        lcdash_report = run_local_console_dashboard_review(lcdash_cfg)
+        save_local_console_dashboard_report(lcdash_report, lcdash_dir / "local_console_dashboard_report.md", lcdash_dir / "local_console_dashboard_report.json")
+        save_dashboard_card_index_report(build_dashboard_card_index_report(lcdash_report), lcdash_dir / "dashboard_card_index.md", lcdash_dir / "dashboard_card_index.json")
+        save_stage_status_cards_report(build_stage_status_cards_report(lcdash_report), lcdash_dir / "stage_status_cards.md", lcdash_dir / "stage_status_cards.json")
+        save_warning_blocking_stats_report(build_warning_blocking_stats_report(lcdash_report), lcdash_dir / "warning_blocking_stats.md", lcdash_dir / "warning_blocking_stats.json")
+        save_manifest_hash_status_report(build_manifest_hash_status_report(lcdash_report), lcdash_dir / "manifest_hash_status.md", lcdash_dir / "manifest_hash_status.json")
+        save_scheduler_preview_status_report(build_scheduler_preview_status_report(lcdash_report), lcdash_dir / "scheduler_preview_status.md", lcdash_dir / "scheduler_preview_status.json")
+        save_safety_boundary_status_report(build_safety_boundary_status_report(lcdash_report), lcdash_dir / "safety_boundary_status.md", lcdash_dir / "safety_boundary_status.json")
+        save_next_console_shell_plan_report(build_next_console_shell_plan_report(lcdash_cfg), lcdash_dir / "next_console_shell_plan.md", lcdash_dir / "next_console_shell_plan.json")
+        print(f"\nStage64 local console dashboard review package written: {lcdash_dir / 'local_console_dashboard_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report

@@ -52,7 +52,7 @@ def read_console_detail_markdown_summary(path, max_chars=1600):
 def read_latest_validation_detail(log_dir):
     d=Path(log_dir)
     if not d.exists(): return ConsoleValidationLogDetail(path=str(d),status=LocalConsoleDetailStatus.UNAVAILABLE,summary='UNAVAILABLE validation_logs missing')
-    files=sorted(d.glob('stage*_validation_*.log'), key=lambda p:p.stat().st_mtime, reverse=True)[:1]
+    files=sorted(d.glob('stage*_validation_*.log'), key=lambda p:(p.stat().st_mtime, p.name), reverse=True)[:1]
     if not files: return ConsoleValidationLogDetail(path=str(d),status=LocalConsoleDetailStatus.UNAVAILABLE,summary='UNAVAILABLE no validation log found')
     p=files[0]
     try:
