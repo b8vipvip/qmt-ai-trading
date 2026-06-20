@@ -180,6 +180,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-gray-final-approval-output-dir", default="live_gray_final_approval")
     parser.add_argument("--enable-live-gray-readonly-seal", action="store_true")
     parser.add_argument("--live-gray-readonly-seal-output-dir", default="live_gray_readonly_seal")
+    parser.add_argument("--enable-pre-gray-final-review", action="store_true")
+    parser.add_argument("--pre-gray-final-review-output-dir", default="pre_gray_final_review")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -620,6 +622,20 @@ def main(argv: list[str] | None = None) -> int:
         save_final_signoff_recheck_report(run_final_signoff_recheck(seal_report), seal_dir / "final_signoff_recheck.md", seal_dir / "final_signoff_recheck.json")
         save_next_pre_gray_review_plan_report(run_next_pre_gray_review_plan(seal_report), seal_dir / "next_pre_gray_review_plan.md", seal_dir / "next_pre_gray_review_plan.json")
         print(f"\nStage59 live gray readonly seal package written: {seal_dir / 'live_gray_readonly_seal.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+
+
+    if args.enable_pre_gray_final_review:
+        from qmt_ai_trading.pre_gray_final_review.service import build_default_pre_gray_final_review_config, run_pre_gray_final_review, run_material_recheck, run_go_no_go_draft, run_no_go_blocker_report, run_go_condition_report, run_stage61_api_gateway_plan, save_pre_gray_final_review_report, save_material_recheck_report, save_go_no_go_draft_report, save_no_go_blocker_report, save_go_condition_report, save_stage61_api_gateway_plan_report
+        pg_dir = Path(args.pre_gray_final_review_output_dir)
+        pg_cfg = build_default_pre_gray_final_review_config(repo_root=ROOT, output_dir=str(pg_dir))
+        pg_report = run_pre_gray_final_review(pg_cfg)
+        save_pre_gray_final_review_report(pg_report, pg_dir / "pre_gray_final_review.md", pg_dir / "pre_gray_final_review.json")
+        save_material_recheck_report(run_material_recheck(pg_report), pg_dir / "material_recheck.md", pg_dir / "material_recheck.json")
+        save_go_no_go_draft_report(run_go_no_go_draft(pg_report), pg_dir / "go_no_go_draft.md", pg_dir / "go_no_go_draft.json")
+        save_no_go_blocker_report(run_no_go_blocker_report(pg_report), pg_dir / "no_go_blockers.md", pg_dir / "no_go_blockers.json")
+        save_go_condition_report(run_go_condition_report(pg_report), pg_dir / "go_conditions.md", pg_dir / "go_conditions.json")
+        save_stage61_api_gateway_plan_report(run_stage61_api_gateway_plan(pg_report), pg_dir / "stage61_api_gateway_plan.md", pg_dir / "stage61_api_gateway_plan.json")
+        print(f"\nStage60 pre-gray final review package written: {pg_dir / 'pre_gray_final_review.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
