@@ -172,6 +172,8 @@ class ScheduleConfig:
     pre_gray_final_review_output_dir: Path = Path("pre_gray_final_review")
     enable_api_gateway_review: bool = False
     api_gateway_review_output_dir: Path = Path("api_gateway")
+    enable_local_console_shell_review: bool = False
+    local_console_shell_review_output_dir: Path = Path("local_console_shell")
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

@@ -23,4 +23,6 @@ def handle_request(path: str, method: str='GET', repo_root='.'):
     if p in stage_files: return 200, base_response(True, to_plain(read_markdown_report(root/stage_files[p],3000)))
     if p=='/api/v1/validation/latest': return 200, base_response(True, to_plain(read_latest_validation_log(root/'validation_logs','stage*_validation_*.log')))
     if p=='/api/v1/scheduler/preview': return 200, base_response(True, {'preview_only':True,'read_only':True,'dry_run_only':True,'no_task_registered':True})
+    if p.startswith('/api/v1/console/shell'):
+        return 200, base_response(True, {'stage':'Stage65','reserved_for':'Stage66 static data binding','read_only':True,'dry_run_only':True,'no_trade_authorization':True})
     return 404, base_response(False, blocking_reasons=['route not found'])

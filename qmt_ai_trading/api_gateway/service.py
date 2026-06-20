@@ -6,7 +6,7 @@ from .formatters import *
 from .reader import read_json_report
 def build_default_api_gateway_config(**kw): return ApiGatewayConfig(**kw)
 def build_route_index(config=None):
-    routes=['/health','/api/v1/capabilities','/api/v1/safety-boundary','/api/v1/roadmap/summary','/api/v1/architecture/summary','/api/v1/stages/status','/api/v1/stages/latest','/api/v1/reports/stage60','/api/v1/reports/stage59','/api/v1/reports/stage58','/api/v1/reports/stage57','/api/v1/reports/stage56','/api/v1/reports/stage55','/api/v1/manifest/stage59','/api/v1/validation/latest','/api/v1/scheduler/preview']
+    routes=['/health','/api/v1/capabilities','/api/v1/safety-boundary','/api/v1/roadmap/summary','/api/v1/architecture/summary','/api/v1/stages/status','/api/v1/stages/latest','/api/v1/reports/stage60','/api/v1/reports/stage59','/api/v1/reports/stage58','/api/v1/reports/stage57','/api/v1/reports/stage56','/api/v1/reports/stage55','/api/v1/manifest/stage59','/api/v1/validation/latest','/api/v1/scheduler/preview','/api/v1/console/shell','/api/v1/console/shell/manifest','/api/v1/console/shell/routes','/api/v1/console/shell/assets','/api/v1/console/shell/bindings','/api/v1/console/shell/safety']
     forb=[('POST','/order'),('POST','/orders'),('POST','/trade'),('POST','/execute'),('POST','/approve'),('POST','/live'),('POST','/notify'),('GET','/account'),('GET','/positions'),('GET','/orders'),('GET','/trades'),('GET','/assets')]
     return ApiGatewayRouteIndex([ApiEndpointSpec(path=r,summary='Stage61 local read-only JSON endpoint') for r in routes],[ApiEndpointSpec(method=m,path=p,forbidden=True,summary='forbidden route') for m,p in forb])
 def build_safety_boundary_report(config=None):

@@ -186,6 +186,8 @@ def build_daily_pipeline_command(
     pre_gray_final_review_output_dir: Path | str = Path("pre_gray_final_review"),
     enable_api_gateway_review: bool = False,
     api_gateway_review_output_dir: Path | str = Path("api_gateway"),
+    enable_local_console_shell_review: bool = False,
+    local_console_shell_review_output_dir: Path | str = Path("local_console_shell"),
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -401,6 +403,9 @@ def build_daily_pipeline_command(
     if enable_api_gateway_review:
         args.append("--enable-api-gateway-review")
         args.extend(["--api-gateway-review-output-dir", str(api_gateway_review_output_dir)])
+    if enable_local_console_shell_review:
+        args.append("--enable-local-console-shell-review")
+        args.extend(["--local-console-shell-review-output-dir", str(local_console_shell_review_output_dir)])
     if build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
@@ -597,6 +602,8 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         pre_gray_final_review_output_dir=cfg.pre_gray_final_review_output_dir,
         enable_api_gateway_review=cfg.enable_api_gateway_review,
         api_gateway_review_output_dir=cfg.api_gateway_review_output_dir,
+        enable_local_console_shell_review=cfg.enable_local_console_shell_review,
+        local_console_shell_review_output_dir=cfg.local_console_shell_review_output_dir,
         final_authorization_allowed_symbols=cfg.final_authorization_allowed_symbols,
         final_authorization_max_total_capital=cfg.final_authorization_max_total_capital,
         final_authorization_max_single_order_value=cfg.final_authorization_max_single_order_value,
