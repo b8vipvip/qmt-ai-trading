@@ -189,6 +189,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--live-gray-final-approval-output-dir", default="live_gray_final_approval")
     parser.add_argument("--enable-live-gray-readonly-seal", action="store_true")
     parser.add_argument("--live-gray-readonly-seal-output-dir", default="live_gray_readonly_seal")
+    parser.add_argument("--enable-pre-gray-final-review", action="store_true")
+    parser.add_argument("--pre-gray-final-review-output-dir", default="pre_gray_final_review")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -364,6 +366,9 @@ def main(argv: list[str] | None = None) -> int:
     if parsed.enable_live_gray_readonly_seal:
         args.append("--enable-live-gray-readonly-seal")
         args.extend(["--live-gray-readonly-seal-output-dir", parsed.live_gray_readonly_seal_output_dir])
+    if parsed.enable_pre_gray_final_review:
+        args.append("--enable-pre-gray-final-review")
+        args.extend(["--pre-gray-final-review-output-dir", parsed.pre_gray_final_review_output_dir])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])

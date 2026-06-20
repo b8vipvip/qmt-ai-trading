@@ -168,6 +168,8 @@ class ScheduleConfig:
     live_gray_final_approval_output_dir: Path = Path("live_gray_final_approval")
     enable_live_gray_readonly_seal: bool = False
     live_gray_readonly_seal_output_dir: Path = Path("live_gray_readonly_seal")
+    enable_pre_gray_final_review: bool = False
+    pre_gray_final_review_output_dir: Path = Path("pre_gray_final_review")
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
