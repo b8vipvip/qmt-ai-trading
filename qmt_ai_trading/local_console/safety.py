@@ -33,3 +33,21 @@ def assert_no_xttrader_import(paths=None):
     return hits
 def assert_no_forbidden_console_routes(routes):
     return [r.path if hasattr(r,'path') else str(r) for r in routes if classify_local_console_route(r.path if hasattr(r,'path') else r, getattr(r,'method','GET')).forbidden]
+
+def assert_stage63_read_only():
+    return {'read_only':True,'dry_run_only':True,'no_trade_authorization':True,'no_task_registered':True}
+
+def classify_local_console_detail_route(path, method='GET'):
+    forbidden = {'/order','/orders','/trade','/execute','/approve','/live','/notify','/account','/positions','/assets'}
+    p=str(path).split('?')[0]; m=method.upper()
+    return {'path':p,'method':m,'severity':'CRITICAL' if (m!='GET' or p in forbidden) else 'INFO','forbidden':(m!='GET' or p in forbidden)}
+
+def classify_local_console_detail_marker(marker, path='', generated=False):
+    sev=classify_local_console_marker(marker,path,generated)
+    return None if sev is None else sev.value
+
+def scan_local_console_detail_text_for_forbidden_markers(text, path='', generated=False):
+    return scan_local_console_text_for_forbidden_markers(text,path,generated)
+
+def assert_no_forbidden_console_detail_routes(routes):
+    return [r for r in routes if classify_local_console_detail_route(r).get('forbidden')]
