@@ -162,6 +162,8 @@ class ScheduleConfig:
     enable_real_cache_quality: bool = False
     real_cache_quality_output_dir: Path = Path("real_cache_quality")
     real_cache_quality_provider: str = "mock"
+    enable_live_gray_candidate: bool = False
+    live_gray_candidate_output_dir: Path = Path("live_gray_candidate")
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

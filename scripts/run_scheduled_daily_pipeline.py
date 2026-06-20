@@ -183,6 +183,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--enable-real-cache-quality", action="store_true")
     parser.add_argument("--real-cache-quality-output-dir", default="real_cache_quality")
     parser.add_argument("--real-cache-quality-provider", default="mock", choices=["mock", "qmt_xtdata"])
+    parser.add_argument("--enable-live-gray-candidate", action="store_true")
+    parser.add_argument("--live-gray-candidate-output-dir", default="live_gray_candidate")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
