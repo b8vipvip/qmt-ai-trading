@@ -30,6 +30,7 @@ qmt_plan_order_dryrun_test_buy.py
 __pycache__/
 *.pyc
 *.pyo
+.pytest_cache/
 
 # editor/system
 .vscode/
@@ -83,7 +84,6 @@ data/*.sqlite
 data/**/*.sqlite
 instance/*.db
 instance/*.sqlite
-.pytest_cache/
 .mypy_cache/
 
 **pycache**/
