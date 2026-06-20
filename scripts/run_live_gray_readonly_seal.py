@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+from __future__ import annotations
+import argparse, sys
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path: sys.path.insert(0,str(ROOT))
+from qmt_ai_trading.live_gray_readonly_seal.models import LiveGrayReadonlySealDecision
+from qmt_ai_trading.live_gray_readonly_seal.service import *
+def main(argv=None):
+    p=argparse.ArgumentParser(description='Generate Stage59 read-only seal and pre-run checklist before gray.')
+    p.add_argument('--repo-root',default='.'); p.add_argument('--output-dir',default='live_gray_readonly_seal_stage59'); p.add_argument('--live-gray-final-approval-dir',default='live_gray_final_approval_stage58'); p.add_argument('--live-gray-candidate-dir',default='live_gray_candidate_stage57'); p.add_argument('--real-cache-quality-dir',default='real_cache_quality_stage56'); p.add_argument('--qmt-dryrun-calibration-dir',default='qmt_dryrun_calibration_stage55')
+    p.add_argument('--output',default='live_gray_readonly_seal_stage59/live_gray_readonly_seal.md'); p.add_argument('--json-output',default='live_gray_readonly_seal_stage59/live_gray_readonly_seal.json'); p.add_argument('--lock-output',default='live_gray_readonly_seal_stage59/material_lock.md'); p.add_argument('--lock-json-output',default='live_gray_readonly_seal_stage59/material_lock.json'); p.add_argument('--checklist-output',default='live_gray_readonly_seal_stage59/pre_run_checklist.md'); p.add_argument('--checklist-json-output',default='live_gray_readonly_seal_stage59/pre_run_checklist.json'); p.add_argument('--manifest-output',default='live_gray_readonly_seal_stage59/readonly_seal_manifest.md'); p.add_argument('--manifest-json-output',default='live_gray_readonly_seal_stage59/readonly_seal_manifest.json'); p.add_argument('--signoff-output',default='live_gray_readonly_seal_stage59/final_signoff_recheck.md'); p.add_argument('--signoff-json-output',default='live_gray_readonly_seal_stage59/final_signoff_recheck.json'); p.add_argument('--plan-output',default='live_gray_readonly_seal_stage59/next_pre_gray_review_plan.md'); p.add_argument('--plan-json-output',default='live_gray_readonly_seal_stage59/next_pre_gray_review_plan.json')
+    a=p.parse_args(argv); cfg=build_default_live_gray_readonly_seal_config(repo_root=a.repo_root,output_dir=a.output_dir,live_gray_final_approval_dir=a.live_gray_final_approval_dir,live_gray_candidate_dir=a.live_gray_candidate_dir,real_cache_quality_dir=a.real_cache_quality_dir,qmt_dryrun_calibration_dir=a.qmt_dryrun_calibration_dir)
+    r=run_live_gray_readonly_seal(cfg); save_live_gray_readonly_seal_report(r,a.output,a.json_output); save_material_lock_report(run_material_lock_report(r),a.lock_output,a.lock_json_output); save_pre_run_checklist_report(run_pre_run_checklist(r),a.checklist_output,a.checklist_json_output); save_readonly_seal_manifest_report(run_readonly_seal_manifest(r),a.manifest_output,a.manifest_json_output); save_final_signoff_recheck_report(run_final_signoff_recheck(r),a.signoff_output,a.signoff_json_output); save_next_pre_gray_review_plan_report(run_next_pre_gray_review_plan(r),a.plan_output,a.plan_json_output)
+    print(f'Stage59 live gray readonly seal package written: {a.output} decision={r.decision.value} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True')
+    return 1 if r.decision==LiveGrayReadonlySealDecision.NO_GO else 0
+if __name__=='__main__': raise SystemExit(main())

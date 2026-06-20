@@ -563,3 +563,12 @@ market_data_test_stage58/
 !qmt_ai_trading/live_gray_final_approval/
 !qmt_ai_trading/live_gray_final_approval/*.py
 qmt_ai_trading/live_gray_final_approval/__pycache__/
+
+# stage 59 read-only seal runtime outputs
+validation_logs/
+live_gray_readonly_seal_stage59/
+live_gray_readonly_seal/
+market_data_test_stage59/
+!qmt_ai_trading/live_gray_readonly_seal/
+!qmt_ai_trading/live_gray_readonly_seal/*.py
+qmt_ai_trading/live_gray_readonly_seal/__pycache__/
