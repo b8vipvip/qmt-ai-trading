@@ -192,6 +192,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--local-console-dashboard-review-output-dir", default="local_console_dashboard")
     parser.add_argument("--enable-local-console-shell-review", action="store_true")
     parser.add_argument("--local-console-shell-review-output-dir", default="local_console_shell")
+    parser.add_argument("--enable-local-console-binding-review", action="store_true")
+    parser.add_argument("--local-console-binding-review-output-dir", default="local_console_binding")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -710,6 +712,20 @@ def main(argv: list[str] | None = None) -> int:
         save_static_safety_report(build_static_safety_report(shell_cfg), shell_dir / "static_safety_boundary.md", shell_dir / "static_safety_boundary.json")
         save_next_console_data_binding_plan_report(build_next_console_data_binding_plan_report(shell_cfg), shell_dir / "next_console_data_binding_plan.md", shell_dir / "next_console_data_binding_plan.json")
         print(f"\nStage65 local console shell review package written: {shell_dir / 'local_console_shell_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+    if args.enable_local_console_binding_review:
+        from qmt_ai_trading.local_console.binding_service import build_default_local_console_binding_config, run_local_console_binding_review, save_local_console_binding_report, build_data_bundle_report, save_data_bundle_report, build_binding_manifest_report, save_binding_manifest_report, build_data_source_map_report, save_data_source_map_report, build_missing_data_placeholder_report, save_missing_data_placeholder_report, build_bound_asset_index_report, save_bound_asset_index_report, build_static_data_safety_report, save_static_data_safety_report, build_next_console_preview_server_plan_report, save_next_console_preview_server_plan_report
+        binding_dir = Path(args.local_console_binding_review_output_dir)
+        binding_cfg = build_default_local_console_binding_config(repo_root=ROOT, output_dir=str(binding_dir))
+        binding_report = run_local_console_binding_review(binding_cfg)
+        save_local_console_binding_report(binding_report, binding_dir / "local_console_binding_report.md", binding_dir / "local_console_binding_report.json")
+        save_data_bundle_report(build_data_bundle_report(binding_report), binding_dir / "data_bundle.md", binding_dir / "data_bundle.json")
+        save_binding_manifest_report(build_binding_manifest_report(binding_report), binding_dir / "binding_manifest.md", binding_dir / "binding_manifest.json")
+        save_data_source_map_report(build_data_source_map_report(binding_report), binding_dir / "data_source_map.md", binding_dir / "data_source_map.json")
+        save_missing_data_placeholder_report(build_missing_data_placeholder_report(binding_report), binding_dir / "missing_data_placeholders.md", binding_dir / "missing_data_placeholders.json")
+        save_bound_asset_index_report(build_bound_asset_index_report(binding_report), binding_dir / "bound_asset_index.md", binding_dir / "bound_asset_index.json")
+        save_static_data_safety_report(build_static_data_safety_report(binding_cfg), binding_dir / "static_data_safety.md", binding_dir / "static_data_safety.json")
+        save_next_console_preview_server_plan_report(build_next_console_preview_server_plan_report(binding_cfg), binding_dir / "next_console_preview_server_plan.md", binding_dir / "next_console_preview_server_plan.json")
+        print(f"\nStage66 local console binding review package written: {binding_dir / 'local_console_binding_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True no_task_registered=True")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
