@@ -173,6 +173,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--pre-gray-final-review-output-dir", default="pre_gray_final_review")
     parser.add_argument("--enable-api-gateway-review", action="store_true")
     parser.add_argument("--api-gateway-review-output-dir", default="api_gateway")
+    parser.add_argument("--enable-local-console-review", action="store_true")
+    parser.add_argument("--local-console-review-output-dir", default="local_console")
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -412,6 +414,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Stage60 Pre-gray Final Review: enable_pre_gray_final_review=True output_dir={args.pre_gray_final_review_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.enable_api_gateway_review:
         print(f"Stage61 API Gateway Review: enable_api_gateway_review=True output_dir={args.api_gateway_review_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+    if args.enable_local_console_review:
+        print(f"Stage62 Local Console Review: enable_local_console_review=True output_dir={args.local_console_review_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.build_dashboard:
         print(f"Dashboard: build_dashboard=True output={args.dashboard_output} title={args.dashboard_title} read_only=True no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:

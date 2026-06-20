@@ -184,6 +184,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--pre-gray-final-review-output-dir", default="pre_gray_final_review")
     parser.add_argument("--enable-api-gateway-review", action="store_true")
     parser.add_argument("--api-gateway-review-output-dir", default="api_gateway")
+    parser.add_argument("--enable-local-console-review", action="store_true")
+    parser.add_argument("--local-console-review-output-dir", default="local_console")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -646,6 +648,18 @@ def main(argv: list[str] | None = None) -> int:
         ag_report = run_api_gateway_review(ag_cfg)
         save_all(ag_cfg, ag_report, ag_dir / "api_gateway_report.md", ag_dir / "api_gateway_report.json", ag_dir / "route_index.md", ag_dir / "route_index.json", ag_dir / "safety_boundary.md", ag_dir / "safety_boundary.json", ag_dir / "stage_status.md", ag_dir / "stage_status.json", ag_dir / "next_ui_dashboard_plan.md", ag_dir / "next_ui_dashboard_plan.json")
         print(f"\nStage61 API Gateway review package written: {ag_dir / 'api_gateway_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+
+    if args.enable_local_console_review:
+        from qmt_ai_trading.local_console.service import build_default_local_console_config, run_local_console_review, save_local_console_report, build_console_index_report, save_console_index_report, build_console_report_list_report, save_console_report_list_report, build_console_safety_report, save_console_safety_report, build_next_console_detail_plan_report, save_next_console_detail_plan_report
+        lc_dir = Path(args.local_console_review_output_dir)
+        lc_cfg = build_default_local_console_config(repo_root=ROOT, output_dir=str(lc_dir))
+        lc_report = run_local_console_review(lc_cfg)
+        save_local_console_report(lc_report, lc_dir / "local_console_report.md", lc_dir / "local_console_report.json")
+        save_console_index_report(build_console_index_report(lc_cfg), lc_dir / "console_index.md", lc_dir / "console_index.json")
+        save_console_report_list_report(build_console_report_list_report(lc_cfg), lc_dir / "report_list.md", lc_dir / "report_list.json")
+        save_console_safety_report(build_console_safety_report(lc_cfg), lc_dir / "console_safety.md", lc_dir / "console_safety.json")
+        save_next_console_detail_plan_report(build_next_console_detail_plan_report(lc_cfg), lc_dir / "next_console_detail_plan.md", lc_dir / "next_console_detail_plan.json")
+        print(f"\nStage62 local console review package written: {lc_dir / 'local_console_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
