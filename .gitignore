@@ -605,3 +605,13 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+
+# stage 64 local console dashboard runtime outputs
+validation_logs/
+local_console_dashboard_stage64/
+local_console_dashboard/
+market_data_test_stage64/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
