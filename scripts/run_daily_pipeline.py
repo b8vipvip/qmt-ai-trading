@@ -176,6 +176,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--real-cache-quality-provider", default="mock", choices=["mock", "qmt_xtdata"])
     parser.add_argument("--enable-live-gray-candidate", action="store_true")
     parser.add_argument("--live-gray-candidate-output-dir", default="live_gray_candidate")
+    parser.add_argument("--enable-live-gray-final-approval", action="store_true")
+    parser.add_argument("--live-gray-final-approval-output-dir", default="live_gray_final_approval")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -590,6 +592,19 @@ def main(argv: list[str] | None = None) -> int:
         save_gray_rollback_circuit_breaker_report(run_gray_rollback_circuit_breaker_plan(lgc_report), lgc_dir / "gray_rollback_circuit_breaker.md", lgc_dir / "gray_rollback_circuit_breaker.json")
         save_next_gray_approval_package_plan_report(run_next_gray_approval_package_plan(lgc_report), lgc_dir / "next_gray_approval_package_plan.md", lgc_dir / "next_gray_approval_package_plan.json")
         print(f"\nStage57 live gray candidate package written: {lgc_dir / 'live_gray_candidate.md'} read_only=True dry_run_only=True no_trade_authorization=True")
+
+    if args.enable_live_gray_final_approval:
+        from qmt_ai_trading.live_gray_final_approval.service import build_default_live_gray_final_approval_config, run_live_gray_final_approval, run_capital_position_approval, run_risk_human_approval_review, run_rollback_circuit_approval, run_final_signoff_checklist, run_next_readonly_seal_plan, save_live_gray_final_approval_report, save_capital_position_approval_report, save_risk_human_approval_review_report, save_rollback_circuit_approval_report, save_final_signoff_checklist_report, save_next_readonly_seal_plan_report
+        lga_dir = Path(args.live_gray_final_approval_output_dir)
+        lga_cfg = build_default_live_gray_final_approval_config(repo_root=ROOT, output_dir=str(lga_dir))
+        lga_report = run_live_gray_final_approval(lga_cfg)
+        save_live_gray_final_approval_report(lga_report, lga_dir / "live_gray_final_approval.md", lga_dir / "live_gray_final_approval.json")
+        save_capital_position_approval_report(run_capital_position_approval(lga_report), lga_dir / "capital_position_approval.md", lga_dir / "capital_position_approval.json")
+        save_risk_human_approval_review_report(run_risk_human_approval_review(lga_report), lga_dir / "risk_human_approval_review.md", lga_dir / "risk_human_approval_review.json")
+        save_rollback_circuit_approval_report(run_rollback_circuit_approval(lga_report), lga_dir / "rollback_circuit_approval.md", lga_dir / "rollback_circuit_approval.json")
+        save_final_signoff_checklist_report(run_final_signoff_checklist(lga_report), lga_dir / "final_signoff_checklist.md", lga_dir / "final_signoff_checklist.json")
+        save_next_readonly_seal_plan_report(run_next_readonly_seal_plan(lga_report), lga_dir / "next_readonly_seal_plan.md", lga_dir / "next_readonly_seal_plan.json")
+        print(f"\nStage58 live gray final approval package written: {lga_dir / 'live_gray_final_approval.md'} read_only=True dry_run_only=True no_trade_authorization=True")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report

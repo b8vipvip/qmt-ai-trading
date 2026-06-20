@@ -5,7 +5,7 @@ from .models import *
 def _json(obj): return json.dumps(to_plain(obj), ensure_ascii=False, indent=2)
 def format_live_gray_candidate_report_json(r): return _json(r)
 def format_simple_json(r): return _json(r)
-def _items(items): return "\n".join(f"- {getattr(x,'name','')}: {getattr(x,'value',getattr(x,'limit',getattr(x,'summary','')))} {getattr(x,'summary','')}" for x in items) or "- 无"
+def _items(items): return "\n".join(f"- {getattr(x,'name','')}: {getattr(x,'value',getattr(x,'limit',''))} {getattr(x,'summary','')}" for x in items) or "- 无"
 
 def format_live_gray_candidate_report_markdown(r: LiveGrayCandidateReport) -> str:
     ev="\n".join(f"- [{e.severity.value}] {e.title}: {e.summary}" for e in r.evidence) or "- 无"

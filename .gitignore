@@ -554,3 +554,12 @@ market_data_test_stage57/
 !qmt_ai_trading/live_gray_candidate/
 !qmt_ai_trading/live_gray_candidate/*.py
 qmt_ai_trading/live_gray_candidate/__pycache__/
+
+# stage 58 final human approval package runtime outputs
+validation_logs/
+live_gray_final_approval_stage58/
+live_gray_final_approval/
+market_data_test_stage58/
+!qmt_ai_trading/live_gray_final_approval/
+!qmt_ai_trading/live_gray_final_approval/*.py
+qmt_ai_trading/live_gray_final_approval/__pycache__/
