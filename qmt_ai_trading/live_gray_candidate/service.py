@@ -20,7 +20,7 @@ def _approval():
     return [GrayApprovalItem(n, True, "必须人工勾选确认") for n in names]
 def _rollback():
     names=["数据质量异常回滚","Risk Gate 异常回滚","Human Approval 缺失回滚","单日亏损触发熔断","总回撤触发熔断","连续错误触发熔断","通知失败时处理","日志缺失时处理","人工暂停流程","恢复前复核流程"]
-    return [GrayRollbackItem(n,n,"停止候选流程，保留材料，人工复核") for n in names]
+    return [GrayRollbackItem(n,n,"默认只读说明：停止候选流程，保留材料，人工复核；不自动执行交易或通知。") for n in names]
 def _stops(cfg):
     return [GrayStopConditionItem("单日亏损触发阈值",f"{cfg.max_daily_loss_ratio:.0%}"),GrayStopConditionItem("最大回撤触发阈值",f"{cfg.max_total_drawdown_ratio:.0%}"),GrayStopConditionItem("冷却期",f"{cfg.cooldown_days_after_stop} days")]
 def _next():

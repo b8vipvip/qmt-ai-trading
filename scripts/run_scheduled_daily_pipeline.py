@@ -185,6 +185,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--real-cache-quality-provider", default="mock", choices=["mock", "qmt_xtdata"])
     parser.add_argument("--enable-live-gray-candidate", action="store_true")
     parser.add_argument("--live-gray-candidate-output-dir", default="live_gray_candidate")
+    parser.add_argument("--enable-live-gray-final-approval", action="store_true")
+    parser.add_argument("--live-gray-final-approval-output-dir", default="live_gray_final_approval")
     known, pipeline_args = parser.parse_known_args(argv)
     known.pipeline_args = pipeline_args
     return known
@@ -351,6 +353,12 @@ def main(argv: list[str] | None = None) -> int:
     if parsed.enable_real_cache_quality:
         args.append("--enable-real-cache-quality")
         args.extend(["--real-cache-quality-output-dir", parsed.real_cache_quality_output_dir, "--real-cache-quality-provider", parsed.real_cache_quality_provider])
+    if parsed.enable_live_gray_candidate:
+        args.append("--enable-live-gray-candidate")
+        args.extend(["--live-gray-candidate-output-dir", parsed.live_gray_candidate_output_dir])
+    if parsed.enable_live_gray_final_approval:
+        args.append("--enable-live-gray-final-approval")
+        args.extend(["--live-gray-final-approval-output-dir", parsed.live_gray_final_approval_output_dir])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])
