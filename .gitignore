@@ -581,3 +581,9 @@ market_data_test_stage60/
 !qmt_ai_trading/pre_gray_final_review/
 !qmt_ai_trading/pre_gray_final_review/*.py
 qmt_ai_trading/pre_gray_final_review/__pycache__/
+validation_logs/
+api_gateway_stage61/
+api_gateway/
+market_data_test_stage61/
+!qmt_ai_trading/api_gateway/
+!qmt_ai_trading/api_gateway/**

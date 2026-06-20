@@ -170,6 +170,8 @@ class ScheduleConfig:
     live_gray_readonly_seal_output_dir: Path = Path("live_gray_readonly_seal")
     enable_pre_gray_final_review: bool = False
     pre_gray_final_review_output_dir: Path = Path("pre_gray_final_review")
+    enable_api_gateway_review: bool = False
+    api_gateway_review_output_dir: Path = Path("api_gateway")
     dry_run: bool = True
     enabled: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)

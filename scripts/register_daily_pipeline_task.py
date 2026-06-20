@@ -171,6 +171,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-gray-readonly-seal-output-dir", default="live_gray_readonly_seal")
     parser.add_argument("--enable-pre-gray-final-review", action="store_true")
     parser.add_argument("--pre-gray-final-review-output-dir", default="pre_gray_final_review")
+    parser.add_argument("--enable-api-gateway-review", action="store_true")
+    parser.add_argument("--api-gateway-review-output-dir", default="api_gateway")
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -330,6 +332,8 @@ def main(argv: list[str] | None = None) -> int:
         live_gray_readonly_seal_output_dir=Path(args.live_gray_readonly_seal_output_dir),
         enable_pre_gray_final_review=args.enable_pre_gray_final_review,
         pre_gray_final_review_output_dir=Path(args.pre_gray_final_review_output_dir),
+        enable_api_gateway_review=args.enable_api_gateway_review,
+        api_gateway_review_output_dir=Path(args.api_gateway_review_output_dir),
     )
     result = register_windows_task(config, dry_run=not args.execute)
     print("Windows Task Scheduler registration preview")
@@ -406,6 +410,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Stage59 Live Gray Readonly Seal: enable_live_gray_readonly_seal=True output_dir={args.live_gray_readonly_seal_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.enable_pre_gray_final_review:
         print(f"Stage60 Pre-gray Final Review: enable_pre_gray_final_review=True output_dir={args.pre_gray_final_review_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+    if args.enable_api_gateway_review:
+        print(f"Stage61 API Gateway Review: enable_api_gateway_review=True output_dir={args.api_gateway_review_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.build_dashboard:
         print(f"Dashboard: build_dashboard=True output={args.dashboard_output} title={args.dashboard_title} read_only=True no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:
