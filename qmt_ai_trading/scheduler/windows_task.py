@@ -184,6 +184,8 @@ def build_daily_pipeline_command(
     live_gray_readonly_seal_output_dir: Path | str = Path("live_gray_readonly_seal"),
     enable_pre_gray_final_review: bool = False,
     pre_gray_final_review_output_dir: Path | str = Path("pre_gray_final_review"),
+    enable_api_gateway_review: bool = False,
+    api_gateway_review_output_dir: Path | str = Path("api_gateway"),
 ) -> ScheduleCommand:
     """Build the safe daily pipeline command used by the scheduled task."""
 
@@ -396,6 +398,9 @@ def build_daily_pipeline_command(
     if enable_pre_gray_final_review:
         args.append("--enable-pre-gray-final-review")
         args.extend(["--pre-gray-final-review-output-dir", str(pre_gray_final_review_output_dir)])
+    if enable_api_gateway_review:
+        args.append("--enable-api-gateway-review")
+        args.extend(["--api-gateway-review-output-dir", str(api_gateway_review_output_dir)])
     if build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", str(dashboard_output), "--dashboard-title", str(dashboard_title)])
@@ -590,6 +595,8 @@ def build_schtasks_create_command(config: ScheduleConfig | None = None, **overri
         live_gray_readonly_seal_output_dir=cfg.live_gray_readonly_seal_output_dir,
         enable_pre_gray_final_review=cfg.enable_pre_gray_final_review,
         pre_gray_final_review_output_dir=cfg.pre_gray_final_review_output_dir,
+        enable_api_gateway_review=cfg.enable_api_gateway_review,
+        api_gateway_review_output_dir=cfg.api_gateway_review_output_dir,
         final_authorization_allowed_symbols=cfg.final_authorization_allowed_symbols,
         final_authorization_max_total_capital=cfg.final_authorization_max_total_capital,
         final_authorization_max_single_order_value=cfg.final_authorization_max_single_order_value,

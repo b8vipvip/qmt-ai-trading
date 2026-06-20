@@ -182,6 +182,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-gray-readonly-seal-output-dir", default="live_gray_readonly_seal")
     parser.add_argument("--enable-pre-gray-final-review", action="store_true")
     parser.add_argument("--pre-gray-final-review-output-dir", default="pre_gray_final_review")
+    parser.add_argument("--enable-api-gateway-review", action="store_true")
+    parser.add_argument("--api-gateway-review-output-dir", default="api_gateway")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -636,6 +638,14 @@ def main(argv: list[str] | None = None) -> int:
         save_go_condition_report(run_go_condition_report(pg_report), pg_dir / "go_conditions.md", pg_dir / "go_conditions.json")
         save_stage61_api_gateway_plan_report(run_stage61_api_gateway_plan(pg_report), pg_dir / "stage61_api_gateway_plan.md", pg_dir / "stage61_api_gateway_plan.json")
         print(f"\nStage60 pre-gray final review package written: {pg_dir / 'pre_gray_final_review.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+
+    if args.enable_api_gateway_review:
+        from qmt_ai_trading.api_gateway.service import build_default_api_gateway_config, run_api_gateway_review, save_all
+        ag_dir = Path(args.api_gateway_review_output_dir)
+        ag_cfg = build_default_api_gateway_config(repo_root=ROOT, output_dir=str(ag_dir))
+        ag_report = run_api_gateway_review(ag_cfg)
+        save_all(ag_cfg, ag_report, ag_dir / "api_gateway_report.md", ag_dir / "api_gateway_report.json", ag_dir / "route_index.md", ag_dir / "route_index.json", ag_dir / "safety_boundary.md", ag_dir / "safety_boundary.json", ag_dir / "stage_status.md", ag_dir / "stage_status.json", ag_dir / "next_ui_dashboard_plan.md", ag_dir / "next_ui_dashboard_plan.json")
+        print(f"\nStage61 API Gateway review package written: {ag_dir / 'api_gateway_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
