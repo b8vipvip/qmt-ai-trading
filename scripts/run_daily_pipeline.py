@@ -194,6 +194,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--local-console-shell-review-output-dir", default="local_console_shell")
     parser.add_argument("--enable-local-console-binding-review", action="store_true")
     parser.add_argument("--local-console-binding-review-output-dir", default="local_console_binding")
+    parser.add_argument("--enable-local-console-preview-review", action="store_true")
+    parser.add_argument("--local-console-preview-review-output-dir", default="local_console_preview")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -726,6 +728,19 @@ def main(argv: list[str] | None = None) -> int:
         save_static_data_safety_report(build_static_data_safety_report(binding_cfg), binding_dir / "static_data_safety.md", binding_dir / "static_data_safety.json")
         save_next_console_preview_server_plan_report(build_next_console_preview_server_plan_report(binding_cfg), binding_dir / "next_console_preview_server_plan.md", binding_dir / "next_console_preview_server_plan.json")
         print(f"\nStage66 local console binding review package written: {binding_dir / 'local_console_binding_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True no_task_registered=True")
+
+    if args.enable_local_console_preview_review:
+        from qmt_ai_trading.local_console.preview_service import build_default_local_console_preview_config, run_local_console_preview_review, save_local_console_preview_report, build_preview_route_map_report, save_preview_route_map_report, build_static_file_index_report, save_static_file_index_report, build_response_manifest_report, save_response_manifest_report, build_preview_safety_report, save_preview_safety_report, build_next_console_refresh_plan_report, save_next_console_refresh_plan_report
+        preview_dir = Path(args.local_console_preview_review_output_dir)
+        preview_cfg = build_default_local_console_preview_config(repo_root=ROOT, static_dir="local_console_binding_stage66", host="127.0.0.1", port=8767, dry_run=True)
+        preview_report = run_local_console_preview_review(preview_cfg)
+        save_local_console_preview_report(preview_report, preview_dir / "local_console_preview_report.md", preview_dir / "local_console_preview_report.json")
+        save_preview_route_map_report(build_preview_route_map_report(preview_report), preview_dir / "preview_route_map.md", preview_dir / "preview_route_map.json")
+        save_static_file_index_report(build_static_file_index_report(preview_report), preview_dir / "static_file_index.md", preview_dir / "static_file_index.json")
+        save_response_manifest_report(build_response_manifest_report(preview_report), preview_dir / "response_manifest.md", preview_dir / "response_manifest.json")
+        save_preview_safety_report(build_preview_safety_report(preview_report), preview_dir / "preview_safety_boundary.md", preview_dir / "preview_safety_boundary.json")
+        save_next_console_refresh_plan_report(build_next_console_refresh_plan_report(preview_cfg), preview_dir / "next_console_refresh_plan.md", preview_dir / "next_console_refresh_plan.json")
+        print(f"\nStage67 local console preview review package written: {preview_dir / 'local_console_preview_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
