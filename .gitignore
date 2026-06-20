@@ -587,3 +587,11 @@ api_gateway/
 market_data_test_stage61/
 !qmt_ai_trading/api_gateway/
 !qmt_ai_trading/api_gateway/**
+validation_logs/
+/local_console_stage62/
+/local_console/
+/market_data_test_stage62/
+__pycache__/
+*.pyc
+!qmt_ai_trading/local_console/
+!qmt_ai_trading/local_console/**
