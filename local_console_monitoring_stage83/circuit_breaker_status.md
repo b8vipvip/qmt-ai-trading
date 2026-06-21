@@ -1,0 +1,21 @@
+# circuit_breaker_status
+
+```json
+{
+  "blocked_actions": [
+    "real_notification",
+    "order_submission",
+    "account_query",
+    "risk_gate_override",
+    "auto_approval"
+  ],
+  "dry_run": true,
+  "no_order_submitted": true,
+  "no_qmt_trader_api": true,
+  "not_live_trading": true,
+  "requires_human_review": true,
+  "status": "WATCH",
+  "triggered": true,
+  "triggered_rules": []
+}
+```

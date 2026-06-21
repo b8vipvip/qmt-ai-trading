@@ -72,3 +72,6 @@ def detect_data_quality_tracking_events(report, config: MonitoringConfig) -> lis
         if avg < threshold:
             events.append(MonitoringEvent("data_quality_tracking_coverage_low", "WARNING", f"Data quality tracking average coverage {avg:.2%} below {threshold:.2%}.", "average_coverage", avg, threshold, "QUALITY"))
     return events
+
+
+STAGE83_ALERT_RULES = ['MISSING_INPUT_FILE','FALLBACK_USED','MOCK_DATA_USED','UNSAFE_AGENT_OUTPUT','FORBIDDEN_TERM_DETECTED','HIGH_DRAWDOWN','LOW_WIN_RATE','RISK_GATE_BYPASS_ATTEMPT','AUTO_APPROVE_DETECTED','LIVE_TRADE_TERM_DETECTED','QMT_TRADER_API_DETECTED','ORDER_SUBMIT_DETECTED','ACCOUNT_QUERY_DETECTED','DIRTY_REPO_STATUS','VALIDATION_LOG_ENCODING_ERROR']

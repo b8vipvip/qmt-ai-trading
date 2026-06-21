@@ -1,0 +1,36 @@
+# frontend_monitoring_contract
+
+```json
+{
+  "apis": [
+    "GET /api/v1/monitoring/context",
+    "GET /api/v1/monitoring/alerts/latest",
+    "GET /api/v1/monitoring/circuit-breaker/latest",
+    "GET /api/v1/monitoring/risk-events/latest",
+    "GET /api/v1/monitoring/system-health/latest",
+    "GET /api/v1/monitoring/report/latest",
+    "POST /api/v1/tasks/run task_id=monitoring_alert_dry_run"
+  ],
+  "dry_run": true,
+  "forbidden_ui_policy": "前端不展示任何真实通知、自动交易、实盘授权或风控绕行入口文案",
+  "no_order_submitted": true,
+  "no_qmt_trader_api": true,
+  "no_real_notification": true,
+  "not_live_trading": true,
+  "page": "监控告警",
+  "requires_human_review": true,
+  "research_only": true,
+  "sections": [
+    "系统健康总览",
+    "告警数量统计",
+    "告警列表",
+    "严重级别筛选",
+    "熔断状态卡片",
+    "风险事件时间线",
+    "输入数据源状态",
+    "最近一次验证日志状态",
+    "禁止项检查结果",
+    "安全边界说明"
+  ]
+}
+```

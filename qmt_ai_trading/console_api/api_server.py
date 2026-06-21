@@ -31,6 +31,19 @@ def _read_backtest_file(name, default):
     try: return json.loads(path.read_text(encoding='utf-8'))
     except Exception as e: return {'error':str(e),'dry_run':True,'not_live_trading':True,'research_only':True}
 
+
+def _read_monitoring_file(name, default):
+    path=Path('local_console_monitoring_stage83')/name
+    if not path.exists():
+        try:
+            from qmt_ai_trading.monitoring import run_monitoring_stage83
+            run_monitoring_stage83('.', 'local_console_monitoring_stage83')
+        except Exception:
+            pass
+    if not path.exists(): return default
+    try: return json.loads(path.read_text(encoding='utf-8'))
+    except Exception as e: return {'error':str(e),'dry_run':True,'not_live_trading':True,'research_only':True,'no_real_notification':True}
+
 def _json(handler, code, payload):
     raw=json.dumps(payload, ensure_ascii=False).encode('utf-8'); handler.send_response(code); handler.send_header('Content-Type','application/json; charset=utf-8'); handler.send_header('Content-Length',str(len(raw))); handler.end_headers(); handler.wfile.write(raw)
 def summary():
@@ -94,6 +107,12 @@ def make_handler(static_dir=None):
             if p=='/api/v1/backtest/attribution/latest': return _json(self,200,{'ok':True,'attribution':_read_backtest_file('performance_attribution.json',{})})
             if p=='/api/v1/backtest/agent-comparison/latest': return _json(self,200,{'ok':True,'agent_comparison':_read_backtest_file('agent_backtest_comparison.json',{})})
             if p=='/api/v1/backtest/report/latest': return _json(self,200,{'ok':True,'report':_read_backtest_file('backtest_dashboard_report.json',{})})
+            if p=='/api/v1/monitoring/context': return _json(self,200,{'ok':True,'context':_read_monitoring_file('monitoring_input_context.json',{'dry_run':True,'not_live_trading':True,'research_only':True})})
+            if p=='/api/v1/monitoring/alerts/latest': return _json(self,200,{'ok':True,'alerts':_read_monitoring_file('monitoring_alerts.json',{'alerts':[]})})
+            if p=='/api/v1/monitoring/circuit-breaker/latest': return _json(self,200,{'ok':True,'circuit_breaker':_read_monitoring_file('circuit_breaker_status.json',{})})
+            if p=='/api/v1/monitoring/risk-events/latest': return _json(self,200,{'ok':True,'risk_events':_read_monitoring_file('risk_event_timeline.json',{'events':[]})})
+            if p=='/api/v1/monitoring/system-health/latest': return _json(self,200,{'ok':True,'system_health':_read_monitoring_file('system_health_report.json',{})})
+            if p=='/api/v1/monitoring/report/latest': return _json(self,200,{'ok':True,'report':_read_monitoring_file('system_health_report.json',{})})
             if p=='/api/v1/ai/models/latest': return _json(self,200,{'ok':True,'result':LATEST_DISCOVERY})
             if p=='/api/v1/ai/benchmark/latest': return _json(self,200,{'ok':True,'report':LATEST_BENCHMARK})
             if p=='/api/v1/ai/model-usage/draft': return _json(self,200,{'ok':True,'draft':get_usage_draft()})

@@ -32,3 +32,6 @@ __all__ = [
     "save_monitoring_json",
     "format_monitoring_markdown",
 ]
+
+from .report import run_monitoring_stage83
+__all__.append("run_monitoring_stage83")

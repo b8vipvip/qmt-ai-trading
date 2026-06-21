@@ -101,3 +101,23 @@ class MonitoringReport:
         data = asdict(self)
         data["events"] = [asdict(item) for item in self.events]
         return data
+
+
+@dataclass(frozen=True)
+class MonitoringAlert:
+    alert_id: str
+    rule_id: str
+    severity: str
+    source_stage: str
+    source_file: str
+    message: str
+    evidence: dict[str, object]
+    recommendation: str
+    dry_run: bool = True
+    not_live_trading: bool = True
+    research_only: bool = True
+    no_real_notification: bool = True
+    created_at: str = ""
+
+    def to_dict(self) -> dict[str, object]:
+        return asdict(self)
