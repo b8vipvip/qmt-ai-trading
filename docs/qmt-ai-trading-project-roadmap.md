@@ -867,3 +867,11 @@ Stage68 将基于 Stage67 本地只读预览服务增强页面导航、只读刷
 - Stage69 不等于实盘授权；不调用 `xttrader`；不查询真实账户；不真实下单；不发送真实通知；不自动 approve；UI 不能绕过 Risk Gate / Human Approval，不能直接访问 QMT，不能自动 approve。
 - 完整工程阶段计划与前端 UI 产品化路线（Stage 1-75）继续保留；Stage61-75 前端 UI 产品化计划继续保留。
 - Stage70 预告：阶段七十为本地控制台报告详情钻取与导出层，仍不得直接实盘，不调用 `xttrader`，不查询真实账户，不下单。
+
+## 阶段七十：本地控制台报告详情钻取与导出层（已完成）
+
+阶段七十属于 Stage61-75：API Gateway / 本地控制台 / UI 产品化路线。Stage70 在 Stage69 状态分组与筛选体验层之后，新增本地静态控制台报告详情钻取、单报告预览、复制摘要、导出本地 Markdown/JSON 复核快照、错误报告定位、人工复核包入口、report detail route map、export manifest、copy/export safety report、forbidden hash route 安全占位和 Stage71 人工复核工作台计划。
+
+Stage70 不是实盘授权，不调用 `xttrader`，不调用 QMT 交易接口，不真实下单，不查询真实账户/资金/持仓/订单/成交，不真实发送通知，不自动 approve，不绕过 Risk Gate，不绕过 Human Approval。READY_FOR_LOCAL_CONSOLE_DRILLDOWN_REVIEW 只表示本地控制台报告详情钻取与导出层材料可供人工复核。
+
+阶段七十一预告：本地控制台人工复核工作台层。Stage71 仍不得直接实盘，不调用 `xttrader`，不查询真实账户，不下单；它将基于 Stage70 报告详情钻取与导出层增加人工复核工作台、复核清单、只读 review notes 模板、本地确认项列表和复核包目录索引。
