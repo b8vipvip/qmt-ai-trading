@@ -7,6 +7,15 @@ def mock_output(task_id, params):
     if task_id=='factor_scan':
         from qmt_ai_trading.research.factor_engine import run_factor_scan
         return run_factor_scan(params)
+    if task_id=='factor_strategy_dry_run':
+        from qmt_ai_trading.research.factor_engine import run_factor_scan
+        from qmt_ai_trading.strategies.factor_strategy_engine import build_factor_strategy
+        from qmt_ai_trading.risk.factor_strategy_risk_review import review_trade_intents
+        from qmt_ai_trading.strategies.strategy_report import build_strategy_report
+        scan=run_factor_scan(params); built=build_factor_strategy(scan.get('factor_candidates',[]), int(params.get('max_positions',3)))
+        decisions=review_trade_intents(built['trade_intents'])
+        report=build_strategy_report(built['strategy_signals'], built['trade_intents'], decisions)
+        return {'task_id':'factor_strategy_dry_run','factor_candidates':scan.get('factor_candidates',[]),'strategy_signals':built['strategy_signals'],'trade_intents':built['trade_intents'],'risk_decisions':decisions,'strategy_report':report,'dry_run':True,'no_qmt_trader_api':True,'no_account_query':True,'no_order_submitted':True,'auto_approve':False}
     base={'mode':'dry-run/shadow','no_trade_authorization':True,'read_only':True,'params':params}
     if task_id in {'ai_model_discovery','ai_model_stress_test','ai_model_usage_draft'}: base.update({'ai_provider_task':True,'local_api_only':True,'trade_chain':False,'note':'Stage78 AI Provider 白名单任务，仅调用本地 Console API，不进入交易链路'})
     elif task_id=='market_snapshot_readonly': base.update({'symbol':params.get('symbol','510300.SH'),'source':'local readonly/mock','ohlcv':{'open':3.91,'high':3.96,'low':3.88,'close':3.94,'volume':1200000},'quality':'OK'})
