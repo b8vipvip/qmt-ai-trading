@@ -709,3 +709,11 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+
+# stage 76 roadmap review runtime outputs
+validation_logs/
+stage76_roadmap_review/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
