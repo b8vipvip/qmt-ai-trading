@@ -1,0 +1,27 @@
+{
+  "stage": "Stage83 plan",
+  "title": "异常监控、告警与熔断 dry-run 看板",
+  "goals": [
+    "监控数据缺失、任务失败、回测异常、Agent unsafe 输出、Risk Gate 异常",
+    "生成 dry-run alert",
+    "前端展示告警中心",
+    "不真实发送通知",
+    "不接实盘",
+    "不调用 xttrader"
+  ],
+  "dry_run": true,
+  "not_live_trading": true,
+  "research_only": true,
+  "no_order_submitted": true,
+  "no_qmt_trader_api": true,
+  "requires_risk_gate": true,
+  "requires_human_approval": true,
+  "fallback_used": true,
+  "mock_data": true,
+  "backtest_mode": "mock_shadow",
+  "disclaimer": "该结果仅用于前端联调和研究展示，不能作为实盘依据。",
+  "unsafe": true,
+  "forbidden_terms": [
+    "xttrader"
+  ]
+}
