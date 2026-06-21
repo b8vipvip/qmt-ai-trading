@@ -1,0 +1,49 @@
+# Frontend Backtest Contract
+
+dry_run=true
+not_live_trading=true
+research_only=true
+fallback_used=true
+mock_data=true
+
+该结果仅用于前端联调和研究展示，不能作为实盘依据。
+
+```json
+{
+  "page": "回测分析",
+  "apis": [
+    "GET /api/v1/backtest/context",
+    "GET /api/v1/backtest/shadow-replay/latest",
+    "GET /api/v1/backtest/performance/latest",
+    "GET /api/v1/backtest/attribution/latest",
+    "GET /api/v1/backtest/agent-comparison/latest",
+    "GET /api/v1/backtest/report/latest",
+    "POST /api/v1/tasks/run task_id=backtest_dashboard_dry_run"
+  ],
+  "sections": [
+    "回测总览卡片",
+    "数据源状态卡片",
+    "收益 / 回撤 / 波动 / 胜率指标区",
+    "Shadow Replay 结果表",
+    "TradeIntent 回测映射表",
+    "RiskDecision 回测映射表",
+    "Agent 观点 vs 回测表现对比区",
+    "组合归因区",
+    "风险提示区",
+    "报告中心跳转"
+  ],
+  "dry_run": true,
+  "not_live_trading": true,
+  "research_only": true,
+  "no_order_submitted": true,
+  "no_qmt_trader_api": true,
+  "requires_risk_gate": true,
+  "requires_human_approval": true,
+  "fallback_used": true,
+  "mock_data": true,
+  "backtest_mode": "mock_shadow",
+  "disclaimer": "该结果仅用于前端联调和研究展示，不能作为实盘依据。",
+  "unsafe": false,
+  "forbidden_terms": []
+}
+```

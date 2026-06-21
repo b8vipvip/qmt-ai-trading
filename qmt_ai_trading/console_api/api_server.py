@@ -24,6 +24,13 @@ def _read_agent_file(name, default):
     if not path.exists(): return default
     try: return json.loads(path.read_text(encoding='utf-8'))
     except Exception as e: return {'error':str(e),'dry_run':True,'not_live_trading':True}
+
+def _read_backtest_file(name, default):
+    path=Path('local_console_backtest_stage82')/name
+    if not path.exists(): return default
+    try: return json.loads(path.read_text(encoding='utf-8'))
+    except Exception as e: return {'error':str(e),'dry_run':True,'not_live_trading':True,'research_only':True}
+
 def _json(handler, code, payload):
     raw=json.dumps(payload, ensure_ascii=False).encode('utf-8'); handler.send_response(code); handler.send_header('Content-Type','application/json; charset=utf-8'); handler.send_header('Content-Length',str(len(raw))); handler.end_headers(); handler.wfile.write(raw)
 def summary():
@@ -81,6 +88,12 @@ def make_handler(static_dir=None):
             if p=='/api/v1/agents/risk-review/latest': return _json(self,200,{'ok':True,'risk_review':_read_agent_file('agent_risk_review.json',{})})
             if p=='/api/v1/agents/portfolio-review/latest': return _json(self,200,{'ok':True,'portfolio_review':_read_agent_file('agent_portfolio_review.json',{})})
             if p=='/api/v1/agents/report/latest': return _json(self,200,{'ok':True,'report':_read_agent_file('agent_research_report.json',{})})
+            if p=='/api/v1/backtest/context': return _json(self,200,{'ok':True,'context':_read_backtest_file('backtest_input_context.json',{'dry_run':True,'not_live_trading':True,'research_only':True,'fallback_used':True})})
+            if p=='/api/v1/backtest/shadow-replay/latest': return _json(self,200,{'ok':True,'shadow_replay':_read_backtest_file('shadow_replay_result.json',{})})
+            if p=='/api/v1/backtest/performance/latest': return _json(self,200,{'ok':True,'performance':_read_backtest_file('performance_metrics.json',{})})
+            if p=='/api/v1/backtest/attribution/latest': return _json(self,200,{'ok':True,'attribution':_read_backtest_file('performance_attribution.json',{})})
+            if p=='/api/v1/backtest/agent-comparison/latest': return _json(self,200,{'ok':True,'agent_comparison':_read_backtest_file('agent_backtest_comparison.json',{})})
+            if p=='/api/v1/backtest/report/latest': return _json(self,200,{'ok':True,'report':_read_backtest_file('backtest_dashboard_report.json',{})})
             if p=='/api/v1/ai/models/latest': return _json(self,200,{'ok':True,'result':LATEST_DISCOVERY})
             if p=='/api/v1/ai/benchmark/latest': return _json(self,200,{'ok':True,'report':LATEST_BENCHMARK})
             if p=='/api/v1/ai/model-usage/draft': return _json(self,200,{'ok':True,'draft':get_usage_draft()})
