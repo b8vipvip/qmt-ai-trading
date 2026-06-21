@@ -699,3 +699,13 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+
+# stage 75 UI productization closure runtime outputs
+validation_logs/
+local_console_closure_stage75/
+local_console_closure/
+market_data_test_stage75/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
