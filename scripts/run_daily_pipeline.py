@@ -198,6 +198,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--local-console-preview-review-output-dir", default="local_console_preview")
     parser.add_argument("--enable-local-console-refresh-review", action="store_true")
     parser.add_argument("--local-console-refresh-review-output-dir", default="local_console_refresh")
+    parser.add_argument("--enable-local-console-grouping-review", action="store_true")
+    parser.add_argument("--local-console-grouping-review-output-dir", default="local_console_grouping")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -757,6 +759,20 @@ def main(argv: list[str] | None = None) -> int:
         save_frontend_safety_report(build_frontend_safety_report(refresh_report), refresh_dir / "frontend_safety_report.md", refresh_dir / "frontend_safety_report.json")
         save_next_console_grouping_filter_plan_report(build_next_console_grouping_filter_plan_report(refresh_cfg), refresh_dir / "next_console_grouping_filter_plan.md", refresh_dir / "next_console_grouping_filter_plan.json")
         print(f"\nStage68 local console refresh review package written: {refresh_dir / 'local_console_refresh_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+
+    if args.enable_local_console_grouping_review:
+        from qmt_ai_trading.local_console.grouping_service import build_default_local_console_grouping_config, run_local_console_grouping_review, save_local_console_grouping_report, build_grouping_manifest_report, save_grouping_manifest_report, build_filter_state_schema_report, save_filter_state_schema_report, build_grouped_card_index_report, save_grouped_card_index_report, build_search_index_report, save_search_index_report, build_frontend_grouping_safety_report, save_frontend_grouping_safety_report, build_next_console_drilldown_export_plan_report, save_next_console_drilldown_export_plan_report
+        grouping_dir = Path(args.local_console_grouping_review_output_dir)
+        grouping_cfg = build_default_local_console_grouping_config(repo_root=ROOT, output_dir=str(grouping_dir), binding_dir="local_console_binding_stage66", refresh_dir="local_console_refresh_stage68", preview_dir="local_console_preview_stage67")
+        grouping_report = run_local_console_grouping_review(grouping_cfg)
+        save_local_console_grouping_report(grouping_report, grouping_dir / "local_console_grouping_report.md", grouping_dir / "local_console_grouping_report.json")
+        save_grouping_manifest_report(build_grouping_manifest_report(grouping_report), grouping_dir / "grouping_manifest.md", grouping_dir / "grouping_manifest.json")
+        save_filter_state_schema_report(build_filter_state_schema_report(grouping_report), grouping_dir / "filter_state_schema.md", grouping_dir / "filter_state_schema.json")
+        save_grouped_card_index_report(build_grouped_card_index_report(grouping_report), grouping_dir / "grouped_card_index.md", grouping_dir / "grouped_card_index.json")
+        save_search_index_report(build_search_index_report(grouping_report), grouping_dir / "search_index.md", grouping_dir / "search_index.json")
+        save_frontend_grouping_safety_report(build_frontend_grouping_safety_report(grouping_report), grouping_dir / "frontend_grouping_safety_report.md", grouping_dir / "frontend_grouping_safety_report.json")
+        save_next_console_drilldown_export_plan_report(build_next_console_drilldown_export_plan_report(grouping_cfg), grouping_dir / "next_console_drilldown_export_plan.md", grouping_dir / "next_console_drilldown_export_plan.json")
+        print(f"\nStage69 local console grouping review package written: {grouping_dir / 'local_console_grouping_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
 
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
