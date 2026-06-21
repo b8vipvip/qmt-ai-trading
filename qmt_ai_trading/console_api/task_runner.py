@@ -7,6 +7,9 @@ def mock_output(task_id, params):
     if task_id=='factor_scan':
         from qmt_ai_trading.research.factor_engine import run_factor_scan
         return run_factor_scan(params)
+    if task_id=='agent_research_dry_run':
+        from qmt_ai_trading.agents_research import run_agent_research
+        return run_agent_research(repo_root=params.get('repo_root','.'), output_dir=params.get('output_dir','local_console_agent_stage81'), mock_agent=params.get('mock_agent', True), real_ai_call=params.get('real_ai_call', False), max_agents=int(params.get('max_agents',7)), input_source=params.get('input_source','stage80'), dry_run=params.get('dry_run', True))
     if task_id=='factor_strategy_dry_run':
         from qmt_ai_trading.research.factor_engine import run_factor_scan
         from qmt_ai_trading.strategies.factor_strategy_engine import build_factor_strategy

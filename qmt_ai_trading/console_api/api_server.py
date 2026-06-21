@@ -18,6 +18,12 @@ DEFAULT_HOST='127.0.0.1'; DEFAULT_PORT=8768
 STORE=TaskStore()
 LATEST_FACTOR_SCAN={'factor_results': [], 'factor_evaluation': {}, 'factor_candidates': []}
 LATEST_FACTOR_STRATEGY={'strategy_signals': [], 'trade_intents': [], 'risk_decisions': [], 'strategy_report': {}}
+
+def _read_agent_file(name, default):
+    path=Path('local_console_agent_stage81')/name
+    if not path.exists(): return default
+    try: return json.loads(path.read_text(encoding='utf-8'))
+    except Exception as e: return {'error':str(e),'dry_run':True,'not_live_trading':True}
 def _json(handler, code, payload):
     raw=json.dumps(payload, ensure_ascii=False).encode('utf-8'); handler.send_response(code); handler.send_header('Content-Type','application/json; charset=utf-8'); handler.send_header('Content-Length',str(len(raw))); handler.end_headers(); handler.wfile.write(raw)
 def summary():
@@ -68,6 +74,13 @@ def make_handler(static_dir=None):
             if p=='/api/v1/strategy/trade-intents': return _json(self,200,{'ok':True,'trade_intents':_latest_strategy_output().get('trade_intents',[])})
             if p=='/api/v1/strategy/risk-decisions': return _json(self,200,{'ok':True,'risk_decisions':_latest_strategy_output().get('risk_decisions',[])})
             if p=='/api/v1/strategy/report': return _json(self,200,{'ok':True,'report':_latest_strategy_output().get('strategy_report',{})})
+            if p=='/api/v1/agents/context': return _json(self,200,{'ok':True,'context':_read_agent_file('agent_context.json',{'dry_run':True,'not_live_trading':True,'research_only':True})})
+            if p=='/api/v1/agents/model-usage': return _json(self,200,{'ok':True,'model_usage':_read_agent_file('agent_model_usage.json',{'fallback_used':True,'mappings':{}})})
+            if p=='/api/v1/agents/runs/latest': return _json(self,200,{'ok':True,'runs':_read_agent_file('agent_runs.json',[])})
+            if p=='/api/v1/agents/debate/latest': return _json(self,200,{'ok':True,'debate':_read_agent_file('agent_debate.json',{})})
+            if p=='/api/v1/agents/risk-review/latest': return _json(self,200,{'ok':True,'risk_review':_read_agent_file('agent_risk_review.json',{})})
+            if p=='/api/v1/agents/portfolio-review/latest': return _json(self,200,{'ok':True,'portfolio_review':_read_agent_file('agent_portfolio_review.json',{})})
+            if p=='/api/v1/agents/report/latest': return _json(self,200,{'ok':True,'report':_read_agent_file('agent_research_report.json',{})})
             if p=='/api/v1/ai/models/latest': return _json(self,200,{'ok':True,'result':LATEST_DISCOVERY})
             if p=='/api/v1/ai/benchmark/latest': return _json(self,200,{'ok':True,'report':LATEST_BENCHMARK})
             if p=='/api/v1/ai/model-usage/draft': return _json(self,200,{'ok':True,'draft':get_usage_draft()})
@@ -77,7 +90,7 @@ def make_handler(static_dir=None):
             body=json.loads(raw.decode('utf-8') or '{}')
             p=urlparse(self.path).path
             if p=='/api/v1/tasks/run':
-                run=run_task(body.get('task_id',''), body.get('params',{}), STORE); return _json(self,200,{'ok':True,'task':run_to_dict(run)})
+                params={**{k:v for k,v in body.items() if k!='task_id' and k!='params'}, **body.get('params',{})}; run=run_task(body.get('task_id',''), params, STORE); payload=run_to_dict(run); payload.update(run.output if isinstance(run.output,dict) else {}); return _json(self,200,{'ok':True,'task':payload})
             if p=='/api/v1/ai/models/discover':
                 res=discover_models(body.get('provider_type','openai_compatible'), body.get('base_url',''), body.get('api_key',''), int(body.get('timeout_seconds',60))); return _json(self,200,{'ok':res.success,'result':to_dict(res)})
             if p=='/api/v1/ai/models/stress-test':

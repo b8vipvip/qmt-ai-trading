@@ -1,0 +1,88 @@
+{
+  "stage": "Stage81",
+  "input_source": "stage80",
+  "input_sources": [
+    {
+      "path": "local_console_ai_stage78/model_usage_draft.json",
+      "exists": false,
+      "mock_data": true
+    },
+    {
+      "path": "local_console_ai_stage78/ai_benchmark_report.json",
+      "exists": false,
+      "mock_data": true
+    },
+    {
+      "path": "local_console_factor_stage79/factor_candidates.json",
+      "exists": false,
+      "mock_data": true
+    },
+    {
+      "path": "local_console_factor_stage79/factor_report.json",
+      "exists": false,
+      "mock_data": true
+    },
+    {
+      "path": "local_console_strategy_stage80/factor_strategy_signals.json",
+      "exists": false,
+      "mock_data": true
+    },
+    {
+      "path": "local_console_strategy_stage80/factor_trade_intents.json",
+      "exists": false,
+      "mock_data": true
+    },
+    {
+      "path": "local_console_strategy_stage80/factor_risk_decisions.json",
+      "exists": false,
+      "mock_data": true
+    },
+    {
+      "path": "local_console_strategy_stage80/factor_strategy_report.json",
+      "exists": false,
+      "mock_data": true
+    }
+  ],
+  "data": {
+    "factor_candidates": [
+      {
+        "symbol": "MOCK.SH",
+        "rank": 1,
+        "score": 0,
+        "risk_flags": [
+          "mock_data",
+          "fallback_used"
+        ],
+        "reasons": [
+          "缺少上游文件，仅用于 dry-run validation"
+        ]
+      }
+    ],
+    "factor_risk_decisions": [
+      {
+        "status": "REJECTED_DRY_RUN",
+        "risk_flags": [
+          "mock_data",
+          "not_live_trading"
+        ]
+      }
+    ]
+  },
+  "warnings": [
+    "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+    "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
+    "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
+    "missing input fallback used: local_console_factor_stage79/factor_report.json",
+    "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
+    "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
+    "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
+    "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+  ],
+  "fallback_used": true,
+  "mock_data": true,
+  "dry_run": true,
+  "not_live_trading": true,
+  "research_only": true,
+  "mock_agent": true,
+  "real_ai_call": false
+}
