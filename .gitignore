@@ -677,3 +677,7 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+validation_logs/
+local_console_acceptance_stage72/
+local_console_acceptance/
+market_data_test_stage72/
