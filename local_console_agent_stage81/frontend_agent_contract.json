@@ -1,0 +1,30 @@
+{
+  "page": "Agent 投研",
+  "apis": [
+    "GET /api/v1/agents/context",
+    "GET /api/v1/agents/model-usage",
+    "GET /api/v1/agents/runs/latest",
+    "GET /api/v1/agents/debate/latest",
+    "GET /api/v1/agents/risk-review/latest",
+    "GET /api/v1/agents/portfolio-review/latest",
+    "GET /api/v1/agents/report/latest",
+    "POST /api/v1/tasks/run task_id=agent_research_dry_run"
+  ],
+  "buttons": [
+    "运行 Agent 投研 dry-run",
+    "刷新 Agent 报告",
+    "查看输入上下文",
+    "查看多空辩论",
+    "查看风险审查",
+    "查看组合建议"
+  ],
+  "safety": {
+    "dry_run": true,
+    "not_live_trading": true,
+    "research_only": true,
+    "no_order_submitted": true,
+    "no_qmt_trader_api": true,
+    "requires_risk_gate": true,
+    "requires_human_approval": true
+  }
+}

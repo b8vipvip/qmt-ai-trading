@@ -1,0 +1,52 @@
+{
+  "dry_run": true,
+  "not_live_trading": true,
+  "research_only": true,
+  "review": {
+    "agent_id": "portfolio_manager_agent",
+    "agent_name": "组合经理 Agent",
+    "role": "汇总为组合层观察建议，不形成订单",
+    "model_id": "mock-local-agent",
+    "input_sources": [
+      "local_console_ai_stage78/model_usage_draft.json",
+      "local_console_ai_stage78/ai_benchmark_report.json",
+      "local_console_factor_stage79/factor_candidates.json",
+      "local_console_factor_stage79/factor_report.json",
+      "local_console_strategy_stage80/factor_strategy_signals.json",
+      "local_console_strategy_stage80/factor_trade_intents.json",
+      "local_console_strategy_stage80/factor_risk_decisions.json",
+      "local_console_strategy_stage80/factor_strategy_report.json"
+    ],
+    "summary": "组合层仅建议人工复核观察清单，不生成订单。",
+    "arguments": [
+      "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+      "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+      "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+    ],
+    "confidence": 0.55,
+    "risk_flags": [
+      "dry_run",
+      "not_live_trading",
+      "research_only",
+      "fallback_used",
+      "mock_data"
+    ],
+    "limitations": [
+      "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+      "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
+      "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
+      "missing input fallback used: local_console_factor_stage79/factor_report.json",
+      "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
+      "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
+      "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
+      "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+    ],
+    "recommendation_type": "PORTFOLIO_REVIEW",
+    "created_at": "2026-06-21T12:11:26.030360+00:00",
+    "dry_run": true,
+    "not_live_trading": true,
+    "research_only": true,
+    "unsafe": false
+  },
+  "summary": "组合经理建议仅为 PORTFOLIO_REVIEW，不提交订单。"
+}

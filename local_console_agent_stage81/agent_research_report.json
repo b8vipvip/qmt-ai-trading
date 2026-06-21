@@ -1,0 +1,522 @@
+{
+  "stage": "Stage81",
+  "created_at": "2026-06-21T12:11:26.031980+00:00",
+  "summary": "TradingAgents 多 Agent 投研 dry-run 已完成；报告仅供研究，不作为实盘依据。",
+  "agent_outputs": [
+    {
+      "agent_id": "technical_agent",
+      "agent_name": "技术面 Agent",
+      "role": "解释 Stage80 策略信号与候选排序的技术含义",
+      "model_id": "mock-local-agent",
+      "input_sources": [
+        "local_console_ai_stage78/model_usage_draft.json",
+        "local_console_ai_stage78/ai_benchmark_report.json",
+        "local_console_factor_stage79/factor_candidates.json",
+        "local_console_factor_stage79/factor_report.json",
+        "local_console_strategy_stage80/factor_strategy_signals.json",
+        "local_console_strategy_stage80/factor_trade_intents.json",
+        "local_console_strategy_stage80/factor_risk_decisions.json",
+        "local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "summary": "技术面 Agent 基于 Stage78/79/80 本地文件进行研究解释。",
+      "arguments": [
+        "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+        "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+        "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+      ],
+      "confidence": 0.55,
+      "risk_flags": [
+        "dry_run",
+        "not_live_trading",
+        "research_only",
+        "fallback_used",
+        "mock_data"
+      ],
+      "limitations": [
+        "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+        "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
+        "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
+        "missing input fallback used: local_console_factor_stage79/factor_report.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "recommendation_type": "RESEARCH_ONLY",
+      "created_at": "2026-06-21T12:11:26.029888+00:00",
+      "dry_run": true,
+      "not_live_trading": true,
+      "research_only": true,
+      "unsafe": false
+    },
+    {
+      "agent_id": "factor_agent",
+      "agent_name": "因子 Agent",
+      "role": "对比 Stage79 因子候选池、评分和风险标记",
+      "model_id": "mock-local-agent",
+      "input_sources": [
+        "local_console_ai_stage78/model_usage_draft.json",
+        "local_console_ai_stage78/ai_benchmark_report.json",
+        "local_console_factor_stage79/factor_candidates.json",
+        "local_console_factor_stage79/factor_report.json",
+        "local_console_strategy_stage80/factor_strategy_signals.json",
+        "local_console_strategy_stage80/factor_trade_intents.json",
+        "local_console_strategy_stage80/factor_risk_decisions.json",
+        "local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "summary": "因子 Agent 基于 Stage78/79/80 本地文件进行研究解释。",
+      "arguments": [
+        "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+        "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+        "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+      ],
+      "confidence": 0.55,
+      "risk_flags": [
+        "dry_run",
+        "not_live_trading",
+        "research_only",
+        "fallback_used",
+        "mock_data"
+      ],
+      "limitations": [
+        "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+        "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
+        "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
+        "missing input fallback used: local_console_factor_stage79/factor_report.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "recommendation_type": "RESEARCH_ONLY",
+      "created_at": "2026-06-21T12:11:26.030086+00:00",
+      "dry_run": true,
+      "not_live_trading": true,
+      "research_only": true,
+      "unsafe": false
+    },
+    {
+      "agent_id": "risk_agent",
+      "agent_name": "风险 Agent",
+      "role": "复核 RiskDecision、限制条件和阻断原因",
+      "model_id": "mock-local-agent",
+      "input_sources": [
+        "local_console_ai_stage78/model_usage_draft.json",
+        "local_console_ai_stage78/ai_benchmark_report.json",
+        "local_console_factor_stage79/factor_candidates.json",
+        "local_console_factor_stage79/factor_report.json",
+        "local_console_strategy_stage80/factor_strategy_signals.json",
+        "local_console_strategy_stage80/factor_trade_intents.json",
+        "local_console_strategy_stage80/factor_risk_decisions.json",
+        "local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "summary": "复核上游 Risk Gate dry-run 结果，所有实盘相关动作保持阻断。",
+      "arguments": [
+        "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+        "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+        "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+      ],
+      "confidence": 0.55,
+      "risk_flags": [
+        "dry_run",
+        "not_live_trading",
+        "research_only",
+        "fallback_used",
+        "mock_data"
+      ],
+      "limitations": [
+        "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+        "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
+        "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
+        "missing input fallback used: local_console_factor_stage79/factor_report.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "recommendation_type": "RISK_WARNING",
+      "created_at": "2026-06-21T12:11:26.030165+00:00",
+      "dry_run": true,
+      "not_live_trading": true,
+      "research_only": true,
+      "unsafe": false
+    },
+    {
+      "agent_id": "bull_agent",
+      "agent_name": "多方 Agent",
+      "role": "提出研究视角下的看多论据",
+      "model_id": "mock-local-agent",
+      "input_sources": [
+        "local_console_ai_stage78/model_usage_draft.json",
+        "local_console_ai_stage78/ai_benchmark_report.json",
+        "local_console_factor_stage79/factor_candidates.json",
+        "local_console_factor_stage79/factor_report.json",
+        "local_console_strategy_stage80/factor_strategy_signals.json",
+        "local_console_strategy_stage80/factor_trade_intents.json",
+        "local_console_strategy_stage80/factor_risk_decisions.json",
+        "local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "summary": "多方 Agent 基于 Stage78/79/80 本地文件进行研究解释。",
+      "arguments": [
+        "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+        "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+        "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+      ],
+      "confidence": 0.55,
+      "risk_flags": [
+        "dry_run",
+        "not_live_trading",
+        "research_only",
+        "fallback_used",
+        "mock_data"
+      ],
+      "limitations": [
+        "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+        "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
+        "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
+        "missing input fallback used: local_console_factor_stage79/factor_report.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "recommendation_type": "RESEARCH_ONLY",
+      "created_at": "2026-06-21T12:11:26.030234+00:00",
+      "dry_run": true,
+      "not_live_trading": true,
+      "research_only": true,
+      "unsafe": false
+    },
+    {
+      "agent_id": "bear_agent",
+      "agent_name": "空方 Agent",
+      "role": "提出研究视角下的看空与风险论据",
+      "model_id": "mock-local-agent",
+      "input_sources": [
+        "local_console_ai_stage78/model_usage_draft.json",
+        "local_console_ai_stage78/ai_benchmark_report.json",
+        "local_console_factor_stage79/factor_candidates.json",
+        "local_console_factor_stage79/factor_report.json",
+        "local_console_strategy_stage80/factor_strategy_signals.json",
+        "local_console_strategy_stage80/factor_trade_intents.json",
+        "local_console_strategy_stage80/factor_risk_decisions.json",
+        "local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "summary": "空方 Agent 基于 Stage78/79/80 本地文件进行研究解释。",
+      "arguments": [
+        "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+        "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+        "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+      ],
+      "confidence": 0.55,
+      "risk_flags": [
+        "dry_run",
+        "not_live_trading",
+        "research_only",
+        "fallback_used",
+        "mock_data"
+      ],
+      "limitations": [
+        "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+        "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
+        "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
+        "missing input fallback used: local_console_factor_stage79/factor_report.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "recommendation_type": "RESEARCH_ONLY",
+      "created_at": "2026-06-21T12:11:26.030298+00:00",
+      "dry_run": true,
+      "not_live_trading": true,
+      "research_only": true,
+      "unsafe": false
+    },
+    {
+      "agent_id": "portfolio_manager_agent",
+      "agent_name": "组合经理 Agent",
+      "role": "汇总为组合层观察建议，不形成订单",
+      "model_id": "mock-local-agent",
+      "input_sources": [
+        "local_console_ai_stage78/model_usage_draft.json",
+        "local_console_ai_stage78/ai_benchmark_report.json",
+        "local_console_factor_stage79/factor_candidates.json",
+        "local_console_factor_stage79/factor_report.json",
+        "local_console_strategy_stage80/factor_strategy_signals.json",
+        "local_console_strategy_stage80/factor_trade_intents.json",
+        "local_console_strategy_stage80/factor_risk_decisions.json",
+        "local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "summary": "组合层仅建议人工复核观察清单，不生成订单。",
+      "arguments": [
+        "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+        "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+        "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+      ],
+      "confidence": 0.55,
+      "risk_flags": [
+        "dry_run",
+        "not_live_trading",
+        "research_only",
+        "fallback_used",
+        "mock_data"
+      ],
+      "limitations": [
+        "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+        "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
+        "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
+        "missing input fallback used: local_console_factor_stage79/factor_report.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "recommendation_type": "PORTFOLIO_REVIEW",
+      "created_at": "2026-06-21T12:11:26.030360+00:00",
+      "dry_run": true,
+      "not_live_trading": true,
+      "research_only": true,
+      "unsafe": false
+    },
+    {
+      "agent_id": "final_summary_agent",
+      "agent_name": "最终总结 Agent",
+      "role": "生成 research-only 最终摘要与限制声明",
+      "model_id": "mock-local-agent",
+      "input_sources": [
+        "local_console_ai_stage78/model_usage_draft.json",
+        "local_console_ai_stage78/ai_benchmark_report.json",
+        "local_console_factor_stage79/factor_candidates.json",
+        "local_console_factor_stage79/factor_report.json",
+        "local_console_strategy_stage80/factor_strategy_signals.json",
+        "local_console_strategy_stage80/factor_trade_intents.json",
+        "local_console_strategy_stage80/factor_risk_decisions.json",
+        "local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "summary": "汇总多 Agent 观点，声明本报告不能作为实盘依据。",
+      "arguments": [
+        "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+        "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+        "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+      ],
+      "confidence": 0.55,
+      "risk_flags": [
+        "dry_run",
+        "not_live_trading",
+        "research_only",
+        "fallback_used",
+        "mock_data"
+      ],
+      "limitations": [
+        "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+        "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
+        "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
+        "missing input fallback used: local_console_factor_stage79/factor_report.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "recommendation_type": "RESEARCH_ONLY",
+      "created_at": "2026-06-21T12:11:26.030423+00:00",
+      "dry_run": true,
+      "not_live_trading": true,
+      "research_only": true,
+      "unsafe": false
+    }
+  ],
+  "debate": {
+    "dry_run": true,
+    "not_live_trading": true,
+    "research_only": true,
+    "bull": {
+      "agent_id": "bull_agent",
+      "agent_name": "多方 Agent",
+      "role": "提出研究视角下的看多论据",
+      "model_id": "mock-local-agent",
+      "input_sources": [
+        "local_console_ai_stage78/model_usage_draft.json",
+        "local_console_ai_stage78/ai_benchmark_report.json",
+        "local_console_factor_stage79/factor_candidates.json",
+        "local_console_factor_stage79/factor_report.json",
+        "local_console_strategy_stage80/factor_strategy_signals.json",
+        "local_console_strategy_stage80/factor_trade_intents.json",
+        "local_console_strategy_stage80/factor_risk_decisions.json",
+        "local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "summary": "多方 Agent 基于 Stage78/79/80 本地文件进行研究解释。",
+      "arguments": [
+        "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+        "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+        "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+      ],
+      "confidence": 0.55,
+      "risk_flags": [
+        "dry_run",
+        "not_live_trading",
+        "research_only",
+        "fallback_used",
+        "mock_data"
+      ],
+      "limitations": [
+        "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+        "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
+        "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
+        "missing input fallback used: local_console_factor_stage79/factor_report.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "recommendation_type": "RESEARCH_ONLY",
+      "created_at": "2026-06-21T12:11:26.030234+00:00",
+      "dry_run": true,
+      "not_live_trading": true,
+      "research_only": true,
+      "unsafe": false
+    },
+    "bear": {
+      "agent_id": "bear_agent",
+      "agent_name": "空方 Agent",
+      "role": "提出研究视角下的看空与风险论据",
+      "model_id": "mock-local-agent",
+      "input_sources": [
+        "local_console_ai_stage78/model_usage_draft.json",
+        "local_console_ai_stage78/ai_benchmark_report.json",
+        "local_console_factor_stage79/factor_candidates.json",
+        "local_console_factor_stage79/factor_report.json",
+        "local_console_strategy_stage80/factor_strategy_signals.json",
+        "local_console_strategy_stage80/factor_trade_intents.json",
+        "local_console_strategy_stage80/factor_risk_decisions.json",
+        "local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "summary": "空方 Agent 基于 Stage78/79/80 本地文件进行研究解释。",
+      "arguments": [
+        "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+        "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+        "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+      ],
+      "confidence": 0.55,
+      "risk_flags": [
+        "dry_run",
+        "not_live_trading",
+        "research_only",
+        "fallback_used",
+        "mock_data"
+      ],
+      "limitations": [
+        "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+        "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
+        "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
+        "missing input fallback used: local_console_factor_stage79/factor_report.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "recommendation_type": "RESEARCH_ONLY",
+      "created_at": "2026-06-21T12:11:26.030298+00:00",
+      "dry_run": true,
+      "not_live_trading": true,
+      "research_only": true,
+      "unsafe": false
+    },
+    "summary": "多空辩论仅用于研究对比，不构成交易指令。"
+  },
+  "risk_review": {
+    "dry_run": true,
+    "not_live_trading": true,
+    "research_only": true,
+    "requires_risk_gate": true,
+    "requires_human_approval": true,
+    "risk_flags": [
+      "dry_run",
+      "fallback_used",
+      "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
+      "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+      "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
+      "missing input fallback used: local_console_factor_stage79/factor_report.json",
+      "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
+      "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json",
+      "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
+      "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
+      "mock_data",
+      "not_live_trading",
+      "research_only"
+    ],
+    "summary": "Risk Agent 保留上游 Risk Gate dry-run 阻断，不允许绕过风控。"
+  },
+  "portfolio_review": {
+    "dry_run": true,
+    "not_live_trading": true,
+    "research_only": true,
+    "review": {
+      "agent_id": "portfolio_manager_agent",
+      "agent_name": "组合经理 Agent",
+      "role": "汇总为组合层观察建议，不形成订单",
+      "model_id": "mock-local-agent",
+      "input_sources": [
+        "local_console_ai_stage78/model_usage_draft.json",
+        "local_console_ai_stage78/ai_benchmark_report.json",
+        "local_console_factor_stage79/factor_candidates.json",
+        "local_console_factor_stage79/factor_report.json",
+        "local_console_strategy_stage80/factor_strategy_signals.json",
+        "local_console_strategy_stage80/factor_trade_intents.json",
+        "local_console_strategy_stage80/factor_risk_decisions.json",
+        "local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "summary": "组合层仅建议人工复核观察清单，不生成订单。",
+      "arguments": [
+        "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+        "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+        "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+      ],
+      "confidence": 0.55,
+      "risk_flags": [
+        "dry_run",
+        "not_live_trading",
+        "research_only",
+        "fallback_used",
+        "mock_data"
+      ],
+      "limitations": [
+        "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+        "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
+        "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
+        "missing input fallback used: local_console_factor_stage79/factor_report.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+      ],
+      "recommendation_type": "PORTFOLIO_REVIEW",
+      "created_at": "2026-06-21T12:11:26.030360+00:00",
+      "dry_run": true,
+      "not_live_trading": true,
+      "research_only": true,
+      "unsafe": false
+    },
+    "summary": "组合经理建议仅为 PORTFOLIO_REVIEW，不提交订单。"
+  },
+  "warnings": [
+    "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+    "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
+    "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
+    "missing input fallback used: local_console_factor_stage79/factor_report.json",
+    "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
+    "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
+    "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
+    "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+  ],
+  "fallback_used": true,
+  "mock_data": true,
+  "dry_run": true,
+  "not_live_trading": true,
+  "research_only": true,
+  "no_order_submitted": true,
+  "no_qmt_trader_api": true,
+  "requires_risk_gate": true,
+  "requires_human_approval": true,
+  "blocked": false
+}
