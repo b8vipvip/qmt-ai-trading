@@ -1,0 +1,33 @@
+{
+  "allow_xttrader": false,
+  "apis": [
+    "GET /api/v1/market/xtdata/context",
+    "GET /api/v1/market/xtdata/config",
+    "GET /api/v1/market/xtdata/import-guard",
+    "GET /api/v1/market/xtdata/capability-probe",
+    "GET /api/v1/market/xtdata/safety",
+    "GET /api/v1/market/xtdata/report",
+    "POST /api/v1/tasks/run task_id=xtdata_boundary_dry_run"
+  ],
+  "dry_run": true,
+  "enabled": false,
+  "mini_qmt_connected": false,
+  "no_order_submitted": true,
+  "no_qmt_trader_api": true,
+  "page": "xtdata 边界检查",
+  "read_only": true,
+  "real_market_data": false,
+  "sandbox_fallback": true,
+  "sections": [
+    "xtdata adapter 当前状态",
+    "配置开关表",
+    "Import Guard 检查结果",
+    "MiniQMT 连接状态 dry-run",
+    "真实行情权限 dry-run",
+    "Sandbox fallback 状态",
+    "Safety Gate 结果",
+    "下一阶段启用清单",
+    "安全边界说明"
+  ],
+  "xtdata_imported": false
+}
