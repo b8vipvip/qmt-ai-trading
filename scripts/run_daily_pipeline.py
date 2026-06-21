@@ -206,6 +206,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--local-console-review-workbench-output-dir", default="local_console_review")
     parser.add_argument("--enable-local-console-ui-acceptance", action="store_true")
     parser.add_argument("--local-console-ui-acceptance-output-dir", default="local_console_acceptance")
+    parser.add_argument("--enable-local-console-help-docs", action="store_true")
+    parser.add_argument("--local-console-help-docs-output-dir", default="local_console_help")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -829,6 +831,26 @@ def main(argv: list[str] | None = None) -> int:
         save_next_local_help_docs_plan_report(build_next_local_help_docs_plan_report(acc_cfg), acc_dir / "next_local_help_docs_plan.md", acc_dir / "next_local_help_docs_plan.json")
         print(f"\nStage72 local console UI acceptance package written: {acc_dir / 'local_console_ui_acceptance_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
 
+
+    if args.enable_local_console_help_docs:
+        from qmt_ai_trading.local_console.help_service import build_default_local_console_help_config, run_local_console_help_docs_review, save_local_console_help_docs_report, build_help_home_report, save_help_home_report, build_page_help_report, save_page_help_report, build_feature_help_report, save_feature_help_report, build_safety_help_report, save_safety_help_report, build_faq_report, save_faq_report, build_error_handling_report, save_error_handling_report, build_glossary_report, save_glossary_report, build_route_help_map_report, save_route_help_map_report, build_help_package_index_report, save_help_package_index_report, build_docs_safety_report, save_docs_safety_report, build_next_local_demo_package_plan_report, save_next_local_demo_package_plan_report
+        help_dir = Path(args.local_console_help_docs_output_dir)
+        help_cfg = build_default_local_console_help_config(repo_root=ROOT, output_dir=str(help_dir))
+        help_report = run_local_console_help_docs_review(help_cfg)
+        save_local_console_help_docs_report(help_report, help_dir / "local_console_help_docs_report.md", help_dir / "local_console_help_docs_report.json")
+        save_help_home_report(build_help_home_report(help_report), help_dir / "help_home.md", help_dir / "help_home.json")
+        save_page_help_report(build_page_help_report(help_report), help_dir / "page_help.md", help_dir / "page_help.json")
+        save_feature_help_report(build_feature_help_report(help_report), help_dir / "feature_help.md", help_dir / "feature_help.json")
+        save_safety_help_report(build_safety_help_report(help_report), help_dir / "safety_help.md", help_dir / "safety_help.json")
+        save_faq_report(build_faq_report(help_report), help_dir / "faq.md", help_dir / "faq.json")
+        save_error_handling_report(build_error_handling_report(help_report), help_dir / "error_handling_guide.md", help_dir / "error_handling_guide.json")
+        save_glossary_report(build_glossary_report(help_report), help_dir / "glossary.md", help_dir / "glossary.json")
+        save_route_help_map_report(build_route_help_map_report(help_report), help_dir / "route_help_map.md", help_dir / "route_help_map.json")
+        save_help_package_index_report(build_help_package_index_report(help_report), help_dir / "help_package_index.md", help_dir / "help_package_index.json")
+        save_docs_safety_report(build_docs_safety_report(help_report), help_dir / "docs_safety_report.md", help_dir / "docs_safety_report.json")
+        save_next_local_demo_package_plan_report(build_next_local_demo_package_plan_report(help_cfg), help_dir / "next_local_demo_package_plan.md", help_dir / "next_local_demo_package_plan.json")
+        print(f"\nStage73 local console help docs package written: {help_dir / 'local_console_help_docs_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
 
@@ -837,7 +859,7 @@ def main(argv: list[str] | None = None) -> int:
         for item in notification_results:
             print(f"- {item.channel}: success={item.success} dry_run={item.dry_run} message={item.message}")
 
-    return 0 if (result.success or args.enable_local_console_drilldown_review or args.enable_local_console_review_workbench or args.enable_local_console_ui_acceptance) else 1
+    return 0 if (result.success or args.enable_local_console_drilldown_review or args.enable_local_console_review_workbench or args.enable_local_console_ui_acceptance or args.enable_local_console_help_docs) else 1
 
 
 if __name__ == "__main__":

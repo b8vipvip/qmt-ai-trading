@@ -681,3 +681,11 @@ validation_logs/
 local_console_acceptance_stage72/
 local_console_acceptance/
 market_data_test_stage72/
+validation_logs/
+local_console_help_stage73/
+local_console_help/
+market_data_test_stage73/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
