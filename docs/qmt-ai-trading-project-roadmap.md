@@ -859,3 +859,11 @@ Stage68 将基于 Stage67 本地只读预览服务增强页面导航、只读刷
 - Stage68 不等于实盘授权；不调用 `xttrader`；不查询真实账户；不真实下单；不发送真实通知；不自动 approve；UI 不能绕过 Risk Gate / Human Approval，不能直接访问 QMT，不能自动 approve。
 - 完整工程阶段计划与前端 UI 产品化路线（Stage 1-75）继续保留；Stage61-75 前端 UI 产品化计划继续保留。
 - Stage69 预告：阶段六十九为本地控制台状态分组与筛选体验层，仍不得直接实盘，不调用 `xttrader`，不查询真实账户，不下单。
+
+### Stage69 完成说明：本地控制台状态分组与筛选体验层
+
+- Stage69 属于 Stage61-75：API Gateway / 本地控制台 / UI 产品化路线。
+- Stage69 基于 Stage68 本地控制台刷新与导航增强层，新增本地静态控制台 status / severity / stage 分组、warning 与 blocking reason 筛选、只读搜索、卡片折叠/展开、分组计数 badge、筛选 empty state、forbidden route 安全占位与 Stage70 报告详情钻取与导出计划。
+- Stage69 不等于实盘授权；不调用 `xttrader`；不查询真实账户；不真实下单；不发送真实通知；不自动 approve；UI 不能绕过 Risk Gate / Human Approval，不能直接访问 QMT，不能自动 approve。
+- 完整工程阶段计划与前端 UI 产品化路线（Stage 1-75）继续保留；Stage61-75 前端 UI 产品化计划继续保留。
+- Stage70 预告：阶段七十为本地控制台报告详情钻取与导出层，仍不得直接实盘，不调用 `xttrader`，不查询真实账户，不下单。
