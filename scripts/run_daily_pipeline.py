@@ -204,6 +204,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--local-console-drilldown-review-output-dir", default="local_console_drilldown")
     parser.add_argument("--enable-local-console-review-workbench", action="store_true")
     parser.add_argument("--local-console-review-workbench-output-dir", default="local_console_review")
+    parser.add_argument("--enable-local-console-ui-acceptance", action="store_true")
+    parser.add_argument("--local-console-ui-acceptance-output-dir", default="local_console_acceptance")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -808,6 +810,25 @@ def main(argv: list[str] | None = None) -> int:
         save_next_ui_acceptance_summary_plan_report(build_next_ui_acceptance_summary_plan_report(review_cfg), review_dir / "next_ui_acceptance_summary_plan.md", review_dir / "next_ui_acceptance_summary_plan.json")
         print(f"\nStage71 local console review workbench package written: {review_dir / 'local_console_review_workbench_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
 
+    if args.enable_local_console_ui_acceptance:
+        from qmt_ai_trading.local_console.acceptance_service import build_default_local_console_acceptance_config, run_local_console_ui_acceptance_review, save_local_console_ui_acceptance_report, build_ui_acceptance_summary_report, save_ui_acceptance_summary_report, build_page_inventory_report, save_page_inventory_report, build_feature_inventory_report, save_feature_inventory_report, build_safety_checklist_report, save_safety_checklist_report, build_open_items_report, save_open_items_report, build_route_coverage_report, save_route_coverage_report, build_asset_coverage_report, save_asset_coverage_report, build_acceptance_conclusion_draft_report, save_acceptance_conclusion_draft_report, build_acceptance_package_index_report, save_acceptance_package_index_report, build_ui_acceptance_safety_report, save_ui_acceptance_safety_report, build_next_local_help_docs_plan_report, save_next_local_help_docs_plan_report
+        acc_dir = Path(args.local_console_ui_acceptance_output_dir)
+        acc_cfg = build_default_local_console_acceptance_config(repo_root=ROOT, output_dir=str(acc_dir))
+        acc_report = run_local_console_ui_acceptance_review(acc_cfg)
+        save_local_console_ui_acceptance_report(acc_report, acc_dir / "local_console_ui_acceptance_report.md", acc_dir / "local_console_ui_acceptance_report.json")
+        save_ui_acceptance_summary_report(build_ui_acceptance_summary_report(acc_report), acc_dir / "ui_acceptance_summary.md", acc_dir / "ui_acceptance_summary.json")
+        save_page_inventory_report(build_page_inventory_report(acc_report), acc_dir / "page_inventory.md", acc_dir / "page_inventory.json")
+        save_feature_inventory_report(build_feature_inventory_report(acc_report), acc_dir / "feature_inventory.md", acc_dir / "feature_inventory.json")
+        save_safety_checklist_report(build_safety_checklist_report(acc_report), acc_dir / "safety_checklist.md", acc_dir / "safety_checklist.json")
+        save_open_items_report(build_open_items_report(acc_report), acc_dir / "open_items.md", acc_dir / "open_items.json")
+        save_route_coverage_report(build_route_coverage_report(acc_report), acc_dir / "route_coverage.md", acc_dir / "route_coverage.json")
+        save_asset_coverage_report(build_asset_coverage_report(acc_report), acc_dir / "asset_coverage.md", acc_dir / "asset_coverage.json")
+        save_acceptance_conclusion_draft_report(build_acceptance_conclusion_draft_report(acc_report), acc_dir / "acceptance_conclusion_draft.md", acc_dir / "acceptance_conclusion_draft.json")
+        save_acceptance_package_index_report(build_acceptance_package_index_report(acc_report), acc_dir / "acceptance_package_index.md", acc_dir / "acceptance_package_index.json")
+        save_ui_acceptance_safety_report(build_ui_acceptance_safety_report(acc_report), acc_dir / "ui_acceptance_safety_report.md", acc_dir / "ui_acceptance_safety_report.json")
+        save_next_local_help_docs_plan_report(build_next_local_help_docs_plan_report(acc_cfg), acc_dir / "next_local_help_docs_plan.md", acc_dir / "next_local_help_docs_plan.json")
+        print(f"\nStage72 local console UI acceptance package written: {acc_dir / 'local_console_ui_acceptance_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
 
@@ -816,7 +837,7 @@ def main(argv: list[str] | None = None) -> int:
         for item in notification_results:
             print(f"- {item.channel}: success={item.success} dry_run={item.dry_run} message={item.message}")
 
-    return 0 if (result.success or args.enable_local_console_drilldown_review or args.enable_local_console_review_workbench) else 1
+    return 0 if (result.success or args.enable_local_console_drilldown_review or args.enable_local_console_review_workbench or args.enable_local_console_ui_acceptance) else 1
 
 
 if __name__ == "__main__":

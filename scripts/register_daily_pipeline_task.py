@@ -193,6 +193,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--local-console-drilldown-review-output-dir", default="local_console_drilldown")
     parser.add_argument("--enable-local-console-review-workbench", action="store_true")
     parser.add_argument("--local-console-review-workbench-output-dir", default="local_console_review")
+    parser.add_argument("--enable-local-console-ui-acceptance", action="store_true")
+    parser.add_argument("--local-console-ui-acceptance-output-dir", default="local_console_acceptance")
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -454,6 +456,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Stage70 Local Console Drilldown Review: enable_local_console_drilldown_review=True output_dir={args.local_console_drilldown_review_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.enable_local_console_review_workbench:
         print(f"Stage71 Local Console Review Workbench: enable_local_console_review_workbench=True output_dir={args.local_console_review_workbench_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+    if args.enable_local_console_ui_acceptance:
+        print(f"Stage72 Local Console UI Acceptance: enable_local_console_ui_acceptance=True output_dir={args.local_console_ui_acceptance_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.build_dashboard:
         print(f"Dashboard: build_dashboard=True output={args.dashboard_output} title={args.dashboard_title} read_only=True no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:
