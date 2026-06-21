@@ -14,6 +14,10 @@ def mock_output(task_id, params):
         from qmt_ai_trading.backtest_dashboard import run_backtest_dashboard
         report=run_backtest_dashboard(repo_root=params.get('repo_root','.'), output_dir=params.get('output_dir','local_console_backtest_stage82'), backtest_mode=params.get('backtest_mode','mock_shadow'))
         return {'task_id':'backtest_dashboard_dry_run','status':'SUCCESS','output_dir':report.get('output_dir','local_console_backtest_stage82'),'report_path':report.get('report_path'),'dry_run':True,'not_live_trading':True,'research_only':True,'warnings':report.get('warnings',[]),'no_order_submitted':True,'no_qmt_trader_api':True}
+    if task_id=='monitoring_alert_dry_run':
+        from qmt_ai_trading.monitoring import run_monitoring_stage83
+        report=run_monitoring_stage83(repo_root=params.get('repo_root','.'), output_dir=params.get('output_dir','local_console_monitoring_stage83'))
+        return {'task_id':'monitoring_alert_dry_run','status':'SUCCESS','output_dir':report.get('output_dir'),'report_path':report.get('report_path'),'alert_count':report.get('alert_count',0),'critical_count':report.get('critical_count',0),'circuit_breaker_status':report.get('circuit_breaker_status'),'dry_run':True,'not_live_trading':True,'research_only':True,'no_real_notification':True,'warnings':report.get('warnings',[])}
     if task_id=='factor_strategy_dry_run':
         from qmt_ai_trading.research.factor_engine import run_factor_scan
         from qmt_ai_trading.strategies.factor_strategy_engine import build_factor_strategy
