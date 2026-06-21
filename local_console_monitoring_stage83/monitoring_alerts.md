@@ -2,74 +2,32 @@
 
 ```json
 {
-  "alert_count": 21,
+  "alert_count": 26,
   "alerts": [
     {
-      "alert_id": "ALERT-2F46B69E6557",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+      "alert_id": "ALERT-05DE32838386",
+      "created_at": "2026-01-01T00:00:00+00:00",
       "dry_run": true,
       "evidence": {
-        "fallback_used": true,
-        "mock_data": true
-      },
-      "message": "输入文件缺失，已启用安全 fallback。",
-      "no_real_notification": true,
-      "not_live_trading": true,
-      "recommendation": "补齐上游 dry-run 输出；不得升级为实盘依据。",
-      "research_only": true,
-      "rule_id": "MISSING_INPUT_FILE",
-      "severity": "WARNING",
-      "source_file": "local_console_strategy_stage80/factor_trade_intents.json",
-      "source_stage": "Stage80/81/82"
-    },
-    {
-      "alert_id": "ALERT-6F08141C7DEF",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
-      "dry_run": true,
-      "evidence": {
-        "fallback_used": true,
-        "mock_data": true
-      },
-      "message": "输入文件缺失，已启用安全 fallback。",
-      "no_real_notification": true,
-      "not_live_trading": true,
-      "recommendation": "补齐上游 dry-run 输出；不得升级为实盘依据。",
-      "research_only": true,
-      "rule_id": "MISSING_INPUT_FILE",
-      "severity": "WARNING",
-      "source_file": "local_console_strategy_stage80/factor_risk_decisions.json",
-      "source_stage": "Stage80/81/82"
-    },
-    {
-      "alert_id": "ALERT-A95FF6A2381A",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
-      "dry_run": true,
-      "evidence": {
-        "fallback_used": true,
-        "mock_data": true
-      },
-      "message": "输入文件缺失，已启用安全 fallback。",
-      "no_real_notification": true,
-      "not_live_trading": true,
-      "recommendation": "补齐上游 dry-run 输出；不得升级为实盘依据。",
-      "research_only": true,
-      "rule_id": "MISSING_INPUT_FILE",
-      "severity": "WARNING",
-      "source_file": "local_console_strategy_stage80/factor_strategy_report.json",
-      "source_stage": "Stage80/81/82"
-    },
-    {
-      "alert_id": "ALERT-841CD24F6469",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
-      "dry_run": true,
-      "evidence": {
+        "data_type": "dict",
+        "dry_run": true,
         "exists": true,
         "fallback_used": true,
+        "forbidden_terms": [],
+        "linked_symbols": [
+          "510300.SH"
+        ],
         "mock_data": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "no_real_notification": true,
         "not_live_trading": true,
         "path": "local_console_backtest_stage82/backtest_dashboard_report.json",
+        "requires_human_review": true,
+        "requires_risk_gate": true,
         "research_only": true,
-        "stage": "Stage82"
+        "stage": "Stage82",
+        "unsafe": false
       },
       "message": "检测到 fallback_used=true。",
       "no_real_notification": true,
@@ -82,17 +40,29 @@
       "source_stage": "Stage82"
     },
     {
-      "alert_id": "ALERT-953D912E2143",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+      "alert_id": "ALERT-0AF8039FE517",
+      "created_at": "2026-01-01T00:00:00+00:00",
       "dry_run": true,
       "evidence": {
+        "data_type": "dict",
+        "dry_run": true,
         "exists": true,
         "fallback_used": true,
+        "forbidden_terms": [],
+        "linked_symbols": [
+          "510300.SH"
+        ],
         "mock_data": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "no_real_notification": true,
         "not_live_trading": true,
         "path": "local_console_backtest_stage82/backtest_dashboard_report.json",
+        "requires_human_review": true,
+        "requires_risk_gate": true,
         "research_only": true,
-        "stage": "Stage82"
+        "stage": "Stage82",
+        "unsafe": false
       },
       "message": "检测到 mock_data=true。",
       "no_real_notification": true,
@@ -105,17 +75,27 @@
       "source_stage": "Stage82"
     },
     {
-      "alert_id": "ALERT-AF4300534BD8",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+      "alert_id": "ALERT-46CF8B4E9CB5",
+      "created_at": "2026-01-01T00:00:00+00:00",
       "dry_run": true,
       "evidence": {
+        "data_type": "dict",
+        "dry_run": true,
         "exists": true,
         "fallback_used": true,
+        "forbidden_terms": [],
+        "linked_symbols": [],
         "mock_data": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "no_real_notification": true,
         "not_live_trading": true,
         "path": "local_console_backtest_stage82/performance_metrics.json",
+        "requires_human_review": true,
+        "requires_risk_gate": true,
         "research_only": true,
-        "stage": "Stage82"
+        "stage": "Stage82",
+        "unsafe": false
       },
       "message": "检测到 fallback_used=true。",
       "no_real_notification": true,
@@ -128,17 +108,27 @@
       "source_stage": "Stage82"
     },
     {
-      "alert_id": "ALERT-12348007A710",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+      "alert_id": "ALERT-959F766E3F3E",
+      "created_at": "2026-01-01T00:00:00+00:00",
       "dry_run": true,
       "evidence": {
+        "data_type": "dict",
+        "dry_run": true,
         "exists": true,
         "fallback_used": true,
+        "forbidden_terms": [],
+        "linked_symbols": [],
         "mock_data": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "no_real_notification": true,
         "not_live_trading": true,
         "path": "local_console_backtest_stage82/performance_metrics.json",
+        "requires_human_review": true,
+        "requires_risk_gate": true,
         "research_only": true,
-        "stage": "Stage82"
+        "stage": "Stage82",
+        "unsafe": false
       },
       "message": "检测到 mock_data=true。",
       "no_real_notification": true,
@@ -151,17 +141,29 @@
       "source_stage": "Stage82"
     },
     {
-      "alert_id": "ALERT-E5107ADFA173",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+      "alert_id": "ALERT-A51B18B0351A",
+      "created_at": "2026-01-01T00:00:00+00:00",
       "dry_run": true,
       "evidence": {
+        "data_type": "dict",
+        "dry_run": true,
         "exists": true,
         "fallback_used": true,
+        "forbidden_terms": [],
+        "linked_symbols": [
+          "510300.SH"
+        ],
         "mock_data": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "no_real_notification": true,
         "not_live_trading": true,
         "path": "local_console_backtest_stage82/performance_attribution.json",
+        "requires_human_review": true,
+        "requires_risk_gate": true,
         "research_only": true,
-        "stage": "Stage82"
+        "stage": "Stage82",
+        "unsafe": false
       },
       "message": "检测到 fallback_used=true。",
       "no_real_notification": true,
@@ -174,17 +176,29 @@
       "source_stage": "Stage82"
     },
     {
-      "alert_id": "ALERT-F765093EE38E",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+      "alert_id": "ALERT-C709FB004AFB",
+      "created_at": "2026-01-01T00:00:00+00:00",
       "dry_run": true,
       "evidence": {
+        "data_type": "dict",
+        "dry_run": true,
         "exists": true,
         "fallback_used": true,
+        "forbidden_terms": [],
+        "linked_symbols": [
+          "510300.SH"
+        ],
         "mock_data": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "no_real_notification": true,
         "not_live_trading": true,
         "path": "local_console_backtest_stage82/performance_attribution.json",
+        "requires_human_review": true,
+        "requires_risk_gate": true,
         "research_only": true,
-        "stage": "Stage82"
+        "stage": "Stage82",
+        "unsafe": false
       },
       "message": "检测到 mock_data=true。",
       "no_real_notification": true,
@@ -197,17 +211,29 @@
       "source_stage": "Stage82"
     },
     {
-      "alert_id": "ALERT-5DC741A74B38",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+      "alert_id": "ALERT-D643D35765F0",
+      "created_at": "2026-01-01T00:00:00+00:00",
       "dry_run": true,
       "evidence": {
+        "data_type": "dict",
+        "dry_run": true,
         "exists": true,
         "fallback_used": true,
+        "forbidden_terms": [],
+        "linked_symbols": [
+          "510300.SH"
+        ],
         "mock_data": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "no_real_notification": true,
         "not_live_trading": true,
         "path": "local_console_backtest_stage82/agent_backtest_comparison.json",
+        "requires_human_review": true,
+        "requires_risk_gate": true,
         "research_only": true,
-        "stage": "Stage82"
+        "stage": "Stage82",
+        "unsafe": false
       },
       "message": "检测到 fallback_used=true。",
       "no_real_notification": true,
@@ -220,17 +246,29 @@
       "source_stage": "Stage82"
     },
     {
-      "alert_id": "ALERT-8D60915EF3E0",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+      "alert_id": "ALERT-6D810437F448",
+      "created_at": "2026-01-01T00:00:00+00:00",
       "dry_run": true,
       "evidence": {
+        "data_type": "dict",
+        "dry_run": true,
         "exists": true,
         "fallback_used": true,
+        "forbidden_terms": [],
+        "linked_symbols": [
+          "510300.SH"
+        ],
         "mock_data": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "no_real_notification": true,
         "not_live_trading": true,
         "path": "local_console_backtest_stage82/agent_backtest_comparison.json",
+        "requires_human_review": true,
+        "requires_risk_gate": true,
         "research_only": true,
-        "stage": "Stage82"
+        "stage": "Stage82",
+        "unsafe": false
       },
       "message": "检测到 mock_data=true。",
       "no_real_notification": true,
@@ -243,17 +281,27 @@
       "source_stage": "Stage82"
     },
     {
-      "alert_id": "ALERT-3784BD948C30",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+      "alert_id": "ALERT-853129D6E0F0",
+      "created_at": "2026-01-01T00:00:00+00:00",
       "dry_run": true,
       "evidence": {
+        "data_type": "dict",
+        "dry_run": true,
         "exists": true,
         "fallback_used": true,
+        "forbidden_terms": [],
+        "linked_symbols": [],
         "mock_data": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "no_real_notification": true,
         "not_live_trading": true,
         "path": "local_console_backtest_stage82/frontend_backtest_contract.json",
+        "requires_human_review": true,
+        "requires_risk_gate": true,
         "research_only": true,
-        "stage": "Stage82"
+        "stage": "Stage82",
+        "unsafe": false
       },
       "message": "检测到 fallback_used=true。",
       "no_real_notification": true,
@@ -266,17 +314,27 @@
       "source_stage": "Stage82"
     },
     {
-      "alert_id": "ALERT-BC70FBF8994D",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+      "alert_id": "ALERT-7745F5422E05",
+      "created_at": "2026-01-01T00:00:00+00:00",
       "dry_run": true,
       "evidence": {
+        "data_type": "dict",
+        "dry_run": true,
         "exists": true,
         "fallback_used": true,
+        "forbidden_terms": [],
+        "linked_symbols": [],
         "mock_data": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "no_real_notification": true,
         "not_live_trading": true,
         "path": "local_console_backtest_stage82/frontend_backtest_contract.json",
+        "requires_human_review": true,
+        "requires_risk_gate": true,
         "research_only": true,
-        "stage": "Stage82"
+        "stage": "Stage82",
+        "unsafe": false
       },
       "message": "检测到 mock_data=true。",
       "no_real_notification": true,
@@ -289,17 +347,27 @@
       "source_stage": "Stage82"
     },
     {
-      "alert_id": "ALERT-6E884FBF5269",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+      "alert_id": "ALERT-6A694F9F9FF6",
+      "created_at": "2026-01-01T00:00:00+00:00",
       "dry_run": true,
       "evidence": {
+        "data_type": "dict",
+        "dry_run": true,
         "exists": true,
         "fallback_used": true,
+        "forbidden_terms": [],
+        "linked_symbols": [],
         "mock_data": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "no_real_notification": true,
         "not_live_trading": true,
         "path": "local_console_agent_stage81/agent_research_report.json",
+        "requires_human_review": true,
+        "requires_risk_gate": true,
         "research_only": true,
-        "stage": "Stage81"
+        "stage": "Stage81",
+        "unsafe": false
       },
       "message": "检测到 fallback_used=true。",
       "no_real_notification": true,
@@ -312,17 +380,27 @@
       "source_stage": "Stage81"
     },
     {
-      "alert_id": "ALERT-C67491CC1512",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+      "alert_id": "ALERT-8816B0BFA10E",
+      "created_at": "2026-01-01T00:00:00+00:00",
       "dry_run": true,
       "evidence": {
+        "data_type": "dict",
+        "dry_run": true,
         "exists": true,
         "fallback_used": true,
+        "forbidden_terms": [],
+        "linked_symbols": [],
         "mock_data": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "no_real_notification": true,
         "not_live_trading": true,
         "path": "local_console_agent_stage81/agent_research_report.json",
+        "requires_human_review": true,
+        "requires_risk_gate": true,
         "research_only": true,
-        "stage": "Stage81"
+        "stage": "Stage81",
+        "unsafe": false
       },
       "message": "检测到 mock_data=true。",
       "no_real_notification": true,
@@ -335,142 +413,242 @@
       "source_stage": "Stage81"
     },
     {
-      "alert_id": "ALERT-458C7DE81A81",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+      "alert_id": "ALERT-86F0918DC50D",
+      "created_at": "2026-01-01T00:00:00+00:00",
       "dry_run": true,
       "evidence": {
-        "exists": false,
-        "fallback_used": true,
-        "mock_data": true,
-        "not_live_trading": true,
-        "path": "local_console_strategy_stage80/factor_trade_intents.json",
-        "research_only": true,
-        "stage": "Stage80"
+        "term": "auto_approve"
       },
-      "message": "检测到 fallback_used=true。",
+      "message": "检测到禁止项：auto_approve。",
       "no_real_notification": true,
       "not_live_trading": true,
-      "recommendation": "保持 dry-run，并复核上游数据完整性。",
+      "recommendation": "保持 dry-run 阻断；删除危险项并人工复核。",
       "research_only": true,
-      "rule_id": "FALLBACK_USED",
-      "severity": "INFO",
+      "rule_id": "AUTO_APPROVE_DETECTED",
+      "severity": "HIGH",
       "source_file": "local_console_strategy_stage80/factor_trade_intents.json",
       "source_stage": "Stage80"
     },
     {
-      "alert_id": "ALERT-B64D7A04A6D8",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+      "alert_id": "ALERT-38DF67697A0E",
+      "created_at": "2026-01-01T00:00:00+00:00",
       "dry_run": true,
       "evidence": {
-        "exists": false,
-        "fallback_used": true,
-        "mock_data": true,
-        "not_live_trading": true,
-        "path": "local_console_strategy_stage80/factor_trade_intents.json",
-        "research_only": true,
-        "stage": "Stage80"
+        "term": "auto_approve"
       },
-      "message": "检测到 mock_data=true。",
+      "message": "检测到禁止项：auto_approve。",
       "no_real_notification": true,
       "not_live_trading": true,
-      "recommendation": "仅用于研究和前端联调。",
+      "recommendation": "保持 dry-run 阻断；删除危险项并人工复核。",
       "research_only": true,
-      "rule_id": "MOCK_DATA_USED",
-      "severity": "WARNING",
-      "source_file": "local_console_strategy_stage80/factor_trade_intents.json",
-      "source_stage": "Stage80"
-    },
-    {
-      "alert_id": "ALERT-FA6E8D947145",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
-      "dry_run": true,
-      "evidence": {
-        "exists": false,
-        "fallback_used": true,
-        "mock_data": true,
-        "not_live_trading": true,
-        "path": "local_console_strategy_stage80/factor_risk_decisions.json",
-        "research_only": true,
-        "stage": "Stage80"
-      },
-      "message": "检测到 fallback_used=true。",
-      "no_real_notification": true,
-      "not_live_trading": true,
-      "recommendation": "保持 dry-run，并复核上游数据完整性。",
-      "research_only": true,
-      "rule_id": "FALLBACK_USED",
-      "severity": "INFO",
+      "rule_id": "AUTO_APPROVE_DETECTED",
+      "severity": "HIGH",
       "source_file": "local_console_strategy_stage80/factor_risk_decisions.json",
       "source_stage": "Stage80"
     },
     {
-      "alert_id": "ALERT-F54F8CDFC01A",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+      "alert_id": "ALERT-EE158B4CBAE9",
+      "created_at": "2026-01-01T00:00:00+00:00",
       "dry_run": true,
       "evidence": {
-        "exists": false,
-        "fallback_used": true,
-        "mock_data": true,
-        "not_live_trading": true,
-        "path": "local_console_strategy_stage80/factor_risk_decisions.json",
-        "research_only": true,
-        "stage": "Stage80"
+        "term": "auto_approve"
       },
-      "message": "检测到 mock_data=true。",
+      "message": "检测到禁止项：auto_approve。",
       "no_real_notification": true,
       "not_live_trading": true,
-      "recommendation": "仅用于研究和前端联调。",
+      "recommendation": "保持 dry-run 阻断；删除危险项并人工复核。",
       "research_only": true,
-      "rule_id": "MOCK_DATA_USED",
-      "severity": "WARNING",
-      "source_file": "local_console_strategy_stage80/factor_risk_decisions.json",
-      "source_stage": "Stage80"
-    },
-    {
-      "alert_id": "ALERT-34CD382848AA",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
-      "dry_run": true,
-      "evidence": {
-        "exists": false,
-        "fallback_used": true,
-        "mock_data": true,
-        "not_live_trading": true,
-        "path": "local_console_strategy_stage80/factor_strategy_report.json",
-        "research_only": true,
-        "stage": "Stage80"
-      },
-      "message": "检测到 fallback_used=true。",
-      "no_real_notification": true,
-      "not_live_trading": true,
-      "recommendation": "保持 dry-run，并复核上游数据完整性。",
-      "research_only": true,
-      "rule_id": "FALLBACK_USED",
-      "severity": "INFO",
+      "rule_id": "AUTO_APPROVE_DETECTED",
+      "severity": "HIGH",
       "source_file": "local_console_strategy_stage80/factor_strategy_report.json",
       "source_stage": "Stage80"
     },
     {
-      "alert_id": "ALERT-9236418977D2",
-      "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+      "alert_id": "ALERT-B8222BA4CBC5",
+      "created_at": "2026-01-01T00:00:00+00:00",
       "dry_run": true,
       "evidence": {
-        "exists": false,
-        "fallback_used": true,
-        "mock_data": true,
-        "not_live_trading": true,
-        "path": "local_console_strategy_stage80/factor_strategy_report.json",
-        "research_only": true,
-        "stage": "Stage80"
+        "nul": true
       },
-      "message": "检测到 mock_data=true。",
+      "message": "validation log 含 NUL 空字符。",
       "no_real_notification": true,
       "not_live_trading": true,
-      "recommendation": "仅用于研究和前端联调。",
+      "recommendation": "重新生成无 NUL 验证日志。",
       "research_only": true,
-      "rule_id": "MOCK_DATA_USED",
-      "severity": "WARNING",
-      "source_file": "local_console_strategy_stage80/factor_strategy_report.json",
-      "source_stage": "Stage80"
+      "rule_id": "VALIDATION_LOG_ENCODING_ERROR",
+      "severity": "HIGH",
+      "source_file": "validation_logs/stage72_validation_20260621_104628.log",
+      "source_stage": "Stage83"
+    },
+    {
+      "alert_id": "ALERT-2A5FAA48560F",
+      "created_at": "2026-01-01T00:00:00+00:00",
+      "dry_run": true,
+      "evidence": {
+        "nul": true
+      },
+      "message": "validation log 含 NUL 空字符。",
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "recommendation": "重新生成无 NUL 验证日志。",
+      "research_only": true,
+      "rule_id": "VALIDATION_LOG_ENCODING_ERROR",
+      "severity": "HIGH",
+      "source_file": "validation_logs/stage73_validation_20260621_110442.log",
+      "source_stage": "Stage83"
+    },
+    {
+      "alert_id": "ALERT-BA04DC81AF14",
+      "created_at": "2026-01-01T00:00:00+00:00",
+      "dry_run": true,
+      "evidence": {
+        "nul": true
+      },
+      "message": "validation log 含 NUL 空字符。",
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "recommendation": "重新生成无 NUL 验证日志。",
+      "research_only": true,
+      "rule_id": "VALIDATION_LOG_ENCODING_ERROR",
+      "severity": "HIGH",
+      "source_file": "validation_logs/stage74_validation_20260621_115655.log",
+      "source_stage": "Stage83"
+    },
+    {
+      "alert_id": "ALERT-35B169309D64",
+      "created_at": "2026-01-01T00:00:00+00:00",
+      "dry_run": true,
+      "evidence": {
+        "nul": true
+      },
+      "message": "validation log 含 NUL 空字符。",
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "recommendation": "重新生成无 NUL 验证日志。",
+      "research_only": true,
+      "rule_id": "VALIDATION_LOG_ENCODING_ERROR",
+      "severity": "HIGH",
+      "source_file": "validation_logs/stage75_validation_20260621_123303.log",
+      "source_stage": "Stage83"
+    },
+    {
+      "alert_id": "ALERT-3027DE3B36D1",
+      "created_at": "2026-01-01T00:00:00+00:00",
+      "dry_run": true,
+      "evidence": {
+        "nul": true
+      },
+      "message": "validation log 含 NUL 空字符。",
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "recommendation": "重新生成无 NUL 验证日志。",
+      "research_only": true,
+      "rule_id": "VALIDATION_LOG_ENCODING_ERROR",
+      "severity": "HIGH",
+      "source_file": "validation_logs/stage76_validation_20260621_125427.log",
+      "source_stage": "Stage83"
+    },
+    {
+      "alert_id": "ALERT-6DE9FA07E325",
+      "created_at": "2026-01-01T00:00:00+00:00",
+      "dry_run": true,
+      "evidence": {
+        "nul": true
+      },
+      "message": "validation log 含 NUL 空字符。",
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "recommendation": "重新生成无 NUL 验证日志。",
+      "research_only": true,
+      "rule_id": "VALIDATION_LOG_ENCODING_ERROR",
+      "severity": "HIGH",
+      "source_file": "validation_logs/stage80_validation_20260621_192226.log",
+      "source_stage": "Stage83"
+    },
+    {
+      "alert_id": "ALERT-5C58DC91063A",
+      "created_at": "2026-01-01T00:00:00+00:00",
+      "dry_run": true,
+      "evidence": {
+        "nul": true
+      },
+      "message": "validation log 含 NUL 空字符。",
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "recommendation": "重新生成无 NUL 验证日志。",
+      "research_only": true,
+      "rule_id": "VALIDATION_LOG_ENCODING_ERROR",
+      "severity": "HIGH",
+      "source_file": "validation_logs/stage80_validation_20260621_192703.log",
+      "source_stage": "Stage83"
+    },
+    {
+      "alert_id": "ALERT-56E8FC87FDD4",
+      "created_at": "2026-01-01T00:00:00+00:00",
+      "dry_run": true,
+      "evidence": {
+        "nul": true
+      },
+      "message": "validation log 含 NUL 空字符。",
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "recommendation": "重新生成无 NUL 验证日志。",
+      "research_only": true,
+      "rule_id": "VALIDATION_LOG_ENCODING_ERROR",
+      "severity": "HIGH",
+      "source_file": "validation_logs/stage80_validation_20260621_193814.log",
+      "source_stage": "Stage83"
+    },
+    {
+      "alert_id": "ALERT-38108651872C",
+      "created_at": "2026-01-01T00:00:00+00:00",
+      "dry_run": true,
+      "evidence": {
+        "nul": true
+      },
+      "message": "validation log 含 NUL 空字符。",
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "recommendation": "重新生成无 NUL 验证日志。",
+      "research_only": true,
+      "rule_id": "VALIDATION_LOG_ENCODING_ERROR",
+      "severity": "HIGH",
+      "source_file": "validation_logs/stage80_validation_20260621_194251.log",
+      "source_stage": "Stage83"
+    },
+    {
+      "alert_id": "ALERT-7E2C3CEF8E85",
+      "created_at": "2026-01-01T00:00:00+00:00",
+      "dry_run": true,
+      "evidence": {
+        "nul": true
+      },
+      "message": "validation log 含 NUL 空字符。",
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "recommendation": "重新生成无 NUL 验证日志。",
+      "research_only": true,
+      "rule_id": "VALIDATION_LOG_ENCODING_ERROR",
+      "severity": "HIGH",
+      "source_file": "validation_logs/stage81_validation_20260621_201518.log",
+      "source_stage": "Stage83"
+    },
+    {
+      "alert_id": "ALERT-6EE1950C0AAE",
+      "created_at": "2026-01-01T00:00:00+00:00",
+      "dry_run": true,
+      "evidence": {
+        "nul": true
+      },
+      "message": "validation log 含 NUL 空字符。",
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "recommendation": "重新生成无 NUL 验证日志。",
+      "research_only": true,
+      "rule_id": "VALIDATION_LOG_ENCODING_ERROR",
+      "severity": "HIGH",
+      "source_file": "validation_logs/stage82_validation_20260621_205723.log",
+      "source_stage": "Stage83"
     }
   ],
   "dry_run": true,
@@ -479,9 +657,9 @@
   "research_only": true,
   "severity_counts": {
     "CRITICAL": 0,
-    "HIGH": 0,
-    "INFO": 9,
-    "WARNING": 12
+    "HIGH": 14,
+    "INFO": 6,
+    "WARNING": 6
   }
 }
 ```

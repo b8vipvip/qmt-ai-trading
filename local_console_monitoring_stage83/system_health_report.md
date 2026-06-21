@@ -2,13 +2,13 @@
 
 ```json
 {
-  "alert_count": 21,
-  "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+  "alert_count": 26,
+  "created_at": "2026-01-01T00:00:00+00:00",
   "critical_count": 0,
   "dry_run": true,
   "fallback_used": true,
   "input_file_count": 11,
-  "missing_input_count": 3,
+  "missing_input_count": 0,
   "mock_data": true,
   "no_order_submitted": true,
   "no_qmt_trader_api": true,
@@ -19,7 +19,7 @@
   "research_only": true,
   "stage": "Stage83",
   "status": "ATTENTION",
-  "validation_log_has_nul": false,
-  "warning_count": 12
+  "validation_log_has_nul": true,
+  "warning_count": 6
 }
 ```

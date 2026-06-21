@@ -2,117 +2,1393 @@
 
 ```json
 {
-  "created_at": "2026-06-21T00:00:00Z-75b188f3cd705e47",
+  "created_at": "2026-01-01T00:00:00+00:00",
+  "data_quality": "loaded",
+  "disclaimer": "Stage83 监控告警仅为 dry-run，不真实发送通知，不作为实盘执行依据。",
   "dry_run": true,
+  "fallback_sources": [
+    "local_console_backtest_stage82/backtest_dashboard_report.json",
+    "local_console_backtest_stage82/performance_metrics.json",
+    "local_console_backtest_stage82/performance_attribution.json",
+    "local_console_backtest_stage82/agent_backtest_comparison.json",
+    "local_console_backtest_stage82/frontend_backtest_contract.json",
+    "local_console_agent_stage81/agent_research_report.json"
+  ],
   "fallback_used": true,
-  "input_hash": "75b188f3cd705e47",
+  "forbidden_terms": [
+    "auto_approve"
+  ],
+  "input_files": {
+    "agent_backtest_comparison": "local_console_backtest_stage82/agent_backtest_comparison.json",
+    "agent_debate": "local_console_agent_stage81/agent_debate.json",
+    "agent_research_report": "local_console_agent_stage81/agent_research_report.json",
+    "agent_risk_review": "local_console_agent_stage81/agent_risk_review.json",
+    "backtest_dashboard_report": "local_console_backtest_stage82/backtest_dashboard_report.json",
+    "factor_risk_decisions": "local_console_strategy_stage80/factor_risk_decisions.json",
+    "factor_strategy_report": "local_console_strategy_stage80/factor_strategy_report.json",
+    "factor_trade_intents": "local_console_strategy_stage80/factor_trade_intents.json",
+    "frontend_backtest_contract": "local_console_backtest_stage82/frontend_backtest_contract.json",
+    "performance_attribution": "local_console_backtest_stage82/performance_attribution.json",
+    "performance_metrics": "local_console_backtest_stage82/performance_metrics.json"
+  },
+  "input_source": "stage82",
   "input_sources": [
     {
+      "data_type": "dict",
+      "dry_run": true,
       "exists": true,
       "fallback_used": true,
+      "forbidden_terms": [],
+      "linked_symbols": [
+        "510300.SH"
+      ],
       "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
       "not_live_trading": true,
       "path": "local_console_backtest_stage82/backtest_dashboard_report.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
       "research_only": true,
-      "stage": "Stage82"
+      "stage": "Stage82",
+      "unsafe": false
     },
     {
+      "data_type": "dict",
+      "dry_run": true,
       "exists": true,
       "fallback_used": true,
+      "forbidden_terms": [],
+      "linked_symbols": [],
       "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
       "not_live_trading": true,
       "path": "local_console_backtest_stage82/performance_metrics.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
       "research_only": true,
-      "stage": "Stage82"
+      "stage": "Stage82",
+      "unsafe": false
     },
     {
+      "data_type": "dict",
+      "dry_run": true,
       "exists": true,
       "fallback_used": true,
+      "forbidden_terms": [],
+      "linked_symbols": [
+        "510300.SH"
+      ],
       "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
       "not_live_trading": true,
       "path": "local_console_backtest_stage82/performance_attribution.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
       "research_only": true,
-      "stage": "Stage82"
+      "stage": "Stage82",
+      "unsafe": false
     },
     {
+      "data_type": "dict",
+      "dry_run": true,
       "exists": true,
       "fallback_used": true,
+      "forbidden_terms": [],
+      "linked_symbols": [
+        "510300.SH"
+      ],
       "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
       "not_live_trading": true,
       "path": "local_console_backtest_stage82/agent_backtest_comparison.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
       "research_only": true,
-      "stage": "Stage82"
+      "stage": "Stage82",
+      "unsafe": false
     },
     {
+      "data_type": "dict",
+      "dry_run": true,
       "exists": true,
       "fallback_used": true,
+      "forbidden_terms": [],
+      "linked_symbols": [],
       "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
       "not_live_trading": true,
       "path": "local_console_backtest_stage82/frontend_backtest_contract.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
       "research_only": true,
-      "stage": "Stage82"
+      "stage": "Stage82",
+      "unsafe": false
     },
     {
+      "data_type": "dict",
+      "dry_run": true,
       "exists": true,
       "fallback_used": true,
+      "forbidden_terms": [],
+      "linked_symbols": [],
       "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
       "not_live_trading": true,
       "path": "local_console_agent_stage81/agent_research_report.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
       "research_only": true,
-      "stage": "Stage81"
+      "stage": "Stage81",
+      "unsafe": false
     },
     {
+      "data_type": "dict",
+      "dry_run": true,
       "exists": true,
       "fallback_used": false,
+      "forbidden_terms": [],
+      "linked_symbols": [],
       "mock_data": false,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
       "not_live_trading": true,
       "path": "local_console_agent_stage81/agent_risk_review.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
       "research_only": true,
-      "stage": "Stage81"
+      "stage": "Stage81",
+      "unsafe": false
     },
     {
+      "data_type": "dict",
+      "dry_run": true,
       "exists": true,
       "fallback_used": false,
+      "forbidden_terms": [],
+      "linked_symbols": [],
       "mock_data": false,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
       "not_live_trading": true,
       "path": "local_console_agent_stage81/agent_debate.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
       "research_only": true,
-      "stage": "Stage81"
+      "stage": "Stage81",
+      "unsafe": false
     },
     {
-      "exists": false,
-      "fallback_used": true,
-      "mock_data": true,
+      "data_type": "list",
+      "dry_run": true,
+      "exists": true,
+      "fallback_used": false,
+      "forbidden_terms": [
+        "auto_approve"
+      ],
+      "linked_symbols": [
+        "159915.SZ",
+        "510300.SH",
+        "510500.SH"
+      ],
+      "mock_data": false,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
       "not_live_trading": true,
       "path": "local_console_strategy_stage80/factor_trade_intents.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
       "research_only": true,
-      "stage": "Stage80"
+      "stage": "Stage80",
+      "unsafe": true
     },
     {
-      "exists": false,
-      "fallback_used": true,
-      "mock_data": true,
+      "data_type": "list",
+      "dry_run": true,
+      "exists": true,
+      "fallback_used": false,
+      "forbidden_terms": [
+        "auto_approve"
+      ],
+      "linked_symbols": [
+        "159915.SZ",
+        "510300.SH",
+        "510500.SH"
+      ],
+      "mock_data": false,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
       "not_live_trading": true,
       "path": "local_console_strategy_stage80/factor_risk_decisions.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
       "research_only": true,
-      "stage": "Stage80"
+      "stage": "Stage80",
+      "unsafe": true
     },
     {
-      "exists": false,
-      "fallback_used": true,
-      "mock_data": true,
+      "data_type": "dict",
+      "dry_run": true,
+      "exists": true,
+      "fallback_used": false,
+      "forbidden_terms": [
+        "auto_approve"
+      ],
+      "linked_symbols": [],
+      "mock_data": false,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
       "not_live_trading": true,
       "path": "local_console_strategy_stage80/factor_strategy_report.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
       "research_only": true,
-      "stage": "Stage80"
+      "stage": "Stage80",
+      "unsafe": true
     }
   ],
-  "missing_files": [
-    "local_console_strategy_stage80/factor_trade_intents.json",
-    "local_console_strategy_stage80/factor_risk_decisions.json",
-    "local_console_strategy_stage80/factor_strategy_report.json"
+  "linked_symbols": [
+    "159915.SZ",
+    "510300.SH",
+    "510500.SH"
   ],
+  "loaded_data": {
+    "local_console_agent_stage81/agent_debate.json": {
+      "bear": {
+        "agent_id": "bear_agent",
+        "agent_name": "空方 Agent",
+        "arguments": [
+          "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+          "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+          "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+        ],
+        "confidence": 0.55,
+        "created_at": "2026-06-21T12:34:24.662888+00:00",
+        "dry_run": true,
+        "input_sources": [
+          "local_console_ai_stage78/model_usage_draft.json",
+          "local_console_ai_stage78/ai_benchmark_report.json",
+          "local_console_factor_stage79/factor_candidates.json",
+          "local_console_factor_stage79/factor_report.json",
+          "local_console_strategy_stage80/factor_strategy_signals.json",
+          "local_console_strategy_stage80/factor_trade_intents.json",
+          "local_console_strategy_stage80/factor_risk_decisions.json",
+          "local_console_strategy_stage80/factor_strategy_report.json"
+        ],
+        "limitations": [
+          "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+          "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
+        ],
+        "model_id": "mock-local-agent",
+        "not_live_trading": true,
+        "recommendation_type": "RESEARCH_ONLY",
+        "research_only": true,
+        "risk_flags": [
+          "dry_run",
+          "not_live_trading",
+          "research_only",
+          "fallback_used",
+          "mock_data"
+        ],
+        "role": "提出研究视角下的看空与风险论据",
+        "summary": "空方 Agent 基于 Stage78/79/80 本地文件进行研究解释。",
+        "unsafe": false
+      },
+      "bull": {
+        "agent_id": "bull_agent",
+        "agent_name": "多方 Agent",
+        "arguments": [
+          "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+          "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+          "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+        ],
+        "confidence": 0.55,
+        "created_at": "2026-06-21T12:34:24.662888+00:00",
+        "dry_run": true,
+        "input_sources": [
+          "local_console_ai_stage78/model_usage_draft.json",
+          "local_console_ai_stage78/ai_benchmark_report.json",
+          "local_console_factor_stage79/factor_candidates.json",
+          "local_console_factor_stage79/factor_report.json",
+          "local_console_strategy_stage80/factor_strategy_signals.json",
+          "local_console_strategy_stage80/factor_trade_intents.json",
+          "local_console_strategy_stage80/factor_risk_decisions.json",
+          "local_console_strategy_stage80/factor_strategy_report.json"
+        ],
+        "limitations": [
+          "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+          "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
+        ],
+        "model_id": "mock-local-agent",
+        "not_live_trading": true,
+        "recommendation_type": "RESEARCH_ONLY",
+        "research_only": true,
+        "risk_flags": [
+          "dry_run",
+          "not_live_trading",
+          "research_only",
+          "fallback_used",
+          "mock_data"
+        ],
+        "role": "提出研究视角下的看多论据",
+        "summary": "多方 Agent 基于 Stage78/79/80 本地文件进行研究解释。",
+        "unsafe": false
+      },
+      "dry_run": true,
+      "not_live_trading": true,
+      "research_only": true,
+      "summary": "多空辩论仅用于研究对比，不构成交易指令。"
+    },
+    "local_console_agent_stage81/agent_research_report.json": {
+      "agent_outputs": [
+        {
+          "agent_id": "technical_agent",
+          "agent_name": "技术面 Agent",
+          "arguments": [
+            "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+            "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+            "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+          ],
+          "confidence": 0.55,
+          "created_at": "2026-06-21T12:34:24.662888+00:00",
+          "dry_run": true,
+          "input_sources": [
+            "local_console_ai_stage78/model_usage_draft.json",
+            "local_console_ai_stage78/ai_benchmark_report.json",
+            "local_console_factor_stage79/factor_candidates.json",
+            "local_console_factor_stage79/factor_report.json",
+            "local_console_strategy_stage80/factor_strategy_signals.json",
+            "local_console_strategy_stage80/factor_trade_intents.json",
+            "local_console_strategy_stage80/factor_risk_decisions.json",
+            "local_console_strategy_stage80/factor_strategy_report.json"
+          ],
+          "limitations": [
+            "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+            "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
+          ],
+          "model_id": "mock-local-agent",
+          "not_live_trading": true,
+          "recommendation_type": "RESEARCH_ONLY",
+          "research_only": true,
+          "risk_flags": [
+            "dry_run",
+            "not_live_trading",
+            "research_only",
+            "fallback_used",
+            "mock_data"
+          ],
+          "role": "解释 Stage80 策略信号与候选排序的技术含义",
+          "summary": "技术面 Agent 基于 Stage78/79/80 本地文件进行研究解释。",
+          "unsafe": false
+        },
+        {
+          "agent_id": "factor_agent",
+          "agent_name": "因子 Agent",
+          "arguments": [
+            "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+            "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+            "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+          ],
+          "confidence": 0.55,
+          "created_at": "2026-06-21T12:34:24.662888+00:00",
+          "dry_run": true,
+          "input_sources": [
+            "local_console_ai_stage78/model_usage_draft.json",
+            "local_console_ai_stage78/ai_benchmark_report.json",
+            "local_console_factor_stage79/factor_candidates.json",
+            "local_console_factor_stage79/factor_report.json",
+            "local_console_strategy_stage80/factor_strategy_signals.json",
+            "local_console_strategy_stage80/factor_trade_intents.json",
+            "local_console_strategy_stage80/factor_risk_decisions.json",
+            "local_console_strategy_stage80/factor_strategy_report.json"
+          ],
+          "limitations": [
+            "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+            "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
+          ],
+          "model_id": "mock-local-agent",
+          "not_live_trading": true,
+          "recommendation_type": "RESEARCH_ONLY",
+          "research_only": true,
+          "risk_flags": [
+            "dry_run",
+            "not_live_trading",
+            "research_only",
+            "fallback_used",
+            "mock_data"
+          ],
+          "role": "对比 Stage79 因子候选池、评分和风险标记",
+          "summary": "因子 Agent 基于 Stage78/79/80 本地文件进行研究解释。",
+          "unsafe": false
+        },
+        {
+          "agent_id": "risk_agent",
+          "agent_name": "风险 Agent",
+          "arguments": [
+            "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+            "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+            "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+          ],
+          "confidence": 0.55,
+          "created_at": "2026-06-21T12:34:24.662888+00:00",
+          "dry_run": true,
+          "input_sources": [
+            "local_console_ai_stage78/model_usage_draft.json",
+            "local_console_ai_stage78/ai_benchmark_report.json",
+            "local_console_factor_stage79/factor_candidates.json",
+            "local_console_factor_stage79/factor_report.json",
+            "local_console_strategy_stage80/factor_strategy_signals.json",
+            "local_console_strategy_stage80/factor_trade_intents.json",
+            "local_console_strategy_stage80/factor_risk_decisions.json",
+            "local_console_strategy_stage80/factor_strategy_report.json"
+          ],
+          "limitations": [
+            "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+            "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
+          ],
+          "model_id": "mock-local-agent",
+          "not_live_trading": true,
+          "recommendation_type": "RISK_WARNING",
+          "research_only": true,
+          "risk_flags": [
+            "dry_run",
+            "not_live_trading",
+            "research_only",
+            "fallback_used",
+            "mock_data"
+          ],
+          "role": "复核 RiskDecision、限制条件和阻断原因",
+          "summary": "复核上游 Risk Gate dry-run 结果，所有实盘相关动作保持阻断。",
+          "unsafe": false
+        },
+        {
+          "agent_id": "bull_agent",
+          "agent_name": "多方 Agent",
+          "arguments": [
+            "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+            "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+            "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+          ],
+          "confidence": 0.55,
+          "created_at": "2026-06-21T12:34:24.662888+00:00",
+          "dry_run": true,
+          "input_sources": [
+            "local_console_ai_stage78/model_usage_draft.json",
+            "local_console_ai_stage78/ai_benchmark_report.json",
+            "local_console_factor_stage79/factor_candidates.json",
+            "local_console_factor_stage79/factor_report.json",
+            "local_console_strategy_stage80/factor_strategy_signals.json",
+            "local_console_strategy_stage80/factor_trade_intents.json",
+            "local_console_strategy_stage80/factor_risk_decisions.json",
+            "local_console_strategy_stage80/factor_strategy_report.json"
+          ],
+          "limitations": [
+            "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+            "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
+          ],
+          "model_id": "mock-local-agent",
+          "not_live_trading": true,
+          "recommendation_type": "RESEARCH_ONLY",
+          "research_only": true,
+          "risk_flags": [
+            "dry_run",
+            "not_live_trading",
+            "research_only",
+            "fallback_used",
+            "mock_data"
+          ],
+          "role": "提出研究视角下的看多论据",
+          "summary": "多方 Agent 基于 Stage78/79/80 本地文件进行研究解释。",
+          "unsafe": false
+        },
+        {
+          "agent_id": "bear_agent",
+          "agent_name": "空方 Agent",
+          "arguments": [
+            "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+            "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+            "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+          ],
+          "confidence": 0.55,
+          "created_at": "2026-06-21T12:34:24.662888+00:00",
+          "dry_run": true,
+          "input_sources": [
+            "local_console_ai_stage78/model_usage_draft.json",
+            "local_console_ai_stage78/ai_benchmark_report.json",
+            "local_console_factor_stage79/factor_candidates.json",
+            "local_console_factor_stage79/factor_report.json",
+            "local_console_strategy_stage80/factor_strategy_signals.json",
+            "local_console_strategy_stage80/factor_trade_intents.json",
+            "local_console_strategy_stage80/factor_risk_decisions.json",
+            "local_console_strategy_stage80/factor_strategy_report.json"
+          ],
+          "limitations": [
+            "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+            "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
+          ],
+          "model_id": "mock-local-agent",
+          "not_live_trading": true,
+          "recommendation_type": "RESEARCH_ONLY",
+          "research_only": true,
+          "risk_flags": [
+            "dry_run",
+            "not_live_trading",
+            "research_only",
+            "fallback_used",
+            "mock_data"
+          ],
+          "role": "提出研究视角下的看空与风险论据",
+          "summary": "空方 Agent 基于 Stage78/79/80 本地文件进行研究解释。",
+          "unsafe": false
+        },
+        {
+          "agent_id": "portfolio_manager_agent",
+          "agent_name": "组合经理 Agent",
+          "arguments": [
+            "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+            "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+            "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+          ],
+          "confidence": 0.55,
+          "created_at": "2026-06-21T12:34:24.662888+00:00",
+          "dry_run": true,
+          "input_sources": [
+            "local_console_ai_stage78/model_usage_draft.json",
+            "local_console_ai_stage78/ai_benchmark_report.json",
+            "local_console_factor_stage79/factor_candidates.json",
+            "local_console_factor_stage79/factor_report.json",
+            "local_console_strategy_stage80/factor_strategy_signals.json",
+            "local_console_strategy_stage80/factor_trade_intents.json",
+            "local_console_strategy_stage80/factor_risk_decisions.json",
+            "local_console_strategy_stage80/factor_strategy_report.json"
+          ],
+          "limitations": [
+            "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+            "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
+          ],
+          "model_id": "mock-local-agent",
+          "not_live_trading": true,
+          "recommendation_type": "PORTFOLIO_REVIEW",
+          "research_only": true,
+          "risk_flags": [
+            "dry_run",
+            "not_live_trading",
+            "research_only",
+            "fallback_used",
+            "mock_data"
+          ],
+          "role": "汇总为组合层观察建议，不形成订单",
+          "summary": "组合层仅建议人工复核观察清单，不生成订单。",
+          "unsafe": false
+        },
+        {
+          "agent_id": "final_summary_agent",
+          "agent_name": "最终总结 Agent",
+          "arguments": [
+            "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+            "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+            "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+          ],
+          "confidence": 0.55,
+          "created_at": "2026-06-21T12:34:24.662888+00:00",
+          "dry_run": true,
+          "input_sources": [
+            "local_console_ai_stage78/model_usage_draft.json",
+            "local_console_ai_stage78/ai_benchmark_report.json",
+            "local_console_factor_stage79/factor_candidates.json",
+            "local_console_factor_stage79/factor_report.json",
+            "local_console_strategy_stage80/factor_strategy_signals.json",
+            "local_console_strategy_stage80/factor_trade_intents.json",
+            "local_console_strategy_stage80/factor_risk_decisions.json",
+            "local_console_strategy_stage80/factor_strategy_report.json"
+          ],
+          "limitations": [
+            "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+            "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
+          ],
+          "model_id": "mock-local-agent",
+          "not_live_trading": true,
+          "recommendation_type": "RESEARCH_ONLY",
+          "research_only": true,
+          "risk_flags": [
+            "dry_run",
+            "not_live_trading",
+            "research_only",
+            "fallback_used",
+            "mock_data"
+          ],
+          "role": "生成 research-only 最终摘要与限制声明",
+          "summary": "汇总多 Agent 观点，声明本报告不能作为实盘依据。",
+          "unsafe": false
+        }
+      ],
+      "blocked": false,
+      "created_at": "2026-06-21T12:34:24.665829+00:00",
+      "debate": {
+        "bear": {
+          "agent_id": "bear_agent",
+          "agent_name": "空方 Agent",
+          "arguments": [
+            "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+            "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+            "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+          ],
+          "confidence": 0.55,
+          "created_at": "2026-06-21T12:34:24.662888+00:00",
+          "dry_run": true,
+          "input_sources": [
+            "local_console_ai_stage78/model_usage_draft.json",
+            "local_console_ai_stage78/ai_benchmark_report.json",
+            "local_console_factor_stage79/factor_candidates.json",
+            "local_console_factor_stage79/factor_report.json",
+            "local_console_strategy_stage80/factor_strategy_signals.json",
+            "local_console_strategy_stage80/factor_trade_intents.json",
+            "local_console_strategy_stage80/factor_risk_decisions.json",
+            "local_console_strategy_stage80/factor_strategy_report.json"
+          ],
+          "limitations": [
+            "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+            "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
+          ],
+          "model_id": "mock-local-agent",
+          "not_live_trading": true,
+          "recommendation_type": "RESEARCH_ONLY",
+          "research_only": true,
+          "risk_flags": [
+            "dry_run",
+            "not_live_trading",
+            "research_only",
+            "fallback_used",
+            "mock_data"
+          ],
+          "role": "提出研究视角下的看空与风险论据",
+          "summary": "空方 Agent 基于 Stage78/79/80 本地文件进行研究解释。",
+          "unsafe": false
+        },
+        "bull": {
+          "agent_id": "bull_agent",
+          "agent_name": "多方 Agent",
+          "arguments": [
+            "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+            "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+            "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+          ],
+          "confidence": 0.55,
+          "created_at": "2026-06-21T12:34:24.662888+00:00",
+          "dry_run": true,
+          "input_sources": [
+            "local_console_ai_stage78/model_usage_draft.json",
+            "local_console_ai_stage78/ai_benchmark_report.json",
+            "local_console_factor_stage79/factor_candidates.json",
+            "local_console_factor_stage79/factor_report.json",
+            "local_console_strategy_stage80/factor_strategy_signals.json",
+            "local_console_strategy_stage80/factor_trade_intents.json",
+            "local_console_strategy_stage80/factor_risk_decisions.json",
+            "local_console_strategy_stage80/factor_strategy_report.json"
+          ],
+          "limitations": [
+            "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+            "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
+          ],
+          "model_id": "mock-local-agent",
+          "not_live_trading": true,
+          "recommendation_type": "RESEARCH_ONLY",
+          "research_only": true,
+          "risk_flags": [
+            "dry_run",
+            "not_live_trading",
+            "research_only",
+            "fallback_used",
+            "mock_data"
+          ],
+          "role": "提出研究视角下的看多论据",
+          "summary": "多方 Agent 基于 Stage78/79/80 本地文件进行研究解释。",
+          "unsafe": false
+        },
+        "dry_run": true,
+        "not_live_trading": true,
+        "research_only": true,
+        "summary": "多空辩论仅用于研究对比，不构成交易指令。"
+      },
+      "dry_run": true,
+      "fallback_used": true,
+      "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "not_live_trading": true,
+      "portfolio_review": {
+        "dry_run": true,
+        "not_live_trading": true,
+        "research_only": true,
+        "review": {
+          "agent_id": "portfolio_manager_agent",
+          "agent_name": "组合经理 Agent",
+          "arguments": [
+            "读取模型用途映射、因子候选、策略信号、TradeIntent 与 RiskDecision。",
+            "仅进行分析、解释、对比、风险提示、多空辩论和组合复核。",
+            "上游 dry-run / mock / fallback 标记必须保留，不能升级为实盘依据。"
+          ],
+          "confidence": 0.55,
+          "created_at": "2026-06-21T12:34:24.662888+00:00",
+          "dry_run": true,
+          "input_sources": [
+            "local_console_ai_stage78/model_usage_draft.json",
+            "local_console_ai_stage78/ai_benchmark_report.json",
+            "local_console_factor_stage79/factor_candidates.json",
+            "local_console_factor_stage79/factor_report.json",
+            "local_console_strategy_stage80/factor_strategy_signals.json",
+            "local_console_strategy_stage80/factor_trade_intents.json",
+            "local_console_strategy_stage80/factor_risk_decisions.json",
+            "local_console_strategy_stage80/factor_strategy_report.json"
+          ],
+          "limitations": [
+            "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+            "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
+          ],
+          "model_id": "mock-local-agent",
+          "not_live_trading": true,
+          "recommendation_type": "PORTFOLIO_REVIEW",
+          "research_only": true,
+          "risk_flags": [
+            "dry_run",
+            "not_live_trading",
+            "research_only",
+            "fallback_used",
+            "mock_data"
+          ],
+          "role": "汇总为组合层观察建议，不形成订单",
+          "summary": "组合层仅建议人工复核观察清单，不生成订单。",
+          "unsafe": false
+        },
+        "summary": "组合经理建议仅为 PORTFOLIO_REVIEW，不提交订单。"
+      },
+      "requires_human_approval": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "risk_review": {
+        "dry_run": true,
+        "not_live_trading": true,
+        "requires_human_approval": true,
+        "requires_risk_gate": true,
+        "research_only": true,
+        "risk_flags": [
+          "dry_run",
+          "fallback_used",
+          "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
+          "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+          "mock_data",
+          "not_live_trading",
+          "research_only"
+        ],
+        "summary": "Risk Agent 保留上游 Risk Gate dry-run 阻断，不允许绕过风控。"
+      },
+      "stage": "Stage81",
+      "summary": "TradingAgents 多 Agent 投研 dry-run 已完成；报告仅供研究，不作为实盘依据。",
+      "warnings": [
+        "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+        "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
+      ]
+    },
+    "local_console_agent_stage81/agent_risk_review.json": {
+      "dry_run": true,
+      "not_live_trading": true,
+      "requires_human_approval": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "risk_flags": [
+        "dry_run",
+        "fallback_used",
+        "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
+        "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
+        "mock_data",
+        "not_live_trading",
+        "research_only"
+      ],
+      "summary": "Risk Agent 保留上游 Risk Gate dry-run 阻断，不允许绕过风控。"
+    },
+    "local_console_backtest_stage82/agent_backtest_comparison.json": {
+      "agent_backtest_comparison": [
+        {
+          "agent_id": "fallback_agent",
+          "agent_name": "Fallback Research Agent",
+          "agreement_score": 0.55,
+          "backtest_summary": {
+            "max_drawdown": 0.025,
+            "total_return": 0.012,
+            "win_rate": 1.0
+          },
+          "confidence": 0.5,
+          "disagreement_points": [
+            "agreement_score is research-only, not a trade signal",
+            "mock/fallback data cannot support live decisions"
+          ],
+          "dry_run": true,
+          "limitations": [
+            "missing agent outputs",
+            "该结果仅用于前端联调和研究展示，不能作为实盘依据。"
+          ],
+          "linked_symbols": [
+            "510300.SH"
+          ],
+          "linked_trade_intents": [],
+          "not_live_trading": true,
+          "recommendation_type": "RESEARCH_ONLY",
+          "research_only": true,
+          "risk_consistency": "consistent_with_risk_gate",
+          "risk_flags": [
+            "fallback_used",
+            "mock_data"
+          ]
+        }
+      ],
+      "backtest_mode": "mock_shadow",
+      "comparison_logic": [
+        "Agent 看多观点 vs 回测收益",
+        "Risk Agent 观点 vs RiskDecision 阻断原因",
+        "Portfolio Manager 观点 vs 组合风险收益"
+      ],
+      "disclaimer": "该结果仅用于前端联调和研究展示，不能作为实盘依据。",
+      "dry_run": true,
+      "fallback_used": true,
+      "forbidden_terms": [],
+      "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "not_live_trading": true,
+      "requires_human_approval": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "unsafe": false
+    },
+    "local_console_backtest_stage82/backtest_dashboard_report.json": {
+      "agent_backtest_comparison": {
+        "agent_backtest_comparison": [
+          {
+            "agent_id": "fallback_agent",
+            "agent_name": "Fallback Research Agent",
+            "agreement_score": 0.55,
+            "backtest_summary": {
+              "max_drawdown": 0.025,
+              "total_return": 0.012,
+              "win_rate": 1.0
+            },
+            "confidence": 0.5,
+            "disagreement_points": [
+              "agreement_score is research-only, not a trade signal",
+              "mock/fallback data cannot support live decisions"
+            ],
+            "dry_run": true,
+            "limitations": [
+              "missing agent outputs",
+              "该结果仅用于前端联调和研究展示，不能作为实盘依据。"
+            ],
+            "linked_symbols": [
+              "510300.SH"
+            ],
+            "linked_trade_intents": [],
+            "not_live_trading": true,
+            "recommendation_type": "RESEARCH_ONLY",
+            "research_only": true,
+            "risk_consistency": "consistent_with_risk_gate",
+            "risk_flags": [
+              "fallback_used",
+              "mock_data"
+            ]
+          }
+        ],
+        "backtest_mode": "mock_shadow",
+        "comparison_logic": [
+          "Agent 看多观点 vs 回测收益",
+          "Risk Agent 观点 vs RiskDecision 阻断原因",
+          "Portfolio Manager 观点 vs 组合风险收益"
+        ],
+        "disclaimer": "该结果仅用于前端联调和研究展示，不能作为实盘依据。",
+        "dry_run": true,
+        "fallback_used": true,
+        "forbidden_terms": [],
+        "mock_data": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "not_live_trading": true,
+        "requires_human_approval": true,
+        "requires_risk_gate": true,
+        "research_only": true,
+        "unsafe": false
+      },
+      "backtest_mode": "mock_shadow",
+      "context": {
+        "backtest_mode": "mock_shadow",
+        "data_quality": "fallback_safe",
+        "disclaimer": "该结果仅用于前端联调和研究展示，不能作为实盘依据。",
+        "dry_run": true,
+        "fallback_used": true,
+        "forbidden_terms": [],
+        "input_files": {
+          "agent_debate": "local_console_agent_stage81/agent_debate.json",
+          "agent_portfolio_review": "local_console_agent_stage81/agent_portfolio_review.json",
+          "agent_research_report": "local_console_agent_stage81/agent_research_report.json",
+          "agent_risk_review": "local_console_agent_stage81/agent_risk_review.json",
+          "factor_candidates": "local_console_factor_stage79/factor_candidates.json",
+          "factor_risk_decisions": "local_console_strategy_stage80/factor_risk_decisions.json",
+          "factor_strategy_report": "local_console_strategy_stage80/factor_strategy_report.json",
+          "factor_trade_intents": "local_console_strategy_stage80/factor_trade_intents.json",
+          "frontend_agent_contract": "local_console_agent_stage81/frontend_agent_contract.json"
+        },
+        "input_source": "stage81",
+        "linked_symbols": [
+          "510300.SH"
+        ],
+        "mock_data": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "not_live_trading": true,
+        "requires_human_approval": true,
+        "requires_risk_gate": true,
+        "research_only": true,
+        "stage": "Stage82",
+        "unsafe": false,
+        "warnings": [
+          "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json",
+          "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
+          "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
+          "missing input fallback used: local_console_factor_stage79/factor_candidates.json"
+        ]
+      },
+      "created_at": "2026-06-21T12:43:59.185992+00:00",
+      "disclaimer": "该结果仅用于前端联调和研究展示，不能作为实盘依据。",
+      "dry_run": true,
+      "fallback_used": true,
+      "forbidden_terms": [],
+      "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "not_live_trading": true,
+      "output_dir": "local_console_backtest_stage82",
+      "performance_attribution": {
+        "backtest_mode": "mock_shadow",
+        "disclaimer": "该结果仅用于前端联调和研究展示，不能作为实盘依据。",
+        "dry_run": true,
+        "fallback_used": true,
+        "forbidden_terms": [],
+        "mock_data": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "not_live_trading": true,
+        "performance_attribution": [
+          {
+            "drawdown_contribution": 0.025,
+            "factor_link": "Stage79 candidate",
+            "return_contribution": 0.012,
+            "risk_note": "watch only; not executable",
+            "symbol": "510300.SH"
+          }
+        ],
+        "portfolio_summary": {
+          "max_drawdown": 0.025,
+          "sharpe_like": 1.2,
+          "total_return": 0.012
+        },
+        "requires_human_approval": true,
+        "requires_risk_gate": true,
+        "research_only": true,
+        "risk_contributors": [
+          {
+            "drawdown_contribution": 0.025,
+            "factor_link": "Stage79 candidate",
+            "return_contribution": 0.012,
+            "risk_note": "watch only; not executable",
+            "symbol": "510300.SH"
+          }
+        ],
+        "top_contributors": [
+          {
+            "drawdown_contribution": 0.025,
+            "factor_link": "Stage79 candidate",
+            "return_contribution": 0.012,
+            "risk_note": "watch only; not executable",
+            "symbol": "510300.SH"
+          }
+        ],
+        "unsafe": false
+      },
+      "performance_metrics": {
+        "annualized_return": 0.144,
+        "approved_dry_run_count": 0,
+        "avg_holding_days": 5.0,
+        "backtest_mode": "mock_shadow",
+        "data_quality": "fallback_safe",
+        "disclaimer": "该结果仅用于前端联调和研究展示，不能作为实盘依据。",
+        "dry_run": true,
+        "fallback_used": true,
+        "forbidden_terms": [],
+        "max_drawdown": 0.025,
+        "mock_data": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "not_live_trading": true,
+        "requires_human_approval": true,
+        "requires_risk_gate": true,
+        "research_only": true,
+        "risk_rejected_count": 0,
+        "sharpe_like": 1.2,
+        "total_return": 0.012,
+        "trade_count": 1,
+        "turnover": 0.1,
+        "unsafe": false,
+        "volatility": 0.0,
+        "win_rate": 1.0
+      },
+      "report_path": "local_console_backtest_stage82/backtest_dashboard_report.md",
+      "requires_human_approval": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "shadow_replay_result": {
+        "backtest_mode": "mock_shadow",
+        "data_quality": "fallback_safe",
+        "disclaimer": "该结果仅用于前端联调和研究展示，不能作为实盘依据。",
+        "dry_run": true,
+        "fallback_used": true,
+        "forbidden_terms": [],
+        "mock_data": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "not_live_trading": true,
+        "requires_human_approval": true,
+        "requires_risk_gate": true,
+        "research_only": true,
+        "shadow_replay": [
+          {
+            "dry_run": true,
+            "holding_days": 5,
+            "linked_trade_intent": "mock-intent-1",
+            "max_drawdown": 0.025,
+            "mock_return": 0.012,
+            "not_live_trading": true,
+            "research_only": true,
+            "shadow_trade_id": "shadow-1",
+            "signal": "WATCH_ONLY",
+            "symbol": "510300.SH",
+            "win": true
+          }
+        ],
+        "stage": "Stage82",
+        "trade_count": 1,
+        "unsafe": false
+      },
+      "stage": "Stage82",
+      "summary": "回测分析与 Agent 研究报告联动看板 dry-run 已完成；不生成订单。",
+      "unsafe": false,
+      "warnings": [
+        "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
+        "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
+        "missing input fallback used: local_console_factor_stage79/factor_candidates.json"
+      ]
+    },
+    "local_console_backtest_stage82/frontend_backtest_contract.json": {
+      "apis": [
+        "GET /api/v1/backtest/context",
+        "GET /api/v1/backtest/shadow-replay/latest",
+        "GET /api/v1/backtest/performance/latest",
+        "GET /api/v1/backtest/attribution/latest",
+        "GET /api/v1/backtest/agent-comparison/latest",
+        "GET /api/v1/backtest/report/latest",
+        "POST /api/v1/tasks/run task_id=backtest_dashboard_dry_run"
+      ],
+      "backtest_mode": "mock_shadow",
+      "disclaimer": "该结果仅用于前端联调和研究展示，不能作为实盘依据。",
+      "dry_run": true,
+      "fallback_used": true,
+      "forbidden_terms": [],
+      "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "not_live_trading": true,
+      "page": "回测分析",
+      "requires_human_approval": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "sections": [
+        "回测总览卡片",
+        "数据源状态卡片",
+        "收益 / 回撤 / 波动 / 胜率指标区",
+        "Shadow Replay 结果表",
+        "TradeIntent 回测映射表",
+        "RiskDecision 回测映射表",
+        "Agent 观点 vs 回测表现对比区",
+        "组合归因区",
+        "风险提示区",
+        "报告中心跳转"
+      ],
+      "unsafe": false
+    },
+    "local_console_backtest_stage82/performance_attribution.json": {
+      "backtest_mode": "mock_shadow",
+      "disclaimer": "该结果仅用于前端联调和研究展示，不能作为实盘依据。",
+      "dry_run": true,
+      "fallback_used": true,
+      "forbidden_terms": [],
+      "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "not_live_trading": true,
+      "performance_attribution": [
+        {
+          "drawdown_contribution": 0.025,
+          "factor_link": "Stage79 candidate",
+          "return_contribution": 0.012,
+          "risk_note": "watch only; not executable",
+          "symbol": "510300.SH"
+        }
+      ],
+      "portfolio_summary": {
+        "max_drawdown": 0.025,
+        "sharpe_like": 1.2,
+        "total_return": 0.012
+      },
+      "requires_human_approval": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "risk_contributors": [
+        {
+          "drawdown_contribution": 0.025,
+          "factor_link": "Stage79 candidate",
+          "return_contribution": 0.012,
+          "risk_note": "watch only; not executable",
+          "symbol": "510300.SH"
+        }
+      ],
+      "top_contributors": [
+        {
+          "drawdown_contribution": 0.025,
+          "factor_link": "Stage79 candidate",
+          "return_contribution": 0.012,
+          "risk_note": "watch only; not executable",
+          "symbol": "510300.SH"
+        }
+      ],
+      "unsafe": false
+    },
+    "local_console_backtest_stage82/performance_metrics.json": {
+      "annualized_return": 0.144,
+      "approved_dry_run_count": 0,
+      "avg_holding_days": 5.0,
+      "backtest_mode": "mock_shadow",
+      "data_quality": "fallback_safe",
+      "disclaimer": "该结果仅用于前端联调和研究展示，不能作为实盘依据。",
+      "dry_run": true,
+      "fallback_used": true,
+      "forbidden_terms": [],
+      "max_drawdown": 0.025,
+      "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "not_live_trading": true,
+      "requires_human_approval": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "risk_rejected_count": 0,
+      "sharpe_like": 1.2,
+      "total_return": 0.012,
+      "trade_count": 1,
+      "turnover": 0.1,
+      "unsafe": false,
+      "volatility": 0.0,
+      "win_rate": 1.0
+    },
+    "local_console_strategy_stage80/factor_risk_decisions.json": [
+      {
+        "approved": false,
+        "auto_approve": false,
+        "decision": "REJECTED_DRY_RUN",
+        "dry_run": true,
+        "intent_id": "stage80-001-510500.SH",
+        "no_account_query": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "reasons": [
+          "Stage80 使用 mock factor candidates，禁止作为实盘依据",
+          "未进行人工审批，禁止自动 approve"
+        ],
+        "reviewed_at": "2026-06-21T11:43:15+00:00",
+        "risk_flags": [
+          "mock_data",
+          "not_live_trading"
+        ],
+        "risk_gate": "factor_strategy_stage80_dry_run",
+        "symbol": "510500.SH"
+      },
+      {
+        "approved": false,
+        "auto_approve": false,
+        "decision": "REJECTED_DRY_RUN",
+        "dry_run": true,
+        "intent_id": "stage80-002-159915.SZ",
+        "no_account_query": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "reasons": [
+          "Stage80 使用 mock factor candidates，禁止作为实盘依据",
+          "未进行人工审批，禁止自动 approve"
+        ],
+        "reviewed_at": "2026-06-21T11:43:15+00:00",
+        "risk_flags": [
+          "mock_data",
+          "not_live_trading"
+        ],
+        "risk_gate": "factor_strategy_stage80_dry_run",
+        "symbol": "159915.SZ"
+      },
+      {
+        "approved": false,
+        "auto_approve": false,
+        "decision": "REJECTED_DRY_RUN",
+        "dry_run": true,
+        "intent_id": "stage80-003-510300.SH",
+        "no_account_query": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "reasons": [
+          "Stage80 使用 mock factor candidates，禁止作为实盘依据",
+          "未进行人工审批，禁止自动 approve"
+        ],
+        "reviewed_at": "2026-06-21T11:43:15+00:00",
+        "risk_flags": [
+          "mock_data",
+          "not_live_trading"
+        ],
+        "risk_gate": "factor_strategy_stage80_dry_run",
+        "symbol": "510300.SH"
+      }
+    ],
+    "local_console_strategy_stage80/factor_strategy_report.json": {
+      "blocked_count": 3,
+      "dry_run": true,
+      "risk_decision_count": 3,
+      "safety": {
+        "no_account_query": true,
+        "no_auto_approve": true,
+        "no_live_order": true,
+        "no_qmt_trader_api": true
+      },
+      "signal_count": 3,
+      "source": "factor_strategy_stage80",
+      "stage": 80,
+      "title": "Stage80 因子候选池到 Strategy Engine dry-run TradeIntent 联调",
+      "trade_intent_count": 3,
+      "warnings": [
+        "mock_data / not_live_trading 不能作为实盘依据",
+        "QMT Gateway 仍是唯一真实交易边界，本阶段未触达"
+      ]
+    },
+    "local_console_strategy_stage80/factor_trade_intents.json": [
+      {
+        "auto_approve": false,
+        "blocked_from_live": true,
+        "created_at": "2026-06-21T11:43:15+00:00",
+        "dry_run": true,
+        "intent_id": "stage80-001-510500.SH",
+        "not_live_trading": true,
+        "order_type": "DRY_RUN_INTENT",
+        "quantity": 0,
+        "reasons": [
+          "momentum_20d=0.0269",
+          "volatility_20d=0.0070",
+          "volume_ratio_20d=0.9312",
+          "Stage80 因子候选池 dry-run 信号，仅用于联调"
+        ],
+        "requires_human_approval": true,
+        "requires_risk_gate": true,
+        "risk_flags": [
+          "not_live_trading",
+          "mock_data"
+        ],
+        "side": "BUY",
+        "source": "factor_strategy_stage80",
+        "symbol": "510500.SH",
+        "target_weight": 0.3333
+      },
+      {
+        "auto_approve": false,
+        "blocked_from_live": true,
+        "created_at": "2026-06-21T11:43:15+00:00",
+        "dry_run": true,
+        "intent_id": "stage80-002-159915.SZ",
+        "not_live_trading": true,
+        "order_type": "DRY_RUN_INTENT",
+        "quantity": 0,
+        "reasons": [
+          "momentum_20d=0.0269",
+          "volatility_20d=0.0070",
+          "volume_ratio_20d=0.9312",
+          "Stage80 因子候选池 dry-run 信号，仅用于联调"
+        ],
+        "requires_human_approval": true,
+        "requires_risk_gate": true,
+        "risk_flags": [
+          "not_live_trading",
+          "mock_data"
+        ],
+        "side": "BUY",
+        "source": "factor_strategy_stage80",
+        "symbol": "159915.SZ",
+        "target_weight": 0.3333
+      },
+      {
+        "auto_approve": false,
+        "blocked_from_live": true,
+        "created_at": "2026-06-21T11:43:15+00:00",
+        "dry_run": true,
+        "intent_id": "stage80-003-510300.SH",
+        "not_live_trading": true,
+        "order_type": "DRY_RUN_INTENT",
+        "quantity": 0,
+        "reasons": [
+          "momentum_20d=0.0269",
+          "volatility_20d=0.0070",
+          "volume_ratio_20d=0.9312",
+          "Stage80 因子候选池 dry-run 信号，仅用于联调"
+        ],
+        "requires_human_approval": true,
+        "requires_risk_gate": true,
+        "risk_flags": [
+          "not_live_trading",
+          "mock_data"
+        ],
+        "side": "BUY",
+        "source": "factor_strategy_stage80",
+        "symbol": "510300.SH",
+        "target_weight": 0.3333
+      }
+    ]
+  },
+  "missing_files": [],
+  "missing_inputs": [],
   "mock_data": true,
+  "mock_sources": [
+    "local_console_backtest_stage82/backtest_dashboard_report.json",
+    "local_console_backtest_stage82/performance_metrics.json",
+    "local_console_backtest_stage82/performance_attribution.json",
+    "local_console_backtest_stage82/agent_backtest_comparison.json",
+    "local_console_backtest_stage82/frontend_backtest_contract.json",
+    "local_console_agent_stage81/agent_research_report.json"
+  ],
   "no_order_submitted": true,
   "no_qmt_trader_api": true,
   "no_real_notification": true,
@@ -1061,31 +2337,428 @@
       "volatility": 0.0,
       "win_rate": 1.0
     },
-    "local_console_strategy_stage80/factor_risk_decisions.json": {
-      "fallback_used": true,
-      "missing": true,
-      "mock_data": true,
-      "not_live_trading": true,
-      "research_only": true
-    },
+    "local_console_strategy_stage80/factor_risk_decisions.json": [
+      {
+        "approved": false,
+        "auto_approve": false,
+        "decision": "REJECTED_DRY_RUN",
+        "dry_run": true,
+        "intent_id": "stage80-001-510500.SH",
+        "no_account_query": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "reasons": [
+          "Stage80 使用 mock factor candidates，禁止作为实盘依据",
+          "未进行人工审批，禁止自动 approve"
+        ],
+        "reviewed_at": "2026-06-21T11:43:15+00:00",
+        "risk_flags": [
+          "mock_data",
+          "not_live_trading"
+        ],
+        "risk_gate": "factor_strategy_stage80_dry_run",
+        "symbol": "510500.SH"
+      },
+      {
+        "approved": false,
+        "auto_approve": false,
+        "decision": "REJECTED_DRY_RUN",
+        "dry_run": true,
+        "intent_id": "stage80-002-159915.SZ",
+        "no_account_query": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "reasons": [
+          "Stage80 使用 mock factor candidates，禁止作为实盘依据",
+          "未进行人工审批，禁止自动 approve"
+        ],
+        "reviewed_at": "2026-06-21T11:43:15+00:00",
+        "risk_flags": [
+          "mock_data",
+          "not_live_trading"
+        ],
+        "risk_gate": "factor_strategy_stage80_dry_run",
+        "symbol": "159915.SZ"
+      },
+      {
+        "approved": false,
+        "auto_approve": false,
+        "decision": "REJECTED_DRY_RUN",
+        "dry_run": true,
+        "intent_id": "stage80-003-510300.SH",
+        "no_account_query": true,
+        "no_order_submitted": true,
+        "no_qmt_trader_api": true,
+        "reasons": [
+          "Stage80 使用 mock factor candidates，禁止作为实盘依据",
+          "未进行人工审批，禁止自动 approve"
+        ],
+        "reviewed_at": "2026-06-21T11:43:15+00:00",
+        "risk_flags": [
+          "mock_data",
+          "not_live_trading"
+        ],
+        "risk_gate": "factor_strategy_stage80_dry_run",
+        "symbol": "510300.SH"
+      }
+    ],
     "local_console_strategy_stage80/factor_strategy_report.json": {
-      "fallback_used": true,
-      "missing": true,
-      "mock_data": true,
-      "not_live_trading": true,
-      "research_only": true
+      "blocked_count": 3,
+      "dry_run": true,
+      "risk_decision_count": 3,
+      "safety": {
+        "no_account_query": true,
+        "no_auto_approve": true,
+        "no_live_order": true,
+        "no_qmt_trader_api": true
+      },
+      "signal_count": 3,
+      "source": "factor_strategy_stage80",
+      "stage": 80,
+      "title": "Stage80 因子候选池到 Strategy Engine dry-run TradeIntent 联调",
+      "trade_intent_count": 3,
+      "warnings": [
+        "mock_data / not_live_trading 不能作为实盘依据",
+        "QMT Gateway 仍是唯一真实交易边界，本阶段未触达"
+      ]
     },
-    "local_console_strategy_stage80/factor_trade_intents.json": {
-      "fallback_used": true,
-      "missing": true,
-      "mock_data": true,
-      "not_live_trading": true,
-      "research_only": true
-    }
+    "local_console_strategy_stage80/factor_trade_intents.json": [
+      {
+        "auto_approve": false,
+        "blocked_from_live": true,
+        "created_at": "2026-06-21T11:43:15+00:00",
+        "dry_run": true,
+        "intent_id": "stage80-001-510500.SH",
+        "not_live_trading": true,
+        "order_type": "DRY_RUN_INTENT",
+        "quantity": 0,
+        "reasons": [
+          "momentum_20d=0.0269",
+          "volatility_20d=0.0070",
+          "volume_ratio_20d=0.9312",
+          "Stage80 因子候选池 dry-run 信号，仅用于联调"
+        ],
+        "requires_human_approval": true,
+        "requires_risk_gate": true,
+        "risk_flags": [
+          "not_live_trading",
+          "mock_data"
+        ],
+        "side": "BUY",
+        "source": "factor_strategy_stage80",
+        "symbol": "510500.SH",
+        "target_weight": 0.3333
+      },
+      {
+        "auto_approve": false,
+        "blocked_from_live": true,
+        "created_at": "2026-06-21T11:43:15+00:00",
+        "dry_run": true,
+        "intent_id": "stage80-002-159915.SZ",
+        "not_live_trading": true,
+        "order_type": "DRY_RUN_INTENT",
+        "quantity": 0,
+        "reasons": [
+          "momentum_20d=0.0269",
+          "volatility_20d=0.0070",
+          "volume_ratio_20d=0.9312",
+          "Stage80 因子候选池 dry-run 信号，仅用于联调"
+        ],
+        "requires_human_approval": true,
+        "requires_risk_gate": true,
+        "risk_flags": [
+          "not_live_trading",
+          "mock_data"
+        ],
+        "side": "BUY",
+        "source": "factor_strategy_stage80",
+        "symbol": "159915.SZ",
+        "target_weight": 0.3333
+      },
+      {
+        "auto_approve": false,
+        "blocked_from_live": true,
+        "created_at": "2026-06-21T11:43:15+00:00",
+        "dry_run": true,
+        "intent_id": "stage80-003-510300.SH",
+        "not_live_trading": true,
+        "order_type": "DRY_RUN_INTENT",
+        "quantity": 0,
+        "reasons": [
+          "momentum_20d=0.0269",
+          "volatility_20d=0.0070",
+          "volume_ratio_20d=0.9312",
+          "Stage80 因子候选池 dry-run 信号，仅用于联调"
+        ],
+        "requires_human_approval": true,
+        "requires_risk_gate": true,
+        "risk_flags": [
+          "not_live_trading",
+          "mock_data"
+        ],
+        "side": "BUY",
+        "source": "factor_strategy_stage80",
+        "symbol": "510300.SH",
+        "target_weight": 0.3333
+      }
+    ]
   },
   "repo_dirty": false,
+  "requires_human_approval": true,
+  "requires_human_review": true,
+  "requires_risk_gate": true,
   "research_only": true,
+  "sources": [
+    {
+      "data_type": "dict",
+      "dry_run": true,
+      "exists": true,
+      "fallback_used": true,
+      "forbidden_terms": [],
+      "linked_symbols": [
+        "510300.SH"
+      ],
+      "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "path": "local_console_backtest_stage82/backtest_dashboard_report.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "stage": "Stage82",
+      "unsafe": false
+    },
+    {
+      "data_type": "dict",
+      "dry_run": true,
+      "exists": true,
+      "fallback_used": true,
+      "forbidden_terms": [],
+      "linked_symbols": [],
+      "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "path": "local_console_backtest_stage82/performance_metrics.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "stage": "Stage82",
+      "unsafe": false
+    },
+    {
+      "data_type": "dict",
+      "dry_run": true,
+      "exists": true,
+      "fallback_used": true,
+      "forbidden_terms": [],
+      "linked_symbols": [
+        "510300.SH"
+      ],
+      "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "path": "local_console_backtest_stage82/performance_attribution.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "stage": "Stage82",
+      "unsafe": false
+    },
+    {
+      "data_type": "dict",
+      "dry_run": true,
+      "exists": true,
+      "fallback_used": true,
+      "forbidden_terms": [],
+      "linked_symbols": [
+        "510300.SH"
+      ],
+      "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "path": "local_console_backtest_stage82/agent_backtest_comparison.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "stage": "Stage82",
+      "unsafe": false
+    },
+    {
+      "data_type": "dict",
+      "dry_run": true,
+      "exists": true,
+      "fallback_used": true,
+      "forbidden_terms": [],
+      "linked_symbols": [],
+      "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "path": "local_console_backtest_stage82/frontend_backtest_contract.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "stage": "Stage82",
+      "unsafe": false
+    },
+    {
+      "data_type": "dict",
+      "dry_run": true,
+      "exists": true,
+      "fallback_used": true,
+      "forbidden_terms": [],
+      "linked_symbols": [],
+      "mock_data": true,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "path": "local_console_agent_stage81/agent_research_report.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "stage": "Stage81",
+      "unsafe": false
+    },
+    {
+      "data_type": "dict",
+      "dry_run": true,
+      "exists": true,
+      "fallback_used": false,
+      "forbidden_terms": [],
+      "linked_symbols": [],
+      "mock_data": false,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "path": "local_console_agent_stage81/agent_risk_review.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "stage": "Stage81",
+      "unsafe": false
+    },
+    {
+      "data_type": "dict",
+      "dry_run": true,
+      "exists": true,
+      "fallback_used": false,
+      "forbidden_terms": [],
+      "linked_symbols": [],
+      "mock_data": false,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "path": "local_console_agent_stage81/agent_debate.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "stage": "Stage81",
+      "unsafe": false
+    },
+    {
+      "data_type": "list",
+      "dry_run": true,
+      "exists": true,
+      "fallback_used": false,
+      "forbidden_terms": [
+        "auto_approve"
+      ],
+      "linked_symbols": [
+        "159915.SZ",
+        "510300.SH",
+        "510500.SH"
+      ],
+      "mock_data": false,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "path": "local_console_strategy_stage80/factor_trade_intents.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "stage": "Stage80",
+      "unsafe": true
+    },
+    {
+      "data_type": "list",
+      "dry_run": true,
+      "exists": true,
+      "fallback_used": false,
+      "forbidden_terms": [
+        "auto_approve"
+      ],
+      "linked_symbols": [
+        "159915.SZ",
+        "510300.SH",
+        "510500.SH"
+      ],
+      "mock_data": false,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "path": "local_console_strategy_stage80/factor_risk_decisions.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "stage": "Stage80",
+      "unsafe": true
+    },
+    {
+      "data_type": "dict",
+      "dry_run": true,
+      "exists": true,
+      "fallback_used": false,
+      "forbidden_terms": [
+        "auto_approve"
+      ],
+      "linked_symbols": [],
+      "mock_data": false,
+      "no_order_submitted": true,
+      "no_qmt_trader_api": true,
+      "no_real_notification": true,
+      "not_live_trading": true,
+      "path": "local_console_strategy_stage80/factor_strategy_report.json",
+      "requires_human_review": true,
+      "requires_risk_gate": true,
+      "research_only": true,
+      "stage": "Stage80",
+      "unsafe": true
+    }
+  ],
   "stage": "Stage83",
-  "validation_nul_logs": []
+  "unsafe": true,
+  "unsafe_sources": [
+    "local_console_strategy_stage80/factor_trade_intents.json",
+    "local_console_strategy_stage80/factor_risk_decisions.json",
+    "local_console_strategy_stage80/factor_strategy_report.json"
+  ],
+  "validation_nul_logs": [
+    "validation_logs/stage72_validation_20260621_104628.log",
+    "validation_logs/stage73_validation_20260621_110442.log",
+    "validation_logs/stage74_validation_20260621_115655.log",
+    "validation_logs/stage75_validation_20260621_123303.log",
+    "validation_logs/stage76_validation_20260621_125427.log",
+    "validation_logs/stage80_validation_20260621_192226.log",
+    "validation_logs/stage80_validation_20260621_192703.log",
+    "validation_logs/stage80_validation_20260621_193814.log",
+    "validation_logs/stage80_validation_20260621_194251.log",
+    "validation_logs/stage81_validation_20260621_201518.log",
+    "validation_logs/stage82_validation_20260621_205723.log"
+  ],
+  "warnings": []
 }
 ```

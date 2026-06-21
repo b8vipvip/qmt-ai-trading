@@ -14,8 +14,11 @@
   "no_qmt_trader_api": true,
   "not_live_trading": true,
   "requires_human_review": true,
-  "status": "WATCH",
+  "status": "DRY_RUN_BLOCKED",
   "triggered": true,
-  "triggered_rules": []
+  "triggered_rules": [
+    "AUTO_APPROVE_DETECTED",
+    "VALIDATION_LOG_ENCODING_ERROR"
+  ]
 }
 ```
