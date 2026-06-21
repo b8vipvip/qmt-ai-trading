@@ -943,3 +943,15 @@ Stage78 在业务控制台中新增 AI 模型配置中心，支持用户填写 O
 ### 阶段七十九预告：因子研究工作台与选股评分可视化层
 
 Stage79 将把 Research / Factor Engineering 能力做成前端可见、可配置、可运行、可复盘的业务模块，仍然 dry-run / shadow，不接实盘、不真实下单。
+
+### 阶段七十九：因子研究工作台与选股评分可视化层 + 验收日志落盘修复
+
+- 当前状态：已完成。
+- 建设因子研究工作台，提供默认因子目录、配置种子、factor_scan、IC / RankIC 评估、候选池与前端可视化。
+- 追加 `run_qmt_tasks.ps1` 验收日志落盘修复模板，确保后续可生成 `validation_logs/stage*_validation_*.log`。
+- 仍不接实盘、不下单、不查询真实账户、不调用 xttrader、不自动 approve。
+
+### 阶段八十预告：因子候选池到 Strategy Engine dry-run TradeIntent 联调层
+
+- 将 Stage79 `factor_candidates` 接入 Strategy Engine，生成 dry-run TradeIntent，并继续经过 Risk Gate。
+- 仍然不是实盘，不真实下单。
