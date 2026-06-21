@@ -210,6 +210,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--local-console-help-docs-output-dir", default="local_console_help")
     parser.add_argument("--enable-local-console-demo-package", action="store_true")
     parser.add_argument("--local-console-demo-package-output-dir", default="local_console_demo")
+    parser.add_argument("--enable-ui-productization-closure", action="store_true")
+    parser.add_argument("--ui-productization-closure-output-dir", default="local_console_closure")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -869,6 +871,25 @@ def main(argv: list[str] | None = None) -> int:
         save_next_ui_productization_closure_plan_report(build_next_ui_productization_closure_plan_report(demo_cfg), demo_dir / "next_ui_productization_closure_plan.md", demo_dir / "next_ui_productization_closure_plan.json")
         print(f"\nStage74 local console demo package written: {demo_dir / 'local_console_demo_package_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
 
+
+    if args.enable_ui_productization_closure:
+        from qmt_ai_trading.local_console.closure_service import build_default_local_console_closure_config, run_ui_productization_closure_review, save_ui_productization_closure_report, build_stage_overview_report, save_stage_overview_report, build_capability_matrix_report, save_capability_matrix_report, build_safety_boundary_table_report, save_safety_boundary_table_report, build_readonly_demo_entry_report, save_readonly_demo_entry_report, build_route_coverage_summary_report, save_route_coverage_summary_report, build_asset_coverage_summary_report, save_asset_coverage_summary_report, build_risk_limitation_summary_report, save_risk_limitation_summary_report, build_final_acceptance_conclusion_draft_report, save_final_acceptance_conclusion_draft_report, build_future_roadmap_recommendation_report, save_future_roadmap_recommendation_report, build_closure_safety_report, save_closure_safety_report
+        closure_dir = Path(args.ui_productization_closure_output_dir)
+        closure_cfg = build_default_local_console_closure_config(repo_root=ROOT, output_dir=str(closure_dir))
+        closure_report = run_ui_productization_closure_review(closure_cfg)
+        save_ui_productization_closure_report(closure_report, closure_dir / "ui_productization_closure_report.md", closure_dir / "ui_productization_closure_report.json")
+        save_stage_overview_report(build_stage_overview_report(closure_report), closure_dir / "stage_overview.md", closure_dir / "stage_overview.json")
+        save_capability_matrix_report(build_capability_matrix_report(closure_report), closure_dir / "capability_matrix.md", closure_dir / "capability_matrix.json")
+        save_safety_boundary_table_report(build_safety_boundary_table_report(closure_report), closure_dir / "safety_boundary_table.md", closure_dir / "safety_boundary_table.json")
+        save_readonly_demo_entry_report(build_readonly_demo_entry_report(closure_report), closure_dir / "readonly_demo_entry.md", closure_dir / "readonly_demo_entry.json")
+        save_route_coverage_summary_report(build_route_coverage_summary_report(closure_report), closure_dir / "route_coverage_summary.md", closure_dir / "route_coverage_summary.json")
+        save_asset_coverage_summary_report(build_asset_coverage_summary_report(closure_report), closure_dir / "asset_coverage_summary.md", closure_dir / "asset_coverage_summary.json")
+        save_risk_limitation_summary_report(build_risk_limitation_summary_report(closure_report), closure_dir / "risk_limitation_summary.md", closure_dir / "risk_limitation_summary.json")
+        save_final_acceptance_conclusion_draft_report(build_final_acceptance_conclusion_draft_report(closure_report), closure_dir / "final_acceptance_conclusion_draft.md", closure_dir / "final_acceptance_conclusion_draft.json")
+        save_future_roadmap_recommendation_report(build_future_roadmap_recommendation_report(closure_report), closure_dir / "future_roadmap_recommendation.md", closure_dir / "future_roadmap_recommendation.json")
+        save_closure_safety_report(build_closure_safety_report(closure_report), closure_dir / "closure_safety_report.md", closure_dir / "closure_safety_report.json")
+        print(f"\nStage75 UI productization closure package written: {closure_dir / 'ui_productization_closure_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
 
@@ -877,7 +898,7 @@ def main(argv: list[str] | None = None) -> int:
         for item in notification_results:
             print(f"- {item.channel}: success={item.success} dry_run={item.dry_run} message={item.message}")
 
-    return 0 if (result.success or args.enable_local_console_drilldown_review or args.enable_local_console_review_workbench or args.enable_local_console_ui_acceptance or args.enable_local_console_help_docs or args.enable_local_console_demo_package) else 1
+    return 0 if (result.success or args.enable_local_console_drilldown_review or args.enable_local_console_review_workbench or args.enable_local_console_ui_acceptance or args.enable_local_console_help_docs or args.enable_local_console_demo_package or args.enable_ui_productization_closure) else 1
 
 
 if __name__ == "__main__":
