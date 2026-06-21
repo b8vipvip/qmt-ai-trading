@@ -197,6 +197,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--local-console-ui-acceptance-output-dir", default="local_console_acceptance")
     parser.add_argument("--enable-local-console-help-docs", action="store_true")
     parser.add_argument("--local-console-help-docs-output-dir", default="local_console_help")
+    parser.add_argument("--enable-local-console-demo-package", action="store_true")
+    parser.add_argument("--local-console-demo-package-output-dir", default="local_console_demo")
     args = parser.parse_args(argv)
 
     config = ScheduleConfig(
@@ -462,6 +464,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Stage72 Local Console UI Acceptance: enable_local_console_ui_acceptance=True output_dir={args.local_console_ui_acceptance_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.enable_local_console_help_docs:
         print(f"Stage73 Local Console Help Docs: enable_local_console_help_docs=True output_dir={args.local_console_help_docs_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+    if args.enable_local_console_demo_package:
+        print(f"Stage74 Local Console Demo Package: enable_local_console_demo_package=True output_dir={args.local_console_demo_package_output_dir} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
     if args.build_dashboard:
         print(f"Dashboard: build_dashboard=True output={args.dashboard_output} title={args.dashboard_title} read_only=True no_order_submitted=True")
     if args.use_cached_research or args.data_source_mode in {"cached", "auto", "cached_real_first"}:

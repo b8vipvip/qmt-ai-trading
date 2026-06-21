@@ -41,6 +41,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--cached-strategy-top-n", type=int, default=1)
     parser.add_argument("--enable-local-console-help-docs", action="store_true")
     parser.add_argument("--local-console-help-docs-output-dir", default="local_console_help")
+    parser.add_argument("--enable-local-console-demo-package", action="store_true")
+    parser.add_argument("--local-console-demo-package-output-dir", default="local_console_demo")
     parser.add_argument("--cached-strategy-min-score", type=float, default=None)
     parser.add_argument("--cached-strategy-min-bars", type=int, default=20)
     parser.add_argument("--data-source-mode", default="cached_real_first", choices=["legacy", "cached", "auto", "mock", "cached_real_first"])
@@ -434,6 +436,9 @@ def main(argv: list[str] | None = None) -> int:
     if parsed.enable_local_console_help_docs:
         args.append("--enable-local-console-help-docs")
         args.extend(["--local-console-help-docs-output-dir", parsed.local_console_help_docs_output_dir])
+    if parsed.enable_local_console_demo_package:
+        args.append("--enable-local-console-demo-package")
+        args.extend(["--local-console-demo-package-output-dir", parsed.local_console_demo_package_output_dir])
     if parsed.build_dashboard:
         args.append("--build-dashboard")
         args.extend(["--dashboard-output", parsed.dashboard_output, "--dashboard-title", parsed.dashboard_title])

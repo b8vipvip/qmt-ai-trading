@@ -208,6 +208,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--local-console-ui-acceptance-output-dir", default="local_console_acceptance")
     parser.add_argument("--enable-local-console-help-docs", action="store_true")
     parser.add_argument("--local-console-help-docs-output-dir", default="local_console_help")
+    parser.add_argument("--enable-local-console-demo-package", action="store_true")
+    parser.add_argument("--local-console-demo-package-output-dir", default="local_console_demo")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -851,6 +853,22 @@ def main(argv: list[str] | None = None) -> int:
         save_next_local_demo_package_plan_report(build_next_local_demo_package_plan_report(help_cfg), help_dir / "next_local_demo_package_plan.md", help_dir / "next_local_demo_package_plan.json")
         print(f"\nStage73 local console help docs package written: {help_dir / 'local_console_help_docs_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
 
+    if args.enable_local_console_demo_package:
+        from qmt_ai_trading.local_console.demo_service import build_default_local_console_demo_config, run_local_console_demo_package_review, save_local_console_demo_package_report, build_demo_manifest_report, save_demo_manifest_report, build_demo_guide_report, save_demo_guide_report, build_demo_route_map_report, save_demo_route_map_report, build_demo_asset_manifest_report, save_demo_asset_manifest_report, build_demo_package_index_report, save_demo_package_index_report, build_demo_safety_report, save_demo_safety_report, build_demo_validation_summary_report, save_demo_validation_summary_report, build_next_ui_productization_closure_plan_report, save_next_ui_productization_closure_plan_report
+        demo_dir = Path(args.local_console_demo_package_output_dir)
+        demo_cfg = build_default_local_console_demo_config(repo_root=ROOT, output_dir=str(demo_dir))
+        demo_report = run_local_console_demo_package_review(demo_cfg)
+        save_local_console_demo_package_report(demo_report, demo_dir / "local_console_demo_package_report.md", demo_dir / "local_console_demo_package_report.json")
+        save_demo_manifest_report(build_demo_manifest_report(demo_report), demo_dir / "demo_manifest.md", demo_dir / "demo_manifest.json")
+        save_demo_guide_report(build_demo_guide_report(demo_report), demo_dir / "demo_guide.md", demo_dir / "demo_guide.json")
+        save_demo_route_map_report(build_demo_route_map_report(demo_report), demo_dir / "demo_route_map.md", demo_dir / "demo_route_map.json")
+        save_demo_asset_manifest_report(build_demo_asset_manifest_report(demo_report), demo_dir / "demo_asset_manifest.md", demo_dir / "demo_asset_manifest.json")
+        save_demo_package_index_report(build_demo_package_index_report(demo_report), demo_dir / "demo_package_index.md", demo_dir / "demo_package_index.json")
+        save_demo_safety_report(build_demo_safety_report(demo_report), demo_dir / "demo_safety_report.md", demo_dir / "demo_safety_report.json")
+        save_demo_validation_summary_report(build_demo_validation_summary_report(demo_report), demo_dir / "demo_validation_summary.md", demo_dir / "demo_validation_summary.json")
+        save_next_ui_productization_closure_plan_report(build_next_ui_productization_closure_plan_report(demo_cfg), demo_dir / "next_ui_productization_closure_plan.md", demo_dir / "next_ui_productization_closure_plan.json")
+        print(f"\nStage74 local console demo package written: {demo_dir / 'local_console_demo_package_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
 
@@ -859,7 +877,7 @@ def main(argv: list[str] | None = None) -> int:
         for item in notification_results:
             print(f"- {item.channel}: success={item.success} dry_run={item.dry_run} message={item.message}")
 
-    return 0 if (result.success or args.enable_local_console_drilldown_review or args.enable_local_console_review_workbench or args.enable_local_console_ui_acceptance or args.enable_local_console_help_docs) else 1
+    return 0 if (result.success or args.enable_local_console_drilldown_review or args.enable_local_console_review_workbench or args.enable_local_console_ui_acceptance or args.enable_local_console_help_docs or args.enable_local_console_demo_package) else 1
 
 
 if __name__ == "__main__":
