@@ -657,3 +657,13 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+
+# stage 70 local console drilldown runtime outputs
+validation_logs/
+local_console_drilldown_stage70/
+local_console_drilldown/
+market_data_test_stage70/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/

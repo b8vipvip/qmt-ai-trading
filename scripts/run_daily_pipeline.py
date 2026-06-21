@@ -200,6 +200,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--local-console-refresh-review-output-dir", default="local_console_refresh")
     parser.add_argument("--enable-local-console-grouping-review", action="store_true")
     parser.add_argument("--local-console-grouping-review-output-dir", default="local_console_grouping")
+    parser.add_argument("--enable-local-console-drilldown-review", action="store_true")
+    parser.add_argument("--local-console-drilldown-review-output-dir", default="local_console_drilldown")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -774,6 +776,21 @@ def main(argv: list[str] | None = None) -> int:
         save_next_console_drilldown_export_plan_report(build_next_console_drilldown_export_plan_report(grouping_cfg), grouping_dir / "next_console_drilldown_export_plan.md", grouping_dir / "next_console_drilldown_export_plan.json")
         print(f"\nStage69 local console grouping review package written: {grouping_dir / 'local_console_grouping_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
 
+
+    if args.enable_local_console_drilldown_review:
+        from qmt_ai_trading.local_console.drilldown_service import build_default_local_console_drilldown_config, run_local_console_drilldown_review, save_local_console_drilldown_report, build_report_detail_index_report, save_report_detail_index_report, build_drilldown_route_map_report, save_drilldown_route_map_report, build_export_manifest_report, save_export_manifest_report, build_export_snapshot_report, save_export_snapshot_report, build_export_safety_report_from_report, save_export_safety_report, build_next_manual_review_workbench_plan_report, save_next_manual_review_workbench_plan_report
+        drilldown_dir = Path(args.local_console_drilldown_review_output_dir)
+        drilldown_cfg = build_default_local_console_drilldown_config(repo_root=ROOT, output_dir=str(drilldown_dir), binding_dir="local_console_binding_stage66", grouping_dir="local_console_grouping_stage69", refresh_dir="local_console_refresh_stage68", preview_dir="local_console_preview_stage67")
+        drilldown_report = run_local_console_drilldown_review(drilldown_cfg)
+        save_local_console_drilldown_report(drilldown_report, drilldown_dir / "local_console_drilldown_report.md", drilldown_dir / "local_console_drilldown_report.json")
+        save_report_detail_index_report(build_report_detail_index_report(drilldown_report), drilldown_dir / "report_detail_index.md", drilldown_dir / "report_detail_index.json")
+        save_drilldown_route_map_report(build_drilldown_route_map_report(drilldown_report), drilldown_dir / "drilldown_route_map.md", drilldown_dir / "drilldown_route_map.json")
+        save_export_manifest_report(build_export_manifest_report(drilldown_report), drilldown_dir / "export_manifest.md", drilldown_dir / "export_manifest.json")
+        save_export_snapshot_report(build_export_snapshot_report(drilldown_report), drilldown_dir / "export_snapshot.md", drilldown_dir / "export_snapshot.json")
+        save_export_safety_report(build_export_safety_report_from_report(drilldown_report), drilldown_dir / "export_safety_report.md", drilldown_dir / "export_safety_report.json")
+        save_next_manual_review_workbench_plan_report(build_next_manual_review_workbench_plan_report(drilldown_cfg), drilldown_dir / "next_manual_review_workbench_plan.md", drilldown_dir / "next_manual_review_workbench_plan.json")
+        print(f"\nStage70 local console drilldown review package written: {drilldown_dir / 'local_console_drilldown_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
 
@@ -782,7 +799,7 @@ def main(argv: list[str] | None = None) -> int:
         for item in notification_results:
             print(f"- {item.channel}: success={item.success} dry_run={item.dry_run} message={item.message}")
 
-    return 0 if result.success else 1
+    return 0 if (result.success or args.enable_local_console_drilldown_review) else 1
 
 
 if __name__ == "__main__":
