@@ -12,12 +12,20 @@ from qmt_ai_trading.ai_provider.model_discovery import discover_models, LATEST_D
 from qmt_ai_trading.ai_provider.stress_test import run_stress_test, LATEST_BENCHMARK
 from qmt_ai_trading.ai_provider.usage_mapping import save_usage_draft, get_usage_draft
 from qmt_ai_trading.ai_provider.serializers import to_dict
+from qmt_ai_trading.research.factor_registry import catalog_as_dict
+from qmt_ai_trading.research.factor_config import config_seed_as_dict
 DEFAULT_HOST='127.0.0.1'; DEFAULT_PORT=8768
 STORE=TaskStore()
+LATEST_FACTOR_SCAN={'factor_results': [], 'factor_evaluation': {}, 'factor_candidates': []}
 def _json(handler, code, payload):
     raw=json.dumps(payload, ensure_ascii=False).encode('utf-8'); handler.send_response(code); handler.send_header('Content-Type','application/json; charset=utf-8'); handler.send_header('Content-Length',str(len(raw))); handler.end_headers(); handler.wfile.write(raw)
 def summary():
     runs=STORE.list(); return {'title':'QMT AI 本地量化控制台','mode':'dry-run/shadow','read_only':True,'no_trade_authorization':True,'live_status':'实盘关闭','task_total':len(runs),'success_count':sum(r.status=='SUCCESS' for r in runs),'risk_block_count':1,'agent_report_count':sum(r.category=='AGENTS' for r in runs),'recent_signal_count':sum(len(r.output.get('signals',[])) for r in runs)}
+def _latest_factor_output():
+    for r in STORE.list():
+        if r.task_id=='factor_scan' and r.output:
+            return r.output
+    return LATEST_FACTOR_SCAN
 def reports(): return [{'name':'Stage77 dry-run 业务控制台摘要','type':'dry-run report','summary':'仅白名单摘要，不暴露 reports/logs 原始目录'},{'name':'Agent 投研结构化建议','type':'agent report','summary':'只输出 confidence/reasons/risk_flags，不下单'}]
 def market_snapshot(qs): return {'symbol':qs.get('symbol',['510300.SH'])[0],'source':'local readonly/mock','time':'dry-run latest','ohlcv':{'open':3.91,'high':3.96,'low':3.88,'close':3.94,'volume':1200000},'quality_status':'OK','read_only':True}
 def make_handler(static_dir=None):
@@ -45,6 +53,11 @@ def make_handler(static_dir=None):
             if p=='/api/v1/reports': return _json(self,200,{'ok':True,'reports':reports()})
             if p=='/api/v1/market/snapshot': return _json(self,200,{'ok':True,'snapshot':market_snapshot(parse_qs(u.query))})
             if p=='/api/v1/console/summary': return _json(self,200,{'ok':True,'summary':summary()})
+            if p=='/api/v1/factors/catalog': return _json(self,200,{'ok':True,'factors':catalog_as_dict()})
+            if p=='/api/v1/factors/config': return _json(self,200,{'ok':True,'config':config_seed_as_dict()})
+            if p=='/api/v1/factors/results': return _json(self,200,{'ok':True,'results':_latest_factor_output().get('factor_results',[])})
+            if p=='/api/v1/factors/evaluation': return _json(self,200,{'ok':True,'evaluation':_latest_factor_output().get('factor_evaluation',{})})
+            if p=='/api/v1/factors/candidates': return _json(self,200,{'ok':True,'candidates':_latest_factor_output().get('factor_candidates',[])})
             if p=='/api/v1/ai/models/latest': return _json(self,200,{'ok':True,'result':LATEST_DISCOVERY})
             if p=='/api/v1/ai/benchmark/latest': return _json(self,200,{'ok':True,'report':LATEST_BENCHMARK})
             if p=='/api/v1/ai/model-usage/draft': return _json(self,200,{'ok':True,'draft':get_usage_draft()})

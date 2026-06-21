@@ -727,3 +727,13 @@ market_data_test_stage77/
 
 # stage78 ai provider runtime outputs
 local_console_ai_stage78/
+
+# stage79 factor research workbench runtime outputs
+validation_logs/
+local_console_app_stage79/
+local_console_factor_stage79/
+market_data_test_stage79/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/

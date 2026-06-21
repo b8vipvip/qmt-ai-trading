@@ -4,6 +4,9 @@ from .models import TaskRun, now_iso
 from .task_registry import get_task
 from .safety import *
 def mock_output(task_id, params):
+    if task_id=='factor_scan':
+        from qmt_ai_trading.research.factor_engine import run_factor_scan
+        return run_factor_scan(params)
     base={'mode':'dry-run/shadow','no_trade_authorization':True,'read_only':True,'params':params}
     if task_id in {'ai_model_discovery','ai_model_stress_test','ai_model_usage_draft'}: base.update({'ai_provider_task':True,'local_api_only':True,'trade_chain':False,'note':'Stage78 AI Provider 白名单任务，仅调用本地 Console API，不进入交易链路'})
     elif task_id=='market_snapshot_readonly': base.update({'symbol':params.get('symbol','510300.SH'),'source':'local readonly/mock','ohlcv':{'open':3.91,'high':3.96,'low':3.88,'close':3.94,'volume':1200000},'quality':'OK'})
