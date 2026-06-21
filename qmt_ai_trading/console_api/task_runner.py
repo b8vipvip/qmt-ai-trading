@@ -18,6 +18,10 @@ def mock_output(task_id, params):
         from qmt_ai_trading.monitoring import run_monitoring_stage83
         report=run_monitoring_stage83(repo_root=params.get('repo_root','.'), output_dir=params.get('output_dir','local_console_monitoring_stage83'))
         return {'task_id':'monitoring_alert_dry_run','status':'SUCCESS','output_dir':report.get('output_dir'),'report_path':report.get('report_path'),'alert_count':report.get('alert_count',0),'critical_count':report.get('critical_count',0),'circuit_breaker_status':report.get('circuit_breaker_status'),'dry_run':True,'not_live_trading':True,'research_only':True,'no_real_notification':True,'warnings':report.get('warnings',[])}
+    if task_id=='market_replay_sandbox':
+        from qmt_ai_trading.market_gateway import run_market_gateway_stage84
+        report=run_market_gateway_stage84(repo_root=params.get('repo_root','.'), output_dir=params.get('output_dir','local_console_market_stage84'), provider=params.get('provider','mock_provider'), symbols=params.get('symbols',['510300.SH','510500.SH','588000.SH']), timeframe=params.get('timeframe','1d'), limit=int(params.get('limit',20)), speed=float(params.get('speed',1.0)))
+        return {'task_id':'market_replay_sandbox','status':'SUCCESS','output_dir':report.get('output_dir'),'report_path':report.get('report_path'),'provider':report.get('provider'),'replay_event_count':report.get('replay_event_count',0),'symbol_count':report.get('symbol_count',0),'sandbox':True,'read_only':True,'not_live_trading':True,'no_qmt_trader_api':True,'warnings':report.get('warnings',[])}
     if task_id=='factor_strategy_dry_run':
         from qmt_ai_trading.research.factor_engine import run_factor_scan
         from qmt_ai_trading.strategies.factor_strategy_engine import build_factor_strategy
