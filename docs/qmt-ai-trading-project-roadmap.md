@@ -875,3 +875,11 @@ Stage68 将基于 Stage67 本地只读预览服务增强页面导航、只读刷
 Stage70 不是实盘授权，不调用 `xttrader`，不调用 QMT 交易接口，不真实下单，不查询真实账户/资金/持仓/订单/成交，不真实发送通知，不自动 approve，不绕过 Risk Gate，不绕过 Human Approval。READY_FOR_LOCAL_CONSOLE_DRILLDOWN_REVIEW 只表示本地控制台报告详情钻取与导出层材料可供人工复核。
 
 阶段七十一预告：本地控制台人工复核工作台层。Stage71 仍不得直接实盘，不调用 `xttrader`，不查询真实账户，不下单；它将基于 Stage70 报告详情钻取与导出层增加人工复核工作台、复核清单、只读 review notes 模板、本地确认项列表和复核包目录索引。
+
+### Stage71 完成说明：本地控制台人工复核工作台层
+
+- Stage71 属于“完整工程阶段计划与前端 UI 产品化路线（Stage 1-75）”中的 Stage61-75：API Gateway / 本地控制台 / UI 产品化路线。
+- Stage71 只生成本地只读人工复核工作台、review checklist、review notes template、local confirmation checklist、review package index、review safety report 和 Stage72 UI 验收汇总层计划。
+- Stage71 不等于实盘授权，不调用 xttrader，不查询真实账户，不下单，不发送真实通知，不自动 approve。
+- UI 继续不能绕过 Risk Gate / Human Approval，不能直接访问 QMT，不能自动 approve。
+- Stage72 预告：本地控制台 UI 验收汇总层，仍不得直接实盘。

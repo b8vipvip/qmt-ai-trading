@@ -202,6 +202,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--local-console-grouping-review-output-dir", default="local_console_grouping")
     parser.add_argument("--enable-local-console-drilldown-review", action="store_true")
     parser.add_argument("--local-console-drilldown-review-output-dir", default="local_console_drilldown")
+    parser.add_argument("--enable-local-console-review-workbench", action="store_true")
+    parser.add_argument("--local-console-review-workbench-output-dir", default="local_console_review")
     args = parser.parse_args(argv)
 
     symbols = [item.strip() for item in args.symbols.split(",") if item.strip()]
@@ -791,6 +793,21 @@ def main(argv: list[str] | None = None) -> int:
         save_next_manual_review_workbench_plan_report(build_next_manual_review_workbench_plan_report(drilldown_cfg), drilldown_dir / "next_manual_review_workbench_plan.md", drilldown_dir / "next_manual_review_workbench_plan.json")
         print(f"\nStage70 local console drilldown review package written: {drilldown_dir / 'local_console_drilldown_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
 
+    if args.enable_local_console_review_workbench:
+        from qmt_ai_trading.local_console.review_service import build_default_local_console_review_config, run_local_console_review_workbench_review, save_local_console_review_workbench_report, build_review_manifest_report, save_review_manifest_report, build_review_checklist_report, save_review_checklist_report, build_review_notes_template_report, save_review_notes_template_report, build_local_confirmation_checklist_report, save_local_confirmation_checklist_report, build_review_package_index_report, save_review_package_index_report, build_review_safety_report_from_report, save_review_safety_report, build_next_ui_acceptance_summary_plan_report, save_next_ui_acceptance_summary_plan_report
+        review_dir = Path(args.local_console_review_workbench_output_dir)
+        review_cfg = build_default_local_console_review_config(repo_root=ROOT, output_dir=str(review_dir))
+        review_report = run_local_console_review_workbench_review(review_cfg)
+        save_local_console_review_workbench_report(review_report, review_dir / "local_console_review_workbench_report.md", review_dir / "local_console_review_workbench_report.json")
+        save_review_manifest_report(build_review_manifest_report(review_report), review_dir / "review_manifest.md", review_dir / "review_manifest.json")
+        save_review_checklist_report(build_review_checklist_report(review_report), review_dir / "review_checklist.md", review_dir / "review_checklist.json")
+        save_review_notes_template_report(build_review_notes_template_report(review_report), review_dir / "review_notes_template.md", review_dir / "review_notes_template.json")
+        save_local_confirmation_checklist_report(build_local_confirmation_checklist_report(review_report), review_dir / "local_confirmation_checklist.md", review_dir / "local_confirmation_checklist.json")
+        save_review_package_index_report(build_review_package_index_report(review_report), review_dir / "review_package_index.md", review_dir / "review_package_index.json")
+        save_review_safety_report(build_review_safety_report_from_report(review_report), review_dir / "review_safety_report.md", review_dir / "review_safety_report.json")
+        save_next_ui_acceptance_summary_plan_report(build_next_ui_acceptance_summary_plan_report(review_cfg), review_dir / "next_ui_acceptance_summary_plan.md", review_dir / "next_ui_acceptance_summary_plan.json")
+        print(f"\nStage71 local console review workbench package written: {review_dir / 'local_console_review_workbench_report.md'} read_only=True dry_run_only=True no_trade_authorization=True no_task_registered=True")
+
     if args.notify_dry_run:
         from qmt_ai_trading.reporting.notifier import notify_report
 
@@ -799,7 +816,7 @@ def main(argv: list[str] | None = None) -> int:
         for item in notification_results:
             print(f"- {item.channel}: success={item.success} dry_run={item.dry_run} message={item.message}")
 
-    return 0 if (result.success or args.enable_local_console_drilldown_review) else 1
+    return 0 if (result.success or args.enable_local_console_drilldown_review or args.enable_local_console_review_workbench) else 1
 
 
 if __name__ == "__main__":
