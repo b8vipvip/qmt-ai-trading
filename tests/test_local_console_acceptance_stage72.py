@@ -7,6 +7,15 @@ from qmt_ai_trading.local_console.acceptance_formatters import format_local_cons
 from qmt_ai_trading.local_console.acceptance_safety import classify_acceptance_marker, scan_acceptance_assets_for_forbidden_markers, LocalConsoleAcceptanceSeverity
 from qmt_ai_trading.local_console.acceptance_service import *
 
+
+def assert_no_mojibake(text: str) -> None:
+    bad_markers = [
+        "鏈", "鍙", "楠", "涓", "绛", "璇", "瀹", "鐩", "鎺", "鏉",
+        "�", "\x00",
+    ]
+    for marker in bad_markers:
+        assert marker not in text
+
 def test_models_default():
     assert LocalConsoleAcceptanceConfig().read_only
     assert LocalConsoleUiAcceptanceReport().decision == LocalConsoleAcceptanceDecision.NEED_MORE_EVIDENCE
@@ -68,6 +77,7 @@ def test_docs_validate_and_gitignore():
     v=(root/'scripts/validate_stage72.ps1').read_text(encoding='utf-8')
     assert 'powershell -NoProfile -Command' not in v
     assert 'Clean-PythonCache' in v and 'Print-File' in v and 'Check-NoBackup' in v
+    assert 'Get-Content -LiteralPath $Path -Encoding UTF8' in v
     assert v.find('Clean-PythonCache') < v.rfind('sync_all.ps1 -Mode scan')
     gi=(root/'.gitignore').read_text(encoding='utf-8')
     assert 'validation_logs/' in gi and 'local_console_acceptance_stage72/' in gi
@@ -82,3 +92,58 @@ def test_daily_scheduled_register_options(tmp_path):
     assert (tmp_path/'acc2'/'local_console_ui_acceptance_report.json').exists()
     r=subprocess.run([sys.executable,'scripts/register_daily_pipeline_task.py','--enable-local-console-ui-acceptance','--local-console-ui-acceptance-output-dir','local_console_acceptance','--time','15:30'],cwd=root,text=True,capture_output=True)
     assert r.returncode == 0 and 'read_only=True' in r.stdout and 'dry_run_only=True' in r.stdout and 'no_trade_authorization=True' in r.stdout and 'no_task_registered=True' in r.stdout
+
+
+def test_cli_outputs_utf8_readable_chinese_without_mojibake(tmp_path):
+    cmd = [sys.executable, 'scripts/run_local_console_ui_acceptance.py', '--repo-root', str(tmp_path), '--output-dir', 'out']
+    res = subprocess.run(cmd, cwd=Path(__file__).resolve().parents[1], text=True, capture_output=True)
+    assert res.returncode == 0, res.stderr
+    out = tmp_path / 'out'
+    markdown_files = [
+        'local_console_ui_acceptance_report.md',
+        'ui_acceptance_summary.md',
+        'page_inventory.md',
+        'feature_inventory.md',
+        'safety_checklist.md',
+        'open_items.md',
+        'route_coverage.md',
+        'asset_coverage.md',
+        'acceptance_conclusion_draft.md',
+        'acceptance_package_index.md',
+        'ui_acceptance_safety_report.md',
+        'next_local_help_docs_plan.md',
+    ]
+    json_files = [name.replace('.md', '.json') for name in markdown_files]
+    expected_chinese = {
+        'local_console_ui_acceptance_report.md': [
+            '本阶段不是实盘授权，不下单，不调用 xttrader，不查询真实账户，不发送真实通知。',
+            'READY_FOR_LOCAL_CONSOLE_UI_ACCEPTANCE_REVIEW 只表示本地控制台 UI 验收汇总层材料可供人工复核。',
+            'UI acceptance summary / acceptance conclusion draft 都不是审批授权。',
+            'Stage73 进入本地文档/帮助层；仍不得直接实盘，不调用 xttrader，不查询真实账户，不下单。',
+        ],
+        'ui_acceptance_summary.md': ['UI acceptance summary 只是本地验收材料，不是审批授权。'],
+        'page_inventory.md': ['本地只读页面，不是实盘授权。'],
+        'feature_inventory.md': ['UI 验收汇总', '只汇总材料状态，不写审批授权。'],
+        'safety_checklist.md': ['不下单，不调用 xttrader，不查询真实账户，不发送真实通知。'],
+        'route_coverage.md': ['该路由被安全边界禁止；本地控制台不提供交易/账户/审批/通知/自动批准功能。'],
+        'acceptance_conclusion_draft.md': ['验收结论草稿：仅表示本地控制台 UI 验收汇总材料可供人工复核，不是审批授权，不是交易授权。'],
+        'next_local_help_docs_plan.md': ['本地文档/帮助层', 'Stage73 仍不得直接实盘，不调用 xttrader，不查询真实账户，不下单。'],
+    }
+    for name in markdown_files:
+        raw = (out / name).read_bytes()
+        assert not raw.startswith(b'\xef\xbb\xbf'), name
+        text = raw.decode('utf-8')
+        assert_no_mojibake(text)
+        for phrase in expected_chinese.get(name, []):
+            assert phrase in text
+    for name in json_files:
+        raw = (out / name).read_bytes()
+        assert not raw.startswith(b'\xef\xbb\xbf'), name
+        text = raw.decode('utf-8')
+        assert_no_mojibake(text)
+        assert '\\u4' not in text and '\\u9' not in text and '\\u' not in text
+        json.loads(text)
+    summary_json = (out / 'ui_acceptance_summary.json').read_text(encoding='utf-8')
+    assert 'UI acceptance summary 只是本地验收材料，不是审批授权。' in summary_json
+    report_json = (out / 'local_console_ui_acceptance_report.json').read_text(encoding='utf-8')
+    assert '验收结论草稿：仅表示本地控制台 UI 验收汇总材料可供人工复核，不是审批授权，不是交易授权。' in report_json
