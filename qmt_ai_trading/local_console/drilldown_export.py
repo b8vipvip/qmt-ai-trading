@@ -16,7 +16,7 @@ def validate_export_sources(sources):
     assert_no_sensitive_export_sources(sources); return list(sources)
 
 def build_export_snapshot(report_id='stage70-overview', payload=None):
-    payload=sanitize_export_payload(payload or {'summary':'本地只读复核摘要','read_only':True,'dry_run_only':True,'no_trade_authorization':True})
+    payload=sanitize_export_payload(payload or {'summary':'本地只读复核摘要，不是交易授权。','note':'导出仅为本地 Markdown/JSON 复核快照，不是交易授权。','read_only':True,'dry_run_only':True,'no_trade_authorization':True})
     return ExportSnapshot(report_id=report_id,payload=payload)
 
 def build_markdown_snapshot(snapshot: ExportSnapshot) -> str:

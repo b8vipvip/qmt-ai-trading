@@ -20,9 +20,9 @@ function Run-Logged {
     & $FilePath @Arguments 1> $stdout 2> $stderr
     $code = $LASTEXITCODE
     Write-LogLine "STDOUT:"
-    Get-Content -Path $stdout | Tee-Object -FilePath $LogPath -Append
+    Get-Content -Path $stdout -Encoding UTF8 | Tee-Object -FilePath $LogPath -Append
     Write-LogLine "STDERR:"
-    Get-Content -Path $stderr | Tee-Object -FilePath $LogPath -Append
+    Get-Content -Path $stderr -Encoding UTF8 | Tee-Object -FilePath $LogPath -Append
     Write-LogLine "EXIT_CODE: $code"
     if ($code -ne 0) {
         $script:Failed = $true
@@ -34,7 +34,7 @@ function Run-Logged {
 function Print-File {
     param([string]$Path)
     Write-LogLine "PRINT_FILE: $Path"
-    if (Test-Path $Path) { Get-Content -Path $Path | Tee-Object -FilePath $LogPath -Append } else { Write-LogLine "MISSING_FILE: $Path"; $script:Failed = $true }
+    if (Test-Path $Path) { Get-Content -Path $Path -Encoding UTF8 | Tee-Object -FilePath $LogPath -Append } else { Write-LogLine "MISSING_FILE: $Path"; $script:Failed = $true }
 }
 
 function Check-NoBackup {
