@@ -724,3 +724,6 @@ local_console_app_stage77/
 console_task_runs/
 console_api_logs/
 market_data_test_stage77/
+
+# stage78 ai provider runtime outputs
+local_console_ai_stage78/

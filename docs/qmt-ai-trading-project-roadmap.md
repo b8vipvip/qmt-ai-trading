@@ -935,3 +935,11 @@ Stage77 不再继续开发只读项目验收台，而是转向本地业务控制
 ## Stage78 预告：实盘前安全审计重启与真实数据质量复核层
 
 Stage78 仍然不是实盘，将基于 Stage77 业务控制台 MVP 重新启动实盘前安全审计，并重点复核真实缓存质量、QMT xtdata 稳定性、Paper Trading 成熟度、异常监控、live config 多重确认和数据质量报告。
+
+### 阶段七十八：AI 接口配置、模型发现与压力测试层
+
+Stage78 在业务控制台中新增 AI 模型配置中心，支持用户填写 OpenAI-compatible Base URL / API Key、查询模型列表、模型多选、执行 1000/3000/5000 字串行压力测试，并保存 Agent 模型用途映射草稿。密钥只在本地后端会话请求中使用，不提交、不写 localStorage、不进入报告明文。本阶段只服务 Agent 能力配置，不接交易、不调用 xttrader、不查账户、不下单。
+
+### 阶段七十九预告：因子研究工作台与选股评分可视化层
+
+Stage79 将把 Research / Factor Engineering 能力做成前端可见、可配置、可运行、可复盘的业务模块，仍然 dry-run / shadow，不接实盘、不真实下单。
