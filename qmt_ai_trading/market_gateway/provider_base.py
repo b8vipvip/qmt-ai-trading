@@ -1,0 +1,13 @@
+from __future__ import annotations
+from abc import ABC, abstractmethod
+from .models import MarketSymbol, MarketSnapshot, MarketBar, ReplaySession
+class MarketDataProvider(ABC):
+    provider_type='provider'
+    @abstractmethod
+    def list_symbols(self)->list[MarketSymbol]: ...
+    @abstractmethod
+    def get_snapshot(self, symbols:list[str])->list[MarketSnapshot]: ...
+    @abstractmethod
+    def get_bars(self, symbol:str, timeframe:str='1d', limit:int=100)->list[MarketBar]: ...
+    @abstractmethod
+    def subscribe(self, symbols:list[str])->ReplaySession: ...

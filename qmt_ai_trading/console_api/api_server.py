@@ -44,6 +44,19 @@ def _read_monitoring_file(name, default):
     try: return json.loads(path.read_text(encoding='utf-8'))
     except Exception as e: return {'error':str(e),'dry_run':True,'not_live_trading':True,'research_only':True,'no_real_notification':True}
 
+
+def _read_market_file(name, default):
+    path=Path('local_console_market_stage84')/name
+    if not path.exists():
+        try:
+            from qmt_ai_trading.market_gateway import run_market_gateway_stage84
+            run_market_gateway_stage84('.', 'local_console_market_stage84')
+        except Exception:
+            pass
+    if not path.exists(): return default
+    try: return json.loads(path.read_text(encoding='utf-8'))
+    except Exception as e: return {'error':str(e),'sandbox':True,'read_only':True,'not_live_trading':True,'no_qmt_trader_api':True}
+
 def _json(handler, code, payload):
     raw=json.dumps(payload, ensure_ascii=False).encode('utf-8'); handler.send_response(code); handler.send_header('Content-Type','application/json; charset=utf-8'); handler.send_header('Content-Length',str(len(raw))); handler.end_headers(); handler.wfile.write(raw)
 def summary():
@@ -113,6 +126,13 @@ def make_handler(static_dir=None):
             if p=='/api/v1/monitoring/risk-events/latest': return _json(self,200,{'ok':True,'risk_events':_read_monitoring_file('risk_event_timeline.json',{'events':[]})})
             if p=='/api/v1/monitoring/system-health/latest': return _json(self,200,{'ok':True,'system_health':_read_monitoring_file('system_health_report.json',{})})
             if p=='/api/v1/monitoring/report/latest': return _json(self,200,{'ok':True,'report':_read_monitoring_file('system_health_report.json',{})})
+            if p=='/api/v1/market/sandbox/context': return _json(self,200,{'ok':True,'context':_read_market_file('market_input_context.json',{'sandbox':True,'read_only':True,'not_live_trading':True})})
+            if p=='/api/v1/market/sandbox/symbols': return _json(self,200,{'ok':True,'symbols':_read_market_file('market_symbols.json',{'symbols':[]})})
+            if p=='/api/v1/market/sandbox/snapshots': return _json(self,200,{'ok':True,'snapshots':_read_market_file('market_snapshots.json',{'snapshots':[]})})
+            if p=='/api/v1/market/sandbox/bars': return _json(self,200,{'ok':True,'bars':_read_market_file('market_bars.json',{'bars':[]})})
+            if p=='/api/v1/market/sandbox/replay/latest': return _json(self,200,{'ok':True,'replay':_read_market_file('replay_events.json',{'events':[]})})
+            if p=='/api/v1/market/sandbox/quality/latest': return _json(self,200,{'ok':True,'quality':_read_market_file('market_data_quality.json',{})})
+            if p=='/api/v1/market/sandbox/report/latest': return _json(self,200,{'ok':True,'report':_read_market_file('market_gateway_report.json',{})})
             if p=='/api/v1/ai/models/latest': return _json(self,200,{'ok':True,'result':LATEST_DISCOVERY})
             if p=='/api/v1/ai/benchmark/latest': return _json(self,200,{'ok':True,'report':LATEST_BENCHMARK})
             if p=='/api/v1/ai/model-usage/draft': return _json(self,200,{'ok':True,'draft':get_usage_draft()})
