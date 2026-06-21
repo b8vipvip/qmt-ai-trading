@@ -30,16 +30,10 @@
     ],
     "limitations": [
       "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
-      "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
-      "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
-      "missing input fallback used: local_console_factor_stage79/factor_report.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+      "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
     ],
     "recommendation_type": "RESEARCH_ONLY",
-    "created_at": "2026-06-21T12:11:26.029888+00:00",
+    "created_at": "2026-06-21T12:34:24.662888+00:00",
     "dry_run": true,
     "not_live_trading": true,
     "research_only": true,
@@ -76,16 +70,10 @@
     ],
     "limitations": [
       "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
-      "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
-      "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
-      "missing input fallback used: local_console_factor_stage79/factor_report.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+      "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
     ],
     "recommendation_type": "RESEARCH_ONLY",
-    "created_at": "2026-06-21T12:11:26.030086+00:00",
+    "created_at": "2026-06-21T12:34:24.662888+00:00",
     "dry_run": true,
     "not_live_trading": true,
     "research_only": true,
@@ -122,16 +110,10 @@
     ],
     "limitations": [
       "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
-      "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
-      "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
-      "missing input fallback used: local_console_factor_stage79/factor_report.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+      "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
     ],
     "recommendation_type": "RISK_WARNING",
-    "created_at": "2026-06-21T12:11:26.030165+00:00",
+    "created_at": "2026-06-21T12:34:24.662888+00:00",
     "dry_run": true,
     "not_live_trading": true,
     "research_only": true,
@@ -168,16 +150,10 @@
     ],
     "limitations": [
       "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
-      "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
-      "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
-      "missing input fallback used: local_console_factor_stage79/factor_report.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+      "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
     ],
     "recommendation_type": "RESEARCH_ONLY",
-    "created_at": "2026-06-21T12:11:26.030234+00:00",
+    "created_at": "2026-06-21T12:34:24.662888+00:00",
     "dry_run": true,
     "not_live_trading": true,
     "research_only": true,
@@ -214,16 +190,10 @@
     ],
     "limitations": [
       "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
-      "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
-      "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
-      "missing input fallback used: local_console_factor_stage79/factor_report.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+      "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
     ],
     "recommendation_type": "RESEARCH_ONLY",
-    "created_at": "2026-06-21T12:11:26.030298+00:00",
+    "created_at": "2026-06-21T12:34:24.662888+00:00",
     "dry_run": true,
     "not_live_trading": true,
     "research_only": true,
@@ -260,16 +230,10 @@
     ],
     "limitations": [
       "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
-      "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
-      "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
-      "missing input fallback used: local_console_factor_stage79/factor_report.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+      "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
     ],
     "recommendation_type": "PORTFOLIO_REVIEW",
-    "created_at": "2026-06-21T12:11:26.030360+00:00",
+    "created_at": "2026-06-21T12:34:24.662888+00:00",
     "dry_run": true,
     "not_live_trading": true,
     "research_only": true,
@@ -306,16 +270,10 @@
     ],
     "limitations": [
       "missing input fallback used: local_console_ai_stage78/model_usage_draft.json",
-      "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json",
-      "missing input fallback used: local_console_factor_stage79/factor_candidates.json",
-      "missing input fallback used: local_console_factor_stage79/factor_report.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_strategy_signals.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_trade_intents.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_risk_decisions.json",
-      "missing input fallback used: local_console_strategy_stage80/factor_strategy_report.json"
+      "missing input fallback used: local_console_ai_stage78/ai_benchmark_report.json"
     ],
     "recommendation_type": "RESEARCH_ONLY",
-    "created_at": "2026-06-21T12:11:26.030423+00:00",
+    "created_at": "2026-06-21T12:34:24.662888+00:00",
     "dry_run": true,
     "not_live_trading": true,
     "research_only": true,

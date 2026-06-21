@@ -1,5 +1,5 @@
 {
-  "path": "local_console_ai_stage78/model_usage_draft.json",
+  "path": "local_console_ai_stage78\\model_usage_draft.json",
   "fallback_used": true,
   "mock_data": true,
   "mappings": {
