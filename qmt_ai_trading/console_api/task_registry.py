@@ -7,7 +7,7 @@ TASK_SPECS=[
 ('agent_research_brief','Agent 投研简报','AGENTS','结构化建议'),('agent_risk_review','Agent 风险复核','AGENTS','结构化风险建议'),('agent_portfolio_review','Agent 组合复核','AGENTS','组合建议，不交易'),
 ('shadow_replay_backtest','Shadow Replay 回测','BACKTEST','回放式回测摘要'),('backtest_report','回测报告生成','BACKTEST','生成回测摘要'),
 ('risk_gate_dry_run_check','Risk Gate dry-run','RISK','风控闸门校验'),('live_readiness_blockers_review','实盘阻断项复核','RISK','列出阻断项'),
-('generate_daily_report','生成日报','REPORT','生成 dry-run 报告摘要'),('list_latest_reports','最新报告列表','REPORT','列出白名单报告摘要')]
+('generate_daily_report','生成日报','REPORT','生成 dry-run 报告摘要'),('list_latest_reports','最新报告列表','REPORT','列出白名单报告摘要'),('ai_model_discovery','AI 模型发现','AI_PROVIDER','本地调用模型列表接口'),('ai_model_stress_test','AI 模型压力测试','AI_PROVIDER','串行 1000/3000/5000 字模型测试'),('ai_model_usage_draft','AI 模型用途映射草稿','AI_PROVIDER','保存 Agent 模型用途映射草稿')]
 def _schema(): return {'symbol': {'type':'string','required':False}, 'limit': {'type':'integer','min':1,'max':20,'required':False}}
 def build_task(task_id,title,cat,desc): return ConsoleTask(task_id,title,cat,desc,_schema(),{'limit':5},True,True,False,True,'python_callable','mock_safe_task',[f'{task_id}_summary.json'])
 TASK_REGISTRY={tid:build_task(tid,t,c,d) for tid,t,c,d in TASK_SPECS}

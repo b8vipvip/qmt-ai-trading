@@ -8,6 +8,10 @@ from .task_registry import list_tasks
 from .task_store import TaskStore
 from .task_runner import run_task
 from .serializers import task_to_dict, run_to_dict
+from qmt_ai_trading.ai_provider.model_discovery import discover_models, LATEST_DISCOVERY
+from qmt_ai_trading.ai_provider.stress_test import run_stress_test, LATEST_BENCHMARK
+from qmt_ai_trading.ai_provider.usage_mapping import save_usage_draft, get_usage_draft
+from qmt_ai_trading.ai_provider.serializers import to_dict
 DEFAULT_HOST='127.0.0.1'; DEFAULT_PORT=8768
 STORE=TaskStore()
 def _json(handler, code, payload):
@@ -41,12 +45,23 @@ def make_handler(static_dir=None):
             if p=='/api/v1/reports': return _json(self,200,{'ok':True,'reports':reports()})
             if p=='/api/v1/market/snapshot': return _json(self,200,{'ok':True,'snapshot':market_snapshot(parse_qs(u.query))})
             if p=='/api/v1/console/summary': return _json(self,200,{'ok':True,'summary':summary()})
+            if p=='/api/v1/ai/models/latest': return _json(self,200,{'ok':True,'result':LATEST_DISCOVERY})
+            if p=='/api/v1/ai/benchmark/latest': return _json(self,200,{'ok':True,'report':LATEST_BENCHMARK})
+            if p=='/api/v1/ai/model-usage/draft': return _json(self,200,{'ok':True,'draft':get_usage_draft()})
             return self._static(p)
         def _post(self):
             raw=self.rfile.read(int(self.headers.get('Content-Length','0') or 0))
             body=json.loads(raw.decode('utf-8') or '{}')
-            run=run_task(body.get('task_id',''), body.get('params',{}), STORE)
-            _json(self,200,{'ok':True,'task':run_to_dict(run)})
+            p=urlparse(self.path).path
+            if p=='/api/v1/tasks/run':
+                run=run_task(body.get('task_id',''), body.get('params',{}), STORE); return _json(self,200,{'ok':True,'task':run_to_dict(run)})
+            if p=='/api/v1/ai/models/discover':
+                res=discover_models(body.get('provider_type','openai_compatible'), body.get('base_url',''), body.get('api_key',''), int(body.get('timeout_seconds',60))); return _json(self,200,{'ok':res.success,'result':to_dict(res)})
+            if p=='/api/v1/ai/models/stress-test':
+                rep=run_stress_test(body.get('provider_type','openai_compatible'), body.get('base_url',''), body.get('api_key',''), body.get('selected_models',[]), body.get('test_sizes',[1000,3000,5000]), int(body.get('timeout_seconds',90)), body.get('endpoint_type','chat_completions')); return _json(self,200,{'ok':True,'report':to_dict(rep)})
+            if p=='/api/v1/ai/model-usage/draft':
+                return _json(self,200,{'ok':True,'draft':save_usage_draft(body.get('mappings',{}))})
+            return _json(self,404,{'ok':False,'error':'not found'})
         def _static(self,p):
             if not root: return _json(self,404,{'ok':False,'error':'not found'})
             target=(root / ('index.html' if p=='/' else p.lstrip('/'))).resolve()
