@@ -737,3 +737,13 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+
+# stage80 factor strategy dry-run runtime outputs
+validation_logs/
+local_console_app_stage80/
+local_console_strategy_stage80/
+market_data_test_stage80/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
