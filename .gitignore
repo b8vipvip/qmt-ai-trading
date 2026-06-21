@@ -717,3 +717,10 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+
+# stage77 local business console runtime outputs
+validation_logs/
+local_console_app_stage77/
+console_task_runs/
+console_api_logs/
+market_data_test_stage77/
