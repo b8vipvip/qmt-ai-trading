@@ -689,3 +689,13 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+
+# stage 74 local console demo package runtime outputs
+validation_logs/
+local_console_demo_stage74/
+local_console_demo/
+market_data_test_stage74/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
