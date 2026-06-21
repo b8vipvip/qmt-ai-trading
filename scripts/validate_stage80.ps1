@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 function Print-File([string]$Path) { Get-Content -LiteralPath $Path -Encoding UTF8 | Write-Host }
 function Check-NoBackup([string]$Dir,[string]$Pattern,[string]$Label,[string]$Kind) { if (Get-ChildItem -Path $Dir -Filter $Pattern -ErrorAction SilentlyContinue) { throw "$Label $Kind backup files found" } }
 function Clean-PythonCache { Get-ChildItem -Path . -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue; Get-ChildItem -Path . -Recurse -Directory -Filter .pytest_cache | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue }
