@@ -45,6 +45,7 @@ def _success_payload(output_dir: Path) -> dict[str, Any]:
     return {
         "ok": True,
         "status": "SUCCESS",
+        "mode": "isolated_subprocess",
         "enabled": True,
         "manual_confirmation_completed": True,
         "account_query_enabled": True,
@@ -80,7 +81,11 @@ def run_account_readonly_subprocess(repo_root: str | Path, request_params: Mappi
             val = val[0] if val else None
         if val not in (None, ""):
             env[key] = str(val)
-    completed = subprocess.run(cmd, cwd=str(root), env=env, text=True, capture_output=True, timeout=120)
+    timeout_seconds = 90
+    try:
+        completed = subprocess.run(cmd, cwd=str(root), env=env, text=True, capture_output=True, timeout=timeout_seconds)
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "status": "SUBPROCESS_TIMEOUT", "error_message": "账户只读查询子进程超时，请确认 MiniQMT 已登录并重试", "timeout_seconds": timeout_seconds, "enabled": True, "manual_confirmation_completed": True, "account_query_enabled": True, "position_query_enabled": True, "mock_data": False, **_SAFE}
     if completed.returncode != 0:
         return {"ok": False, "status": "SUBPROCESS_QUERY_FAILED", "error_message": (completed.stderr or completed.stdout or "account readonly subprocess failed")[-2000:], "returncode": completed.returncode, "enabled": True, "manual_confirmation_completed": True, "account_query_enabled": True, "position_query_enabled": True, "mock_data": False, **_SAFE}
     payload = _success_payload(output_dir)

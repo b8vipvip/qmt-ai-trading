@@ -76,7 +76,9 @@ def mock_output(task_id, params):
             warnings.append('allow_order_submit=true is not accepted; forced to false for Stage91 read-only mode')
         if _bool_value(params, 'allow_order_cancel', False):
             warnings.append('allow_order_cancel=true is not accepted; forced to false for Stage91 read-only mode')
-        if all(_bool_value(params, name, False) for name in ['enable_account_readonly','allow_import_xttrader','allow_connect_trade_session','allow_account_query','allow_position_query','manual_confirmed']) and _bool_value(params, 'dry_run', True) and _bool_value(params, 'read_only', True):
+        if warnings:
+            report = {'ok': False, 'status': 'BLOCKED_BY_SAFETY', 'error_message': 'Stage91 task is read-only; order submit/cancel permissions are forbidden'}
+        elif all(_bool_value(params, name, False) for name in ['enable_account_readonly','allow_import_xttrader','allow_connect_trade_session','allow_account_query','allow_position_query','manual_confirmed']) and _bool_value(params, 'dry_run', True) and _bool_value(params, 'read_only', True):
             from qmt_ai_trading.console_api.account_readonly_runtime import run_account_readonly_subprocess
             report = run_account_readonly_subprocess(params.get('repo_root','.'), params)
         else:

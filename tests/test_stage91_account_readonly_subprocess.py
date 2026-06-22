@@ -24,3 +24,16 @@ def test_subprocess_failure_is_explicit(tmp_path, monkeypatch):
     assert res['ok'] is False
     assert res['status']=='SUBPROCESS_QUERY_FAILED'
     assert res['real_order_submitted'] is False
+
+
+def test_subprocess_timeout_is_explicit(tmp_path, monkeypatch):
+    (tmp_path/'scripts').mkdir(); (tmp_path/'scripts/run_account_readonly_stage91.py').write_text('', encoding='utf-8')
+    def fake_run(*a, **k):
+        raise subprocess.TimeoutExpired(cmd=a[0], timeout=k.get('timeout'))
+    monkeypatch.setattr(subprocess, 'run', fake_run)
+    res=run_account_readonly_subprocess(tmp_path, {})
+    assert res['ok'] is False
+    assert res['status']=='SUBPROCESS_TIMEOUT'
+    assert res['timeout_seconds']==90
+    assert res['order_submit_enabled'] is False
+    assert res['real_order_submitted'] is False

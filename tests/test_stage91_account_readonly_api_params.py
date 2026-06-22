@@ -104,3 +104,35 @@ def test_runtime_dir_and_tmp_probe_ignored():
     gi=open('.gitignore',encoding='utf-8').read()
     assert 'local_runtime_account_stage91/' in gi
     assert 'tmp_*.py' in gi
+
+
+def test_account_readonly_refresh_missing_manual_confirmed_rejected(monkeypatch):
+    import qmt_ai_trading.console_api.api_server as api
+    qs = {**ENABLED_QS, 'manual_confirmed': ['false']}
+    res = api._account_readonly_refresh(qs)
+    assert res['ok'] is False
+    assert res['status'] == 'MANUAL_CONFIRM_REQUIRED'
+    assert 'manual_confirmed' in res['missing_params']
+    assert res['order_submit_enabled'] is False
+
+
+def test_account_readonly_refresh_blocks_order_submit_or_cancel():
+    import qmt_ai_trading.console_api.api_server as api
+    for key in ('allow_order_submit', 'allow_order_cancel'):
+        qs = {**ENABLED_QS, key: ['true']}
+        res = api._account_readonly_refresh(qs)
+        assert res['ok'] is False
+        assert res['status'] == 'BLOCKED_BY_SAFETY'
+        assert res[key] is False
+        assert res['order_submit_enabled'] is False
+        assert res['order_cancel_enabled'] is False
+        assert res['warnings']
+
+
+def test_account_readonly_refresh_post_whitelisted_and_local_host_checked():
+    from qmt_ai_trading.console_api.safety import assert_http_method_allowed
+    import qmt_ai_trading.console_api.api_server as api
+    assert_http_method_allowed('POST', '/api/v1/account-readonly/refresh')
+    assert api._host_is_local('127.0.0.1:8768') is True
+    assert api._host_is_local('localhost:8768') is True
+    assert api._host_is_local('example.com:8768') is False

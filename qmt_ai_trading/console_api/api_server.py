@@ -22,6 +22,10 @@ STORE=TaskStore()
 LATEST_FACTOR_SCAN={'factor_results': [], 'factor_evaluation': {}, 'factor_candidates': []}
 LATEST_FACTOR_STRATEGY={'strategy_signals': [], 'trade_intents': [], 'risk_decisions': [], 'strategy_report': {}}
 
+def _host_is_local(host_header: str | None) -> bool:
+    host = (host_header or '').split(':', 1)[0].strip().lower()
+    return host in {'127.0.0.1', 'localhost'}
+
 def _read_json_file(path: Path, default):
     if not path.exists():
         return default
@@ -282,9 +286,22 @@ def _account_readonly_enabled_for_subprocess(qs):
     return all(_bool_param(qs, name, False) for name in required) and not _bool_param(qs, 'allow_order_submit', False) and not _bool_param(qs, 'allow_order_cancel', False)
 
 def _account_readonly_refresh(qs):
-    if not _account_readonly_enabled_for_subprocess(qs):
-        return {'ok':False,'status':'MANUAL_CONFIRM_REQUIRED','error_message':'Stage91 account readonly subprocess requires all manual read-only enable flags and forbids order permissions','read_only':True,'order_submit_enabled':False,'order_cancel_enabled':False,'real_order_submitted':False}
-    return run_account_readonly_subprocess(Path.cwd(), qs)
+    warnings = []
+    if _bool_param(qs, 'allow_order_submit', False):
+        warnings.append('allow_order_submit=true is not accepted; forced to false for Stage91 read-only mode')
+    if _bool_param(qs, 'allow_order_cancel', False):
+        warnings.append('allow_order_cancel=true is not accepted; forced to false for Stage91 read-only mode')
+    required = ['enable_account_readonly','manual_confirmed','allow_import_xttrader','allow_connect_trade_session','allow_account_query','allow_position_query','read_only','dry_run']
+    missing = [name for name in required if not _bool_param(qs, name, False)]
+    safe = {'read_only':True,'allow_order_submit':False,'allow_order_cancel':False,'order_submit_enabled':False,'order_cancel_enabled':False,'real_order_submitted':False}
+    if warnings:
+        return {'ok':False,'status':'BLOCKED_BY_SAFETY','error_message':'Stage91 refresh is read-only; order submit/cancel permissions are forbidden', 'warnings':warnings, **safe}
+    if missing:
+        return {'ok':False,'status':'MANUAL_CONFIRM_REQUIRED','error_message':'Stage91 account readonly subprocess requires all manual read-only enable flags', 'missing_params': missing, **safe}
+    result = run_account_readonly_subprocess(Path.cwd(), qs)
+    result.update(safe)
+    result.setdefault('mode', 'isolated_subprocess')
+    return result
 
 def _account_readonly_response(qs, kind):
     from qmt_ai_trading.trading_gateway.account_readonly_provider import AccountReadonlyProvider
@@ -339,7 +356,12 @@ def make_handler(static_dir=None):
     root=Path(static_dir).resolve() if static_dir else None
     class Handler(BaseHTTPRequestHandler):
         def _safe(self, fn):
-            try: assert_http_method_allowed(self.command, urlparse(self.path).path); fn()
+            try:
+                p=urlparse(self.path).path
+                assert_http_method_allowed(self.command, p)
+                if self.command=='POST' and p=='/api/v1/account-readonly/refresh' and not _host_is_local(self.headers.get('Host')):
+                    raise ConsoleSafetyError('账户只读 refresh 仅允许 127.0.0.1/localhost Host')
+                fn()
             except ConsoleSafetyError as e: _json(self, 403, {'ok':False,'status':'BLOCKED','error':str(e)})
             except Exception as e: _json(self, 500, {'ok':False,'status':'FAILED','error':str(e)})
         def do_GET(self): self._safe(self._get)
