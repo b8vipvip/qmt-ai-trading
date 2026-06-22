@@ -25,7 +25,7 @@
   "read_only": true,
   "repo_root": "D:\\AI\\qmt",
   "requires_human_approval": true,
-  "session_id": 912527,
+  "session_id": 910971,
   "session_id_base": 910000,
   "userdata_mini_path": "D:\\国金证券QMT交易端\\userdata_mini"
 }
