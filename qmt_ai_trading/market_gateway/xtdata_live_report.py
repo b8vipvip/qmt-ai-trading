@@ -8,74 +8,8 @@ from .xtdata_live_safety import evaluate_live_config, scan_xtdata_live_safety
 INPUTS=['docs/qmt-ai-trading-project-roadmap.md','docs/qmt-ai-trading-architecture.md','local_console_xtdata_enable_stage86/xtdata_enable_report.json','local_console_xtdata_enable_stage86/xtdata_enable_decision.json','local_console_xtdata_enable_stage86/xtdata_environment_check.json','local_console_xtdata_enable_stage86/xtdata_manual_checklist.json','local_console_xtdata_enable_stage86/frontend_xtdata_enable_contract.json','local_console_xtdata_stage85/xtdata_boundary_report.json','local_console_xtdata_stage85/xtdata_adapter_config.json','local_console_xtdata_stage85/xtdata_safety_report.json','local_console_market_stage84/market_gateway_report.json','local_console_market_stage84/market_symbols.json','local_console_market_stage84/frontend_market_contract.json']
 
 
-def _json_safe(value):
-    """Convert xtdata / pandas / numpy outputs into JSON-safe objects."""
+from qmt_ai_trading.common.json_safe import json_safe as _json_safe
 
-    try:
-        import math
-        if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
-            return None
-    except Exception:
-        pass
-
-    if value is None or isinstance(value, (str, int, bool, float)):
-        return value
-
-    try:
-        import pandas as pd  # type: ignore
-        if isinstance(value, pd.DataFrame):
-            df = value.copy()
-            try:
-                df = df.reset_index()
-            except Exception:
-                pass
-            try:
-                df.columns = [str(c) for c in df.columns]
-            except Exception:
-                pass
-            return [_json_safe(row) for row in df.to_dict(orient="records")]
-        if isinstance(value, pd.Series):
-            return _json_safe(value.to_dict())
-        if isinstance(value, pd.Timestamp):
-            return value.isoformat()
-    except Exception:
-        pass
-
-    try:
-        import numpy as np  # type: ignore
-        if isinstance(value, np.generic):
-            return _json_safe(value.item())
-        if isinstance(value, np.ndarray):
-            return _json_safe(value.tolist())
-    except Exception:
-        pass
-
-    try:
-        import datetime as _dt
-        if isinstance(value, (_dt.datetime, _dt.date, _dt.time)):
-            return value.isoformat()
-    except Exception:
-        pass
-
-    if isinstance(value, dict):
-        return {str(k): _json_safe(v) for k, v in value.items()}
-
-    if isinstance(value, (list, tuple, set)):
-        return [_json_safe(v) for v in value]
-
-    if hasattr(value, "to_dict"):
-        try:
-            return _json_safe(value.to_dict())
-        except Exception:
-            pass
-
-    if hasattr(value, "tolist"):
-        try:
-            return _json_safe(value.tolist())
-        except Exception:
-            pass
-
-    return repr(value)
 def _load(root, rel):
     p=root/rel
     if not p.exists(): return None

@@ -32,3 +32,20 @@ def test_no_xttrader_or_account_order_calls_in_live_files():
     text = Path('qmt_ai_trading/market_gateway/xtdata_live_provider.py').read_text(encoding='utf-8')
     for bad in ['XtQuantTrader', 'query_account', 'query_position', 'query_order', 'query_trade', 'order_stock', 'place_order', 'execute_order', 'cancel_order']:
         assert bad not in text
+
+
+def test_live_provider_does_not_import_xttrader(monkeypatch):
+    import builtins
+    from qmt_ai_trading.market_gateway import XtDataLiveReadOnlyConfig, XtDataLiveReadOnlyProvider
+
+    imported = []
+    real_import = builtins.__import__
+    def guarded_import(name, *args, **kwargs):
+        imported.append(name)
+        if 'xttrader' in name.lower():
+            raise AssertionError('xttrader must not be imported')
+        return real_import(name, *args, **kwargs)
+    monkeypatch.setattr(builtins, '__import__', guarded_import)
+    provider = XtDataLiveReadOnlyProvider(XtDataLiveReadOnlyConfig(enabled=True, allow_import_xtdata=False))
+    provider.get_status()
+    assert not any('xttrader' in x.lower() for x in imported)

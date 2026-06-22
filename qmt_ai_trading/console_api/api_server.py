@@ -15,6 +15,7 @@ from qmt_ai_trading.ai_provider.serializers import to_dict
 from qmt_ai_trading.research.factor_registry import catalog_as_dict
 from qmt_ai_trading.research.factor_config import config_seed_as_dict
 from qmt_ai_trading.console_api.workflow_console import workflow_status, feature_matrix, reports_index, dry_run_check
+from qmt_ai_trading.common.json_safe import json_safe
 DEFAULT_HOST='127.0.0.1'; DEFAULT_PORT=8768
 STORE=TaskStore()
 LATEST_FACTOR_SCAN={'factor_results': [], 'factor_evaluation': {}, 'factor_candidates': []}
@@ -178,7 +179,7 @@ def _xtdata_live_response(qs, kind):
         payload = {'stage':'Stage87','task_id':'xtdata_live_readonly_smoke','provider':'xtdata_live_readonly', **status}
     else:
         payload = {}
-    return _with_xtdata_live_safety(payload, warnings)
+    return json_safe(_with_xtdata_live_safety(payload, warnings))
 
 def _read_xtdata_live_file(name, default):
     path=Path('local_console_xtdata_live_stage87')/name
@@ -193,7 +194,7 @@ def _read_xtdata_live_file(name, default):
     except Exception as e: return {'error':str(e),'provider':'xtdata_live_readonly','read_only':True,'no_xttrader':True,'no_order_submitted':True,'no_account_query':True,'not_live_trading':True,'real_market_data':False,'sandbox_fallback':True}
 
 def _json(handler, code, payload):
-    raw=json.dumps(payload, ensure_ascii=False).encode('utf-8'); handler.send_response(code); handler.send_header('Content-Type','application/json; charset=utf-8'); handler.send_header('Content-Length',str(len(raw))); handler.end_headers(); handler.wfile.write(raw)
+    raw=json.dumps(json_safe(payload), ensure_ascii=False).encode('utf-8'); handler.send_response(code); handler.send_header('Content-Type','application/json; charset=utf-8'); handler.send_header('Content-Length',str(len(raw))); handler.end_headers(); handler.wfile.write(raw)
 def summary():
     runs=STORE.list(); return {'title':'QMT AI 本地量化控制台','mode':'dry-run/shadow','read_only':True,'no_trade_authorization':True,'live_status':'实盘关闭','task_total':len(runs),'success_count':sum(r.status=='SUCCESS' for r in runs),'risk_block_count':1,'agent_report_count':sum(r.category=='AGENTS' for r in runs),'recent_signal_count':sum(len(r.output.get('signals',[])) for r in runs)}
 def _latest_factor_output():
