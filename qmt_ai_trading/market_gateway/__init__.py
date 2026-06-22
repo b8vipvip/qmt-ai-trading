@@ -15,3 +15,8 @@ from .xtdata_manual_checklist import XtDataManualChecklist, default_manual_check
 from .xtdata_config_audit import XtDataConfigAudit, audit_xtdata_config
 from .xtdata_enable_decision import decide_xtdata_enable
 from .xtdata_enable_report import run_xtdata_enable_stage86
+
+from .xtdata_live_config import XtDataLiveReadOnlyConfig
+from .xtdata_live_provider import XtDataLiveReadOnlyProvider
+from .xtdata_live_safety import evaluate_live_config, scan_xtdata_live_safety
+from .xtdata_live_report import run_xtdata_live_stage87
