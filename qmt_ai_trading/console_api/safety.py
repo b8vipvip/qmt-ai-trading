@@ -36,7 +36,7 @@ def assert_no_forbidden_live_task(task):
     if not getattr(task,'forbidden_in_live',True): raise ConsoleSafetyError('任务必须禁止实盘模式')
 def assert_http_method_allowed(method:str,path:str):
     if method in {'PUT','PATCH','DELETE'}: raise ConsoleSafetyError('禁止 PUT/PATCH/DELETE')
-    if method=='POST' and path.split('?',1)[0] not in {'/api/v1/tasks/run','/api/v1/ai/models/discover','/api/v1/ai/models/stress-test','/api/v1/ai/model-usage/draft'}: raise ConsoleSafetyError('POST 只允许白名单本地 API')
+    if method=='POST' and path.split('?',1)[0] not in {'/api/v1/tasks/run','/api/v1/ai/models/discover','/api/v1/ai/models/stress-test','/api/v1/ai/model-usage/draft','/api/v1/account-readonly/refresh'}: raise ConsoleSafetyError('POST 只允许白名单本地 API')
 def classify_console_api_marker(text:str):
     return [m for m in FORBIDDEN_MARKERS if m in text]
 def scan_console_api_for_forbidden_markers(text:str):
