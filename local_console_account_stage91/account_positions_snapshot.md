@@ -4,8 +4,10 @@
 {
   "account_masked": true,
   "account_query_enabled": false,
+  "dry_run": true,
   "enabled": false,
   "gate": "positions",
+  "manual_confirmation_completed": false,
   "message": "account readonly query disabled by safety gate",
   "mock_data": true,
   "order_cancel_enabled": false,

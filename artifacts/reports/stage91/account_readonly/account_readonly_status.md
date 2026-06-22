@@ -4,7 +4,9 @@
 {
   "account_masked": true,
   "account_query_enabled": false,
+  "dry_run": true,
   "enabled": false,
+  "manual_confirmation_completed": false,
   "mock_data": true,
   "order_cancel_enabled": false,
   "order_submit_enabled": false,
