@@ -193,6 +193,25 @@ def _read_xtdata_live_file(name, default):
     try: return json.loads(path.read_text(encoding='utf-8'))
     except Exception as e: return {'error':str(e),'provider':'xtdata_live_readonly','read_only':True,'no_xttrader':True,'no_order_submitted':True,'no_account_query':True,'not_live_trading':True,'real_market_data':False,'sandbox_fallback':True}
 
+
+def _read_stage88_file(subdir, name, default):
+    path=Path(subdir)/name
+    if not path.exists():
+        try:
+            from qmt_ai_trading.datahub.datahub_report import run_stage88_datahub
+            from qmt_ai_trading.research.stage88_real_cache_factors import write_research
+            from qmt_ai_trading.strategies.stage88_dry_run import write_strategy
+            from qmt_ai_trading.risk.stage88_risk_gate import write_risk
+            run_stage88_datahub('.', 'local_console_datahub_stage88', ['510300.SH','510500.SH','588000.SH'], '1d', 60)
+            write_research('.', 'local_console_datahub_stage88/datahub_real_cache.json', 'local_console_research_stage88')
+            write_strategy('.', 'local_console_research_stage88/factor_candidates.json', 'local_console_strategy_stage88')
+            write_risk('.', 'local_console_strategy_stage88/trade_intents.json', 'local_console_risk_stage88')
+        except Exception:
+            pass
+    if not path.exists(): return default
+    try: return json.loads(path.read_text(encoding='utf-8'))
+    except Exception as e: return {'error':str(e),'dry_run':True,'read_only':True,'not_live_trading':True,'no_xttrader':True,'no_order_submitted':True,'no_account_query':True,'requires_human_approval':True}
+
 def _json(handler, code, payload):
     raw=json.dumps(json_safe(payload), ensure_ascii=False).encode('utf-8'); handler.send_response(code); handler.send_header('Content-Type','application/json; charset=utf-8'); handler.send_header('Content-Length',str(len(raw))); handler.end_headers(); handler.wfile.write(raw)
 def summary():
@@ -224,6 +243,13 @@ def make_handler(static_dir=None):
         def _get(self):
             u=urlparse(self.path); p=u.path
 
+            if p=='/api/v1/stage88/datahub/status': return _json(self,200,{'ok':True,'status':_read_stage88_file('local_console_datahub_stage88','datahub_status.json',{})})
+            if p=='/api/v1/stage88/research/factors': return _json(self,200,{'ok':True,'factors':_read_stage88_file('local_console_research_stage88','factor_values.json',{})})
+            if p=='/api/v1/stage88/research/candidates': return _json(self,200,{'ok':True,'candidates':_read_stage88_file('local_console_research_stage88','factor_candidates.json',{})})
+            if p=='/api/v1/stage88/strategy/signals': return _json(self,200,{'ok':True,'signals':_read_stage88_file('local_console_strategy_stage88','strategy_signals.json',{})})
+            if p=='/api/v1/stage88/strategy/trade-intents': return _json(self,200,{'ok':True,'trade_intents':_read_stage88_file('local_console_strategy_stage88','trade_intents.json',{})})
+            if p=='/api/v1/stage88/risk/decisions': return _json(self,200,{'ok':True,'decisions':_read_stage88_file('local_console_risk_stage88','risk_decisions.json',{})})
+            if p=='/api/v1/stage88/report': return _json(self,200,{'ok':True,'report':{'stage':'Stage88','links':['真实行情缓存','Data Hub 质量','因子研究','候选池排名','策略信号','TradeIntent dry-run','Risk Gate'],'dry_run':True,'read_only':True,'not_live_trading':True,'no_xttrader':True,'no_order_submitted':True,'no_account_query':True,'requires_human_approval':True}})
             if p=='/api/v1/workflow/status': return _json(self,200,{'ok':True,**workflow_status('.')})
             if p=='/api/v1/workflow/feature-matrix': return _json(self,200,{'ok':True,**feature_matrix('.')})
             if p=='/api/v1/workflow/reports': return _json(self,200,{'ok':True,**reports_index('.')})

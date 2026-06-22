@@ -1,0 +1,18 @@
+# risk_report
+
+```json
+{
+  "approved_dry_run_count": 1,
+  "decision_count": 1,
+  "dry_run": true,
+  "module": "Risk Gate",
+  "no_account_query": true,
+  "no_order_submitted": true,
+  "no_xttrader": true,
+  "not_live_trading": true,
+  "read_only": true,
+  "requires_human_approval": true,
+  "stage": "Stage88",
+  "status": "SUCCESS"
+}
+```

@@ -1,0 +1,28 @@
+{
+  "dry_run": true,
+  "factors": [
+    {
+      "composite_score": 2.514666,
+      "drawdown_20": 0.0,
+      "dry_run": true,
+      "momentum_20": 0.04640371229698381,
+      "momentum_5": 0.011210762331838486,
+      "no_account_query": true,
+      "no_order_submitted": true,
+      "no_xttrader": true,
+      "not_live_trading": true,
+      "read_only": true,
+      "requires_human_approval": true,
+      "risk_flags": [],
+      "symbol": "510300.SH",
+      "volatility_20": 2.9728095498764398e-05,
+      "volume_change_20": 0.006883891693437283
+    }
+  ],
+  "no_account_query": true,
+  "no_order_submitted": true,
+  "no_xttrader": true,
+  "not_live_trading": true,
+  "read_only": true,
+  "requires_human_approval": true
+}
