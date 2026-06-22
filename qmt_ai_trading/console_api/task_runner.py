@@ -61,7 +61,17 @@ def mock_output(task_id, params):
         return run_xttrader_boundary_stage90(params.get('repo_root','.'), params.get('input_stage',89), params.get('output_dir','local_console_xttrader_stage90'), True, True)
     if task_id=='account_readonly_dry_run':
         from qmt_ai_trading.trading_gateway.account_readonly_report import run_account_readonly_stage91
-        return run_account_readonly_stage91(params.get('repo_root','.'), params.get('output_dir','local_console_account_stage91'), False, False, False, False, False, False, True, True)
+        
+        warnings=[]
+        if params.get('allow_order_submit') is True:
+            warnings.append('allow_order_submit=true is not accepted; forced to false for Stage91 read-only mode')
+        if params.get('allow_order_cancel') is True:
+            warnings.append('allow_order_cancel=true is not accepted; forced to false for Stage91 read-only mode')
+        report = run_account_readonly_stage91(params.get('repo_root','.'), params.get('output_dir','local_console_account_stage91'), params.get('enable_account_readonly', False), params.get('allow_import_xttrader', False), params.get('allow_connect_trade_session', False), params.get('allow_account_query', False), params.get('allow_position_query', False), params.get('manual_confirmed', False), True, params.get('read_only', True))
+        report.update({'allow_order_submit':False,'allow_order_cancel':False,'order_submit_enabled':False,'order_cancel_enabled':False,'real_order_submitted':False})
+        if warnings:
+            report['warnings']=warnings
+        return report
     if task_id=='workflow_dry_run_check':
         from qmt_ai_trading.console_api.workflow_console import write_workflow_outputs
         return write_workflow_outputs(params.get('repo_root','.'), params.get('output_dir','local_console_workflow_stage87'))
