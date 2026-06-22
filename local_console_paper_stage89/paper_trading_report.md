@@ -1,0 +1,21 @@
+# paper_trading_report
+
+```json
+{
+  "dry_run": true,
+  "no_account_query": true,
+  "no_order_submitted": true,
+  "no_xttrader": true,
+  "not_live_trading": true,
+  "paper_fill_count": 1,
+  "paper_order_count": 1,
+  "paper_trading": true,
+  "paper_trading_status": "影子交易开启",
+  "read_only": true,
+  "requires_human_approval": true,
+  "safety_status": "SAFE_PAPER_ONLY",
+  "shadow_position_count": 1,
+  "shadow_trading": true,
+  "stage": "Stage89"
+}
+```

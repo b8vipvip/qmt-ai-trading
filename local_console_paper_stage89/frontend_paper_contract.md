@@ -1,0 +1,30 @@
+# frontend_paper_contract
+
+```json
+{
+  "dry_run": true,
+  "endpoints": [
+    "/api/v1/paper-trading/status",
+    "/api/v1/paper-trading/orders/latest",
+    "/api/v1/paper-trading/fills/latest",
+    "/api/v1/paper-trading/positions/latest",
+    "/api/v1/paper-trading/portfolio/latest",
+    "/api/v1/paper-trading/pnl/latest",
+    "/api/v1/paper-trading/risk-replay/latest",
+    "/api/v1/paper-trading/report/latest"
+  ],
+  "menu": [
+    "Paper Trading",
+    "影子交易"
+  ],
+  "no_account_query": true,
+  "no_order_submitted": true,
+  "no_xttrader": true,
+  "not_live_trading": true,
+  "paper_trading": true,
+  "read_only": true,
+  "requires_human_approval": true,
+  "shadow_trading": true,
+  "stage": "Stage89"
+}
+```

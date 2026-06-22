@@ -1,0 +1,16 @@
+{
+  "allow_account_query": false,
+  "allow_order_submit": false,
+  "allow_xttrader": false,
+  "dry_run": true,
+  "live_trading": "DISABLED_FOR_SAFETY",
+  "next_stage": "xttrader remains disabled until explicit human approval",
+  "no_account_query": true,
+  "no_order_submitted": true,
+  "no_xttrader": true,
+  "not_live_trading": true,
+  "paper_trading": true,
+  "read_only": true,
+  "requires_human_approval": true,
+  "shadow_trading": true
+}
