@@ -7,6 +7,75 @@ from .xtdata_live_safety import evaluate_live_config, scan_xtdata_live_safety
 
 INPUTS=['docs/qmt-ai-trading-project-roadmap.md','docs/qmt-ai-trading-architecture.md','local_console_xtdata_enable_stage86/xtdata_enable_report.json','local_console_xtdata_enable_stage86/xtdata_enable_decision.json','local_console_xtdata_enable_stage86/xtdata_environment_check.json','local_console_xtdata_enable_stage86/xtdata_manual_checklist.json','local_console_xtdata_enable_stage86/frontend_xtdata_enable_contract.json','local_console_xtdata_stage85/xtdata_boundary_report.json','local_console_xtdata_stage85/xtdata_adapter_config.json','local_console_xtdata_stage85/xtdata_safety_report.json','local_console_market_stage84/market_gateway_report.json','local_console_market_stage84/market_symbols.json','local_console_market_stage84/frontend_market_contract.json']
 
+
+def _json_safe(value):
+    """Convert xtdata / pandas / numpy outputs into JSON-safe objects."""
+
+    try:
+        import math
+        if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+            return None
+    except Exception:
+        pass
+
+    if value is None or isinstance(value, (str, int, bool, float)):
+        return value
+
+    try:
+        import pandas as pd  # type: ignore
+        if isinstance(value, pd.DataFrame):
+            df = value.copy()
+            try:
+                df = df.reset_index()
+            except Exception:
+                pass
+            try:
+                df.columns = [str(c) for c in df.columns]
+            except Exception:
+                pass
+            return [_json_safe(row) for row in df.to_dict(orient="records")]
+        if isinstance(value, pd.Series):
+            return _json_safe(value.to_dict())
+        if isinstance(value, pd.Timestamp):
+            return value.isoformat()
+    except Exception:
+        pass
+
+    try:
+        import numpy as np  # type: ignore
+        if isinstance(value, np.generic):
+            return _json_safe(value.item())
+        if isinstance(value, np.ndarray):
+            return _json_safe(value.tolist())
+    except Exception:
+        pass
+
+    try:
+        import datetime as _dt
+        if isinstance(value, (_dt.datetime, _dt.date, _dt.time)):
+            return value.isoformat()
+    except Exception:
+        pass
+
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe(v) for v in value]
+
+    if hasattr(value, "to_dict"):
+        try:
+            return _json_safe(value.to_dict())
+        except Exception:
+            pass
+
+    if hasattr(value, "tolist"):
+        try:
+            return _json_safe(value.tolist())
+        except Exception:
+            pass
+
+    return repr(value)
 def _load(root, rel):
     p=root/rel
     if not p.exists(): return None
@@ -14,11 +83,11 @@ def _load(root, rel):
     except Exception as e: return {'error':str(e),'path':rel}
 
 def _write(path, data):
-    path.parent.mkdir(parents=True, exist_ok=True); text=json.dumps(data,ensure_ascii=False,indent=2,sort_keys=True)
+    path.parent.mkdir(parents=True, exist_ok=True); text=json.dumps(_json_safe(data), ensure_ascii=False, indent=2, sort_keys=True)
     if not path.exists() or path.read_text(encoding='utf-8') != text: path.write_text(text,encoding='utf-8')
 
 def _md(path, title, data):
-    text='# '+title+'\n\n```json\n'+json.dumps(data,ensure_ascii=False,indent=2,sort_keys=True)+'\n```\n'
+    text='# '+title+'\n\n```json\n'+json.dumps(_json_safe(data), ensure_ascii=False, indent=2, sort_keys=True)+'\n```\n'
     if not path.exists() or path.read_text(encoding='utf-8') != text: path.write_text(text,encoding='utf-8')
 
 def run_xtdata_live_stage87(repo_root='.', output_dir='local_console_xtdata_live_stage87', **kwargs):
@@ -34,4 +103,4 @@ def run_xtdata_live_stage87(repo_root='.', output_dir='local_console_xtdata_live
     frontend={'page':'xtdata 只读行情','apis':['GET /api/v1/market/xtdata-live/status','GET /api/v1/market/xtdata-live/snapshots','GET /api/v1/market/xtdata-live/bars','GET /api/v1/market/xtdata-live/safety','GET /api/v1/market/xtdata-live/report','POST /api/v1/tasks/run task_id=xtdata_live_readonly_smoke'],'sections':['xtdata 连接状态','MiniQMT 状态','当前 provider','行情 snapshot 表格','K线 bars 表格','sandbox fallback 状态','安全边界说明','禁止交易项检查'],'read_only':True,'no_xttrader':True,'no_order_submitted':True,'no_account_query':True,'allow_order_submit':False,'allow_xttrader':False}
     files={'xtdata_live_input_context':context,'xtdata_live_config':cfg.to_dict(),'xtdata_live_status':status,'xtdata_live_snapshots':snapshots,'xtdata_live_bars':bars,'xtdata_live_safety_report':safety,'xtdata_live_report':report,'frontend_xtdata_live_contract':frontend}
     for n,d in files.items(): _write(out/f'{n}.json',d); _md(out/f'{n}.md',n,d)
-    return report
+    return _json_safe(report)

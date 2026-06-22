@@ -1,4 +1,4 @@
-# sensitive config
+﻿# sensitive config
 config.json
 .env
 ai_providers.local.json
@@ -751,3 +751,4 @@ __pycache__/
 # Stage87 real runtime market outputs
 local_runtime_xtdata_live_stage87/
 artifacts/runtime/
+local_runtime_xtdata_live_stage87/**
