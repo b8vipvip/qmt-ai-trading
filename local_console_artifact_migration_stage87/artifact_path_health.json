@@ -73,10 +73,10 @@
         "local_console_artifact_migration_stage87"
       ],
       "legacy_exists": [
-        false
+        true
       ],
       "logical_name": "artifact_migration",
-      "resolved": "artifacts/reports/stage87/artifact_migration",
+      "resolved": "local_console_artifact_migration_stage87",
       "stage": "stage87"
     },
     {
@@ -86,10 +86,10 @@
         "validation_logs"
       ],
       "legacy_exists": [
-        false
+        true
       ],
       "logical_name": "validation_logs",
-      "resolved": "artifacts/validation/logs",
+      "resolved": "validation_logs",
       "stage": ""
     }
   ],
