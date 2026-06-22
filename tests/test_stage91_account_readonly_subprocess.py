@@ -34,6 +34,19 @@ def test_subprocess_timeout_is_explicit(tmp_path, monkeypatch):
     res=run_account_readonly_subprocess(tmp_path, {})
     assert res['ok'] is False
     assert res['status']=='SUBPROCESS_TIMEOUT'
-    assert res['timeout_seconds']==90
+    assert res['timeout_seconds']==30
+    assert res['order_submit_enabled'] is False
+    assert res['real_order_submitted'] is False
+
+
+def test_subprocess_missing_runtime_outputs_is_explicit(tmp_path, monkeypatch):
+    (tmp_path/'scripts').mkdir(); (tmp_path/'scripts/run_account_readonly_stage91.py').write_text('print("xtquant文档地址：http://dict.thinktrader.net/nativeApi/start_now.html")', encoding='utf-8')
+    def fake_run(*a, **k):
+        return subprocess.CompletedProcess(a[0], 0, stdout='xtquant文档地址：http://dict.thinktrader.net/nativeApi/start_now.html\n***** xtdata连接成功 *****', stderr='')
+    monkeypatch.setattr(subprocess, 'run', fake_run)
+    res=run_account_readonly_subprocess(tmp_path, {})
+    assert res['ok'] is False
+    assert res['status']=='RUNTIME_OUTPUT_MISSING'
+    assert 'xtdata连接成功' in res['stdout_tail']
     assert res['order_submit_enabled'] is False
     assert res['real_order_submitted'] is False

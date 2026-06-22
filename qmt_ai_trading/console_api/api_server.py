@@ -23,8 +23,12 @@ LATEST_FACTOR_SCAN={'factor_results': [], 'factor_evaluation': {}, 'factor_candi
 LATEST_FACTOR_STRATEGY={'strategy_signals': [], 'trade_intents': [], 'risk_decisions': [], 'strategy_report': {}}
 
 def _host_is_local(host_header: str | None) -> bool:
-    host = (host_header or '').split(':', 1)[0].strip().lower()
-    return host in {'127.0.0.1', 'localhost'}
+    host = (host_header or '').strip().lower()
+    if host.startswith('['):
+        host = host.split(']', 1)[0].lstrip('[')
+    elif host.count(':') == 1:
+        host = host.split(':', 1)[0]
+    return host in {'127.0.0.1', 'localhost', '::1'}
 
 def _read_json_file(path: Path, default):
     if not path.exists():
@@ -297,7 +301,7 @@ def _account_readonly_refresh(qs):
     if warnings:
         return {'ok':False,'status':'BLOCKED_BY_SAFETY','error_message':'Stage91 refresh is read-only; order submit/cancel permissions are forbidden', 'warnings':warnings, **safe}
     if missing:
-        return {'ok':False,'status':'MANUAL_CONFIRM_REQUIRED','error_message':'Stage91 account readonly subprocess requires all manual read-only enable flags', 'missing_params': missing, **safe}
+        return {'ok':False,'status':'MANUAL_CONFIRM_REQUIRED','error_message':'请先勾选人工确认，只读查询不会下单、不会撤单。', 'missing_params': missing, **safe}
     result = run_account_readonly_subprocess(Path.cwd(), qs)
     result.update(safe)
     result.setdefault('mode', 'isolated_subprocess')
@@ -360,7 +364,7 @@ def make_handler(static_dir=None):
                 p=urlparse(self.path).path
                 assert_http_method_allowed(self.command, p)
                 if self.command=='POST' and p=='/api/v1/account-readonly/refresh' and not _host_is_local(self.headers.get('Host')):
-                    raise ConsoleSafetyError('账户只读 refresh 仅允许 127.0.0.1/localhost Host')
+                    raise ConsoleSafetyError('账户只读 refresh 仅允许 127.0.0.1/localhost/::1 Host')
                 fn()
             except ConsoleSafetyError as e: _json(self, 403, {'ok':False,'status':'BLOCKED','error':str(e)})
             except Exception as e: _json(self, 500, {'ok':False,'status':'FAILED','error':str(e)})

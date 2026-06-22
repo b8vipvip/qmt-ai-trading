@@ -12,6 +12,7 @@ _SAFE = {
     "real_order_submitted": False,
     "allow_order_submit": False,
     "allow_order_cancel": False,
+    "no_order_submitted": True,
 }
 
 _ENV_KEYS = ["QMT_USERDATA_MINI_PATH", "QMT_USERDATA_PATH", "QMT_ACCOUNT_ID", "QMT_ACCOUNT_TYPE", "QMT_SESSION_ID_BASE"]
@@ -54,7 +55,7 @@ def _success_payload(output_dir: Path) -> dict[str, Any]:
         "mock_data": False,
         "asset": asset_obj,
         "position_count": positions.get("position_count", len(pos_list)),
-        "positions": pos_list,
+        "positions": {"position_count": positions.get("position_count", len(pos_list)), "positions": pos_list},
         "report": report,
         "last_runtime_status": report.get("status") or asset.get("status") or positions.get("status"),
         "last_connect_result": asset.get("connect_result", positions.get("connect_result")),
@@ -81,16 +82,16 @@ def run_account_readonly_subprocess(repo_root: str | Path, request_params: Mappi
             val = val[0] if val else None
         if val not in (None, ""):
             env[key] = str(val)
-    timeout_seconds = 90
+    timeout_seconds = 30
     try:
         completed = subprocess.run(cmd, cwd=str(root), env=env, text=True, capture_output=True, timeout=timeout_seconds)
     except subprocess.TimeoutExpired:
-        return {"ok": False, "status": "SUBPROCESS_TIMEOUT", "error_message": "账户只读查询子进程超时，请确认 MiniQMT 已登录并重试", "timeout_seconds": timeout_seconds, "enabled": True, "manual_confirmation_completed": True, "account_query_enabled": True, "position_query_enabled": True, "mock_data": False, **_SAFE}
+        return {"ok": False, "status": "SUBPROCESS_TIMEOUT", "error_message": "账户/持仓只读查询超过 30 秒未返回，已自动终止。请检查 MiniQMT 是否登录、session_id 是否冲突。", "timeout_seconds": timeout_seconds, "enabled": True, "manual_confirmation_completed": True, "account_query_enabled": True, "position_query_enabled": True, "mock_data": False, **_SAFE}
     if completed.returncode != 0:
         return {"ok": False, "status": "SUBPROCESS_QUERY_FAILED", "error_message": (completed.stderr or completed.stdout or "account readonly subprocess failed")[-2000:], "returncode": completed.returncode, "enabled": True, "manual_confirmation_completed": True, "account_query_enabled": True, "position_query_enabled": True, "mock_data": False, **_SAFE}
     payload = _success_payload(output_dir)
-    if not (output_dir / "account_readonly_report.json").exists():
-        return {"ok": False, "status": "SUBPROCESS_QUERY_FAILED", "error_message": "account_readonly_report.json was not produced", "stdout_tail": completed.stdout[-1000:], "enabled": True, "manual_confirmation_completed": True, "account_query_enabled": True, "position_query_enabled": True, "mock_data": False, **_SAFE}
+    if not all((output_dir / name).exists() for name in ("account_readonly_report.json", "account_asset_snapshot.json", "account_positions_snapshot.json")):
+        return {"ok": False, "status": "RUNTIME_OUTPUT_MISSING", "error_message": "隔离子进程已结束，但没有生成账户/持仓只读输出文件。", "stdout_tail": completed.stdout[-1000:], "stderr_tail": completed.stderr[-1000:], "enabled": True, "manual_confirmation_completed": True, "account_query_enabled": True, "position_query_enabled": True, "mock_data": False, **_SAFE}
     return payload
 
 
