@@ -18,7 +18,75 @@
       "no_order_submitted": true,
       "no_xttrader": true,
       "not_live_trading": true,
+      "order_id": "paper-stage88-159915.SZ",
+      "paper_trading": true,
+      "read_only": true,
+      "reasons": [
+        "dry-run only; human approval required"
+      ],
+      "requires_human_approval": true,
+      "safety_violation": false,
+      "shadow_trading": true
+    },
+    {
+      "allowed": true,
+      "dry_run": true,
+      "no_account_query": true,
+      "no_order_submitted": true,
+      "no_xttrader": true,
+      "not_live_trading": true,
       "order_id": "paper-stage88-510300.SH",
+      "paper_trading": true,
+      "read_only": true,
+      "reasons": [
+        "dry-run only; human approval required"
+      ],
+      "requires_human_approval": true,
+      "safety_violation": false,
+      "shadow_trading": true
+    },
+    {
+      "allowed": true,
+      "dry_run": true,
+      "no_account_query": true,
+      "no_order_submitted": true,
+      "no_xttrader": true,
+      "not_live_trading": true,
+      "order_id": "paper-stage88-588000.SH",
+      "paper_trading": true,
+      "read_only": true,
+      "reasons": [
+        "dry-run only; human approval required"
+      ],
+      "requires_human_approval": true,
+      "safety_violation": false,
+      "shadow_trading": true
+    },
+    {
+      "allowed": true,
+      "dry_run": true,
+      "no_account_query": true,
+      "no_order_submitted": true,
+      "no_xttrader": true,
+      "not_live_trading": true,
+      "order_id": "paper-stage88-510500.SH",
+      "paper_trading": true,
+      "read_only": true,
+      "reasons": [
+        "dry-run only; human approval required"
+      ],
+      "requires_human_approval": true,
+      "safety_violation": false,
+      "shadow_trading": true
+    },
+    {
+      "allowed": true,
+      "dry_run": true,
+      "no_account_query": true,
+      "no_order_submitted": true,
+      "no_xttrader": true,
+      "not_live_trading": true,
+      "order_id": "paper-stage88-512100.SH",
       "paper_trading": true,
       "read_only": true,
       "reasons": [

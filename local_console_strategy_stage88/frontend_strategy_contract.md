@@ -14,9 +14,9 @@
   "not_live_trading": true,
   "read_only": true,
   "requires_human_approval": true,
-  "signal_count": 1,
+  "signal_count": 5,
   "stage": "Stage88",
   "status": "SUCCESS",
-  "trade_intent_count": 1
+  "trade_intent_count": 5
 }
 ```

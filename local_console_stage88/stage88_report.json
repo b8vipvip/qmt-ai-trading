@@ -1,11 +1,11 @@
 {
   "datahub": {
-    "bar_count": 100,
+    "bar_count": 600,
     "datahub_cache_ready": true,
     "dry_run": true,
-    "fallback_used": true,
-    "mini_qmt_connected": false,
-    "mock_data": true,
+    "fallback_used": false,
+    "mini_qmt_connected": true,
+    "mock_data": false,
     "module": "Data Hub",
     "no_account_query": true,
     "no_order_submitted": true,
@@ -13,12 +13,12 @@
     "not_live_trading": true,
     "quality_status": "PASS",
     "read_only": true,
-    "real_market_data": false,
+    "real_market_data": true,
     "requires_human_approval": true,
-    "sandbox_fallback": true,
+    "sandbox_fallback": false,
     "stage": "Stage88",
     "status": "SUCCESS",
-    "xtdata_imported": false
+    "xtdata_imported": true
   },
   "dry_run": true,
   "no_account_query": true,
@@ -28,9 +28,9 @@
   "read_only": true,
   "requires_human_approval": true,
   "research": {
-    "candidate_count": 1,
+    "candidate_count": 5,
     "dry_run": true,
-    "factor_count": 1,
+    "factor_count": 5,
     "module": "Research Factor Engine",
     "no_account_query": true,
     "no_order_submitted": true,
@@ -42,8 +42,8 @@
     "status": "SUCCESS"
   },
   "risk": {
-    "approved_dry_run_count": 1,
-    "decision_count": 1,
+    "approved_dry_run_count": 5,
+    "decision_count": 5,
     "dry_run": true,
     "module": "Risk Gate",
     "no_account_query": true,
@@ -72,9 +72,9 @@
     "not_live_trading": true,
     "read_only": true,
     "requires_human_approval": true,
-    "signal_count": 1,
+    "signal_count": 5,
     "stage": "Stage88",
     "status": "SUCCESS",
-    "trade_intent_count": 1
+    "trade_intent_count": 5
   }
 }

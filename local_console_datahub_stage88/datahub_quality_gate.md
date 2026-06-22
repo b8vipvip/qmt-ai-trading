@@ -4,12 +4,44 @@
 {
   "decisions": [
     {
-      "bar_count": 100,
+      "bar_count": 120,
       "dry_run": true,
       "issues": [],
       "read_only": true,
       "status": "PASS",
       "symbol": "510300.SH"
+    },
+    {
+      "bar_count": 120,
+      "dry_run": true,
+      "issues": [],
+      "read_only": true,
+      "status": "PASS",
+      "symbol": "510500.SH"
+    },
+    {
+      "bar_count": 120,
+      "dry_run": true,
+      "issues": [],
+      "read_only": true,
+      "status": "PASS",
+      "symbol": "588000.SH"
+    },
+    {
+      "bar_count": 120,
+      "dry_run": true,
+      "issues": [],
+      "read_only": true,
+      "status": "PASS",
+      "symbol": "159915.SZ"
+    },
+    {
+      "bar_count": 120,
+      "dry_run": true,
+      "issues": [],
+      "read_only": true,
+      "status": "PASS",
+      "symbol": "512100.SH"
     }
   ],
   "dry_run": true,

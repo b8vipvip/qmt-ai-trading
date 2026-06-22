@@ -6,9 +6,9 @@
     "/api/v1/stage88/research/factors",
     "/api/v1/stage88/research/candidates"
   ],
-  "candidate_count": 1,
+  "candidate_count": 5,
   "dry_run": true,
-  "factor_count": 1,
+  "factor_count": 5,
   "module": "Research Factor Engine",
   "no_account_query": true,
   "no_order_submitted": true,

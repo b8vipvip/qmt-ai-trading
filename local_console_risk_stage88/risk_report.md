@@ -2,8 +2,8 @@
 
 ```json
 {
-  "approved_dry_run_count": 1,
-  "decision_count": 1,
+  "approved_dry_run_count": 5,
+  "decision_count": 5,
   "dry_run": true,
   "module": "Risk Gate",
   "no_account_query": true,

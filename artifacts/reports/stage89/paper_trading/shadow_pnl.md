@@ -15,7 +15,7 @@
   "realized_pnl": 0.0,
   "requires_human_approval": true,
   "shadow_trading": true,
-  "unrealized_pnl": 0.0,
+  "unrealized_pnl": 5.684341886080802e-14,
   "warnings": []
 }
 ```
