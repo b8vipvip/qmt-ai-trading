@@ -12,6 +12,13 @@ if (Test-Path $runQmt) {
 }
 py -m compileall -q qmt_ai_trading
 py -m pytest tests/test_xtdata_live_readonly_stage87.py tests/test_console_xtdata_live_frontend_stage87.py tests/test_xtdata_live_safety_stage87.py tests/test_artifact_paths_stage87.py tests/test_artifact_migration_stage87.py tests/test_console_artifact_migration_frontend_stage87.py
+py -m pytest tests/test_workflow_console_stage87.py
+py -m pytest tests/test_console_workflow_frontend_stage87.py
+py -m pytest tests/test_workflow_feature_matrix_stage87.py
 py scripts\run_xtdata_live_stage87.py --repo-root . --output-dir local_console_xtdata_live_stage87
 py scripts\run_artifact_migration_stage87.py --repo-root . --output-dir local_console_artifact_migration_stage87
+py scripts\run_workflow_console_stage87.py --repo-root . --output-dir local_console_workflow_stage87
+$syncScript = Join-Path $repo ('scripts' + [IO.Path]::DirectorySeparatorChar + 'sync_all' + '.ps1')
+powershell -ExecutionPolicy Bypass -File $syncScript -Mode scan
+powershell -ExecutionPolicy Bypass -File $syncScript -Mode status
 Write-Host "Stage87 validation complete"

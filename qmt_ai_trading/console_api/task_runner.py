@@ -4,7 +4,7 @@ from .models import TaskRun, now_iso
 from .task_registry import get_task
 from .safety import *
 def mock_output(task_id, params):
-    if task_id=='factor_scan':
+    if task_id in {'factor_scan','factor_research_dry_run'}:
         from qmt_ai_trading.research.factor_engine import run_factor_scan
         return run_factor_scan(params)
     if task_id=='agent_research_dry_run':
@@ -34,6 +34,11 @@ def mock_output(task_id, params):
         from qmt_ai_trading.market_gateway import run_xtdata_live_stage87
         report=run_xtdata_live_stage87(repo_root=params.get('repo_root','.'), output_dir=params.get('output_dir','local_console_xtdata_live_stage87'), enabled=params.get('enable_xtdata',False), allow_import_xtdata=params.get('allow_import_xtdata',False), allow_real_market_data=params.get('allow_real_market_data',False), allow_connect_miniqmt=params.get('allow_connect_miniqmt',False), read_only=params.get('read_only',True), allow_xttrader=False, allow_account_query=False, allow_order_submit=False, symbols=params.get('symbols',['510300.SH','510500.SH','588000.SH']), period=params.get('period','1d'), limit=int(params.get('limit',20)))
         return report
+    if task_id=='workflow_dry_run_check':
+        from qmt_ai_trading.console_api.workflow_console import write_workflow_outputs
+        return write_workflow_outputs(params.get('repo_root','.'), params.get('output_dir','local_console_workflow_stage87'))
+    if task_id=='risk_gate_dry_run':
+        return {'task_id':'risk_gate_dry_run','status':'SUCCESS','decisions':[{'intent_id':'dry-run-sample','decision':'REJECTED','reasons':['dry-run only','live trading disabled','requires human approval']}], 'dry_run':True,'read_only':True,'no_order_submitted':True,'blocked_by_risk':True}
     if task_id=='factor_strategy_dry_run':
         from qmt_ai_trading.research.factor_engine import run_factor_scan
         from qmt_ai_trading.strategies.factor_strategy_engine import build_factor_strategy
