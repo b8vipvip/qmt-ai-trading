@@ -9,3 +9,9 @@ from .xtdata_config import XtDataAdapterConfig
 from .xtdata_adapter import XtDataAdapterBoundary
 from .xtdata_safety import scan_import_guard, evaluate_xtdata_safety
 from .xtdata_report import run_xtdata_boundary_stage85
+from .xtdata_enable_request import XtDataEnableRequest
+from .xtdata_environment_check import XtDataEnvironmentCheck, run_environment_check
+from .xtdata_manual_checklist import XtDataManualChecklist, default_manual_checklist
+from .xtdata_config_audit import XtDataConfigAudit, audit_xtdata_config
+from .xtdata_enable_decision import decide_xtdata_enable
+from .xtdata_enable_report import run_xtdata_enable_stage86

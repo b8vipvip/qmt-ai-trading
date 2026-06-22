@@ -1,0 +1,22 @@
+# xtdata_enable_request
+
+```json
+{
+  "allow_download_history": false,
+  "allow_query_financial_data": false,
+  "allow_query_instrument_detail": false,
+  "allow_xttrader": false,
+  "connect_miniqmt": false,
+  "created_at": "2026-01-01T00:00:00+00:00#Stage86-6668d3755585",
+  "dry_run": true,
+  "enable_real_market_data": false,
+  "enable_realtime_subscribe": false,
+  "enable_xtdata": false,
+  "manual_confirmation_completed": false,
+  "read_only": true,
+  "request_id": "stage86-sandbox-enable-dry-run",
+  "requested_by": "local_operator",
+  "requested_mode": "SANDBOX_ENABLE_DRY_RUN",
+  "requires_human_confirmation": true
+}
+```

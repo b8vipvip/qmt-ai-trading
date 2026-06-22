@@ -70,6 +70,20 @@ def _read_xtdata_file(name, default):
     try: return json.loads(path.read_text(encoding='utf-8'))
     except Exception as e: return {'error':str(e),'enabled':False,'dry_run':True,'read_only':True,'xtdata_imported':False,'mini_qmt_connected':False,'real_market_data':False,'sandbox_fallback':True}
 
+
+
+def _read_xtdata_enable_file(name, default):
+    path=Path('local_console_xtdata_enable_stage86')/name
+    if not path.exists():
+        try:
+            from qmt_ai_trading.market_gateway import run_xtdata_enable_stage86
+            run_xtdata_enable_stage86('.', 'local_console_xtdata_enable_stage86')
+        except Exception:
+            pass
+    if not path.exists(): return default
+    try: return json.loads(path.read_text(encoding='utf-8'))
+    except Exception as e: return {'error':str(e),'enable_xtdata':False,'dry_run':True,'read_only':True,'xtdata_imported':False,'mini_qmt_connected':False,'real_market_data':False,'requires_human_review':True}
+
 def _json(handler, code, payload):
     raw=json.dumps(payload, ensure_ascii=False).encode('utf-8'); handler.send_response(code); handler.send_header('Content-Type','application/json; charset=utf-8'); handler.send_header('Content-Length',str(len(raw))); handler.end_headers(); handler.wfile.write(raw)
 def summary():
@@ -152,6 +166,14 @@ def make_handler(static_dir=None):
             if p=='/api/v1/market/xtdata/capability-probe': return _json(self,200,{'ok':True,'capability_probe':_read_xtdata_file('xtdata_capability_probe.json',{})})
             if p=='/api/v1/market/xtdata/safety': return _json(self,200,{'ok':True,'safety':_read_xtdata_file('xtdata_safety_report.json',{})})
             if p=='/api/v1/market/xtdata/report': return _json(self,200,{'ok':True,'report':_read_xtdata_file('xtdata_boundary_report.json',{})})
+
+            if p=='/api/v1/market/xtdata-enable/context': return _json(self,200,{'ok':True,'context':_read_xtdata_enable_file('xtdata_enable_input_context.json',{'enable_xtdata':False,'dry_run':True,'read_only':True})})
+            if p=='/api/v1/market/xtdata-enable/request': return _json(self,200,{'ok':True,'request':_read_xtdata_enable_file('xtdata_enable_request.json',{})})
+            if p=='/api/v1/market/xtdata-enable/environment': return _json(self,200,{'ok':True,'environment':_read_xtdata_enable_file('xtdata_environment_check.json',{})})
+            if p=='/api/v1/market/xtdata-enable/checklist': return _json(self,200,{'ok':True,'checklist':_read_xtdata_enable_file('xtdata_manual_checklist.json',{})})
+            if p=='/api/v1/market/xtdata-enable/audit': return _json(self,200,{'ok':True,'audit':_read_xtdata_enable_file('xtdata_config_audit.json',{})})
+            if p=='/api/v1/market/xtdata-enable/decision': return _json(self,200,{'ok':True,'decision':_read_xtdata_enable_file('xtdata_enable_decision.json',{})})
+            if p=='/api/v1/market/xtdata-enable/report': return _json(self,200,{'ok':True,'report':_read_xtdata_enable_file('xtdata_enable_report.json',{})})
             if p=='/api/v1/ai/models/latest': return _json(self,200,{'ok':True,'result':LATEST_DISCOVERY})
             if p=='/api/v1/ai/benchmark/latest': return _json(self,200,{'ok':True,'report':LATEST_BENCHMARK})
             if p=='/api/v1/ai/model-usage/draft': return _json(self,200,{'ok':True,'draft':get_usage_draft()})
