@@ -757,3 +757,6 @@ local_runtime_xtdata_live_stage87/**
 local_runtime_account_stage91/
 
 tmp_*.py
+
+# Local script backups
+*.bak_*
