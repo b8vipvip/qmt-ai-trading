@@ -1,19 +1,29 @@
 from pathlib import Path
 
-def test_frontend_contains_xtdata_live_sections_and_no_trade_words():
-    text = Path('local_console_app_stage87/index.html').read_text(encoding='utf-8')
-    for term in ['xtdata 只读行情','xtdata 连接状态','MiniQMT 状态','当前 provider','行情 snapshot 表格','K线 bars 表格','sandbox fallback 状态','禁止交易项检查']:
+
+def _frontend_text():
+    return Path('local_console_app_stage87/index.html').read_text(encoding='utf-8') + Path('local_console_app_stage87/app.js').read_text(encoding='utf-8') + Path('local_console_app_stage87/styles.css').read_text(encoding='utf-8')
+
+
+def test_frontend_contains_xtdata_live_human_readable_sections_and_no_dangerous_entries():
+    text = _frontend_text()
+    for term in ['xtdata 只读行情工作台','顶部状态总览','行情控制区','行情摘要卡片','K 线数据表','诊断信息','高级调试：查看原始 JSON','安全边界提示']:
+        assert term in text
+    for term in ['真实 xtdata 行情','Sandbox 模拟行情','MiniQMT 已连接','只读安全：未接交易接口','安全边界异常，请停止使用并检查配置']:
         assert term in text
     for flag in ['read_only=true','no_xttrader=true','no_order_submitted=true','no_account_query=true','allow_order_submit=false','allow_xttrader=false']:
         assert flag in text
-    for bad in ['一键下单','自动买入','自动卖出','查询账户','查询持仓','查询资金','撤单','实盘交易']:
+    for bad in ['一键下单','自动买入','自动卖出','账户查询按钮','持仓查询按钮','资金查询按钮','实盘交易']:
         assert bad not in text
 
-def test_frontend_manual_confirmation_and_relative_fetch_params():
+
+def test_frontend_manual_confirmation_controls_and_relative_fetch_params():
     text = Path('local_console_app_stage87/app.js').read_text(encoding='utf-8')
-    for token in ['当前模式：', 'Sandbox', 'Real xtdata readonly', 'xtLiveConfirm', '我确认只启用 xtdata 只读行情', '启用真实 xtdata 只读行情', '关闭真实 xtdata，回到 sandbox', '获取快照', '获取K线']:
+    for token in ['xtLiveConfirm', '人工确认：我确认只启用 xtdata 只读行情', '标的输入框', '周期选择', 'K线数量选择', '启用真实 xtdata 只读行情', '关闭真实行情，回到 Sandbox', '获取快照', '获取K线']:
         assert token in text
-    for param in ['enable_xtdata', 'allow_import_xtdata', 'allow_real_market_data', 'allow_connect_miniqmt']:
+    for token in ['510300.SH,510500.SH,588000.SH', '1m', '5m', '15m', '1d', '20', '60', '120', '250']:
+        assert token in text
+    for param in ['enable_xtdata', 'allow_import_xtdata', 'allow_real_market_data', 'allow_connect_miniqmt', 'read_only', 'allow_xttrader', 'allow_order_submit', 'allow_account_query']:
         assert param in text
     assert "fetch('/api/v1/market/xtdata-live/status" not in text
     assert '127.0.0.1' not in text
