@@ -14,6 +14,7 @@ from qmt_ai_trading.ai_provider.usage_mapping import save_usage_draft, get_usage
 from qmt_ai_trading.ai_provider.serializers import to_dict
 from qmt_ai_trading.research.factor_registry import catalog_as_dict
 from qmt_ai_trading.research.factor_config import config_seed_as_dict
+from qmt_ai_trading.console_api.workflow_console import workflow_status, feature_matrix, reports_index, dry_run_check
 DEFAULT_HOST='127.0.0.1'; DEFAULT_PORT=8768
 STORE=TaskStore()
 LATEST_FACTOR_SCAN={'factor_results': [], 'factor_evaluation': {}, 'factor_candidates': []}
@@ -149,6 +150,26 @@ def make_handler(static_dir=None):
         def do_DELETE(self): self._safe(lambda: None)
         def _get(self):
             u=urlparse(self.path); p=u.path
+
+            if p=='/api/v1/workflow/status': return _json(self,200,{'ok':True,**workflow_status('.')})
+            if p=='/api/v1/workflow/feature-matrix': return _json(self,200,{'ok':True,**feature_matrix('.')})
+            if p=='/api/v1/workflow/reports': return _json(self,200,{'ok':True,**reports_index('.')})
+            if p=='/api/v1/datahub/status': return _json(self,200,{'ok':True,'status':'BACKEND_MISSING','module':'Data Hub','message':'Data Hub interactive API is not implemented yet','next_action':'Implement Data Hub read-only status and cache API','read_only':True,'not_live_trading':True})
+            if p=='/api/v1/datahub/symbols': return _json(self,200,{'ok':True,'status':'BACKEND_MISSING','module':'Data Hub / symbols','symbols':[],'next_action':'后端待开发，需要新增 Data Hub symbols API','read_only':True,'not_live_trading':True})
+            if p=='/api/v1/datahub/cache/status': return _json(self,200,{'ok':True,'status':'BACKEND_MISSING','module':'Data Hub / cache','next_action':'后端待开发，需要新增 Data Hub cache status API','read_only':True,'not_live_trading':True})
+            if p=='/api/v1/datahub/market/latest': return _json(self,200,{'ok':True,'status':'BACKEND_MISSING','module':'Data Hub / market latest','next_action':'后端待开发，需要新增 Data Hub latest market API','read_only':True,'not_live_trading':True})
+            if p=='/api/v1/strategy/context': return _json(self,200,{'ok':True,'context':{'module':'Strategy Engine','status':'INTERACTIVE','dry_run':True,'read_only':True,'no_order_submitted':True}})
+            if p=='/api/v1/strategy/signals/latest': return _json(self,200,{'ok':True,'signals':_latest_strategy_output().get('strategy_signals',[])})
+            if p=='/api/v1/strategy/trade-intents/latest': return _json(self,200,{'ok':True,'trade_intents':_latest_strategy_output().get('trade_intents',[])})
+            if p=='/api/v1/risk/context': return _json(self,200,{'ok':True,'context':{'module':'Risk Gate','status':'INTERACTIVE','dry_run':True,'read_only':True,'no_order_submitted':True}})
+            if p=='/api/v1/risk/decisions/latest': return _json(self,200,{'ok':True,'decisions':_latest_strategy_output().get('risk_decisions',[])})
+            if p=='/api/v1/risk/report/latest': return _json(self,200,{'ok':True,'report':{'status':'INTERACTIVE','source':'risk_gate_dry_run','dry_run':True,'no_order_submitted':True}})
+            if p=='/api/v1/approval/status': return _json(self,200,{'ok':True,'status':'BACKEND_MISSING','module':'Human Approval','message':'Human Approval read-only API is not implemented yet','next_action':'后端待开发，需要新增 approval status API','read_only':True,'not_live_trading':True})
+            if p=='/api/v1/approval/requests/latest': return _json(self,200,{'ok':True,'status':'BACKEND_MISSING','requests':[],'next_action':'后端待开发，需要新增 approval requests API','read_only':True})
+            if p=='/api/v1/paper-trading/status': return _json(self,200,{'ok':True,'status':'BACKEND_MISSING','module':'Paper Trading','next_action':'后端待开发，需要新增 paper trading status API','read_only':True,'not_live_trading':True})
+            if p=='/api/v1/paper-trading/orders/latest': return _json(self,200,{'ok':True,'status':'BACKEND_MISSING','orders':[],'next_action':'后端待开发，需要新增 paper orders API','read_only':True})
+            if p=='/api/v1/shadow-trading/report/latest': return _json(self,200,{'ok':True,'status':'BACKEND_MISSING','report':{},'next_action':'后端待开发，需要新增 shadow trading report API','read_only':True})
+            if p=='/api/v1/live/status': return _json(self,200,{'ok':True,'status':'DISABLED','feature_status':'DISABLED_FOR_SAFETY','live_trading_enabled':False,'allow_order_submit':False,'allow_xttrader':False,'requires_human_approval':True,'message':'Live trading is disabled by default'})
             if p=='/api/v1/health': return _json(self,200,{'ok':True,'service':'console_api_stage77','host':'127.0.0.1','read_only':True,'dry_run':True,'no_trade_authorization':True,'live_disabled':True})
             if p=='/api/v1/tasks/catalog': return _json(self,200,{'ok':True,'tasks':[task_to_dict(t) for t in list_tasks()]})
             if p=='/api/v1/tasks': return _json(self,200,{'ok':True,'tasks':[run_to_dict(r) for r in STORE.list()]})
