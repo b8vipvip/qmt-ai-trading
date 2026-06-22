@@ -268,25 +268,13 @@ def _read_account_readonly_file(name, default):
 
 
 def _account_readonly_config_from_qs(qs):
-    from qmt_ai_trading.trading_gateway.account_readonly_config import AccountReadonlyConfig
+    from qmt_ai_trading.trading_gateway.account_readonly_config import build_account_readonly_config
     warnings = []
     if _bool_param(qs, 'allow_order_submit', False):
         warnings.append('allow_order_submit=true is not accepted; forced to false for Stage91 read-only mode')
     if _bool_param(qs, 'allow_order_cancel', False):
         warnings.append('allow_order_cancel=true is not accepted; forced to false for Stage91 read-only mode')
-    cfg = AccountReadonlyConfig(
-        enabled=_bool_param(qs, 'enable_account_readonly', False),
-        dry_run=_bool_param(qs, 'dry_run', True),
-        read_only=_bool_param(qs, 'read_only', True),
-        allow_import_xttrader=_bool_param(qs, 'allow_import_xttrader', False),
-        allow_connect_trade_session=_bool_param(qs, 'allow_connect_trade_session', False),
-        allow_account_query=_bool_param(qs, 'allow_account_query', False),
-        allow_position_query=_bool_param(qs, 'allow_position_query', False),
-        manual_confirmation_completed=_bool_param(qs, 'manual_confirmed', False),
-        allow_order_submit=False,
-        allow_order_cancel=False,
-    )
-    return cfg, warnings
+    return build_account_readonly_config(Path.cwd(), qs), warnings
 
 def _account_readonly_response(qs, kind):
     from qmt_ai_trading.trading_gateway.account_readonly_provider import AccountReadonlyProvider
@@ -294,17 +282,18 @@ def _account_readonly_response(qs, kind):
     provider = AccountReadonlyProvider(cfg)
     if kind == 'status':
         data = provider.get_status()
+    elif kind == 'diagnostics':
+        data = provider.diagnostics()
     elif kind == 'asset':
         data = provider.query_account_asset()
-        data = {'asset': data, **data} if data.get('ok') is not False and 'asset' not in data else data
     elif kind == 'positions':
         data = provider.query_positions()
         if 'positions' in data and isinstance(data.get('positions'), list):
             data = {**data, 'positions': {'position_count': data.get('position_count', len(data['positions'])), 'positions': data['positions'], 'account_masked': True, 'order_submit_enabled': False, 'real_order_submitted': False}}
     elif kind == 'rate-limit':
-        data = {'status':'PASS','max_queries_per_minute':cfg.max_queries_per_minute,'remaining':cfg.max_queries_per_minute,'read_only':True,'order_submit_enabled':False,'real_order_submitted':False}
+        data = {'status':'PASS','max_queries_per_minute':cfg.max_queries_per_minute,'remaining':cfg.max_queries_per_minute,'read_only':True,'order_submit_enabled':False,'order_cancel_enabled':False,'real_order_submitted':False}
     elif kind == 'masking-report':
-        data = {'status':'PASS','account_masked':True,'message':'完整账号不会写入日志和前端','read_only':True,'order_submit_enabled':False,'real_order_submitted':False}
+        data = {'status':'PASS','account_masked':True,'account_id_masked':cfg.to_dict().get('account_id_masked'),'message':'完整账号不会写入日志和前端','read_only':True,'order_submit_enabled':False,'order_cancel_enabled':False,'real_order_submitted':False}
     elif kind == 'safety':
         data = {'status':'PASS','safety_status':'READONLY_ENABLED' if provider.get_status()['enabled'] else 'DISABLED_FOR_SAFETY','read_only':True,'dry_run':True,'allow_order_submit':False,'allow_order_cancel':False,'order_submit_enabled':False,'order_cancel_enabled':False,'real_order_submitted':False}
     elif kind == 'report':
@@ -314,7 +303,7 @@ def _account_readonly_response(qs, kind):
     if warnings:
         data['warnings'] = list(data.get('warnings', [])) + warnings
     data.update({'order_submit_enabled': False, 'order_cancel_enabled': False, 'real_order_submitted': False})
-    data.setdefault('ok', data.get('status') not in {'ACCOUNT_QUERY_FAILED', 'POSITION_QUERY_FAILED'})
+    data.setdefault('ok', data.get('status') not in {'ACCOUNT_QUERY_ERROR', 'POSITION_QUERY_ERROR', 'CONNECT_ERROR', 'CONFIG_ERROR_USERDATA_PATH_MISSING', 'CONFIG_ERROR_USERDATA_PATH_NOT_EXISTS', 'CONFIG_ERROR_ACCOUNT_ID_MISSING', 'IMPORT_ERROR_XTTRADER'})
     return data
 
 def _json(handler, code, payload):
@@ -348,7 +337,7 @@ def make_handler(static_dir=None):
         def _get(self):
             u=urlparse(self.path); p=u.path
 
-            account_api_kinds={'/api/v1/account-readonly/status':'status','/api/v1/account-readonly/asset':'asset','/api/v1/account-readonly/positions':'positions','/api/v1/account-readonly/masking-report':'masking-report','/api/v1/account-readonly/rate-limit':'rate-limit','/api/v1/account-readonly/safety':'safety','/api/v1/account-readonly/report':'report'}
+            account_api_kinds={'/api/v1/account-readonly/status':'status','/api/v1/account-readonly/diagnostics':'diagnostics','/api/v1/account-readonly/asset':'asset','/api/v1/account-readonly/positions':'positions','/api/v1/account-readonly/masking-report':'masking-report','/api/v1/account-readonly/rate-limit':'rate-limit','/api/v1/account-readonly/safety':'safety','/api/v1/account-readonly/report':'report'}
             if p in account_api_kinds: return _json(self,200,_account_readonly_response(parse_qs(u.query), account_api_kinds[p]))
 
             if p=='/api/v1/trading/xttrader-boundary/config': return _json(self,200,{'ok':True,**_read_xttrader_boundary_file('xttrader_boundary_config.json',{})})

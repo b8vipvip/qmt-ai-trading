@@ -2,7 +2,7 @@ from __future__ import annotations
 import json, shutil
 from pathlib import Path
 from typing import Any
-from .account_readonly_config import AccountReadonlyConfig
+from .account_readonly_config import AccountReadonlyConfig, build_account_readonly_config
 from .account_readonly_provider import AccountReadonlyProvider
 from .account_rate_limit import AccountReadonlyRateLimiter
 from .account_masking import mask_account_id, mask_account_name
@@ -17,8 +17,9 @@ def _read(p:Path):
     try: return json.loads(p.read_text(encoding='utf-8')) if p.exists() else None
     except Exception: return None
 
-def build_config(enable=False, allow_import=False, allow_connect=False, allow_account=False, allow_position=False, manual=False, dry_run=True, read_only=True):
-    return AccountReadonlyConfig(enabled=bool(enable),dry_run=True,read_only=bool(read_only),allow_import_xttrader=bool(allow_import),allow_connect_trade_session=bool(allow_connect),allow_account_query=bool(allow_account),allow_position_query=bool(allow_position),manual_confirmation_completed=bool(manual),allow_order_submit=False,allow_order_cancel=False)
+def build_config(repo_root='.', enable=False, allow_import=False, allow_connect=False, allow_account=False, allow_position=False, manual=False, dry_run=True, read_only=True):
+    params={'enable_account_readonly': str(bool(enable)).lower(), 'allow_import_xttrader': str(bool(allow_import)).lower(), 'allow_connect_trade_session': str(bool(allow_connect)).lower(), 'allow_account_query': str(bool(allow_account)).lower(), 'allow_position_query': str(bool(allow_position)).lower(), 'manual_confirmed': str(bool(manual)).lower(), 'dry_run': str(bool(dry_run)).lower(), 'read_only': str(bool(read_only)).lower()}
+    return build_account_readonly_config(repo_root, params)
 
 def scan_stage91_safety(repo_root='.'):
     root=Path(repo_root); files=list((root/'qmt_ai_trading/trading_gateway').glob('account_*.py'))+list((root/'scripts').glob('*stage91*.py'))
@@ -37,17 +38,17 @@ def build_frontend(repo_root:Path):
 def run_account_readonly_stage91(repo_root='.', output_dir='local_console_account_stage91', enable_account_readonly=False, allow_import_xttrader=False, allow_connect_trade_session=False, allow_account_query=False, allow_position_query=False, manual_confirmed=False, dry_run=True, read_only=True):
     root=Path(repo_root); out=root/output_dir; canon=root/'artifacts/reports/stage91/account_readonly'
     inputs={p:{'exists':(root/p).exists(),'data':_read(root/p)} for p in REQ}; fallback=any(not v['exists'] for v in inputs.values())
-    cfg=build_config(enable_account_readonly,allow_import_xttrader,allow_connect_trade_session,allow_account_query,allow_position_query,manual_confirmed,dry_run,read_only)
+    cfg=build_config(root, enable_account_readonly,allow_import_xttrader,allow_connect_trade_session,allow_account_query,allow_position_query,manual_confirmed,dry_run,read_only)
     provider=AccountReadonlyProvider(cfg, rate_limiter=AccountReadonlyRateLimiter(cfg.max_queries_per_minute))
     context={'stage':'Stage91','input_files':{k:{'exists':v['exists']} for k,v in inputs.items()},'fallback_used':fallback,'mock_data':True,'account_readonly_boundary':True,'account_query_enabled':False,'position_query_enabled':False,'order_submit_enabled':False,'real_order_submitted':False,'dry_run':True,'read_only':True,'requires_human_approval':True,'mask_account_required':True}
-    status=provider.get_status(); asset=provider.query_account_asset(); positions=provider.query_positions()
+    status=provider.get_status(); diagnostics=provider.diagnostics(); asset=provider.query_account_asset(); positions=provider.query_positions()
     masking={'status':'PASS','account_masked':True,'sample_account_id':mask_account_id('1234567890'),'sample_account_name':mask_account_name('示例账户名称'),'full_account_absent':True,'mask_account_required':True}
     rl=AccountReadonlyRateLimiter(3); rate={'attempts':[rl.allow(),rl.allow(),rl.allow(),rl.allow()],'rate_limit_required':True,'max_queries_per_minute':3}
     safety=scan_stage91_safety(root)
-    frontend={'menu':['账户只读','持仓只读'],'endpoints':['/api/v1/account-readonly/status','/api/v1/account-readonly/asset','/api/v1/account-readonly/positions','/api/v1/account-readonly/masking-report','/api/v1/account-readonly/rate-limit','/api/v1/account-readonly/safety','/api/v1/account-readonly/report'],'manual_confirmation_text':'我确认本次只进行账户/持仓只读查询；不下单、不自动交易；查询结果仅用于风险校验和灰度准备。','forbidden_actions_absent':True,**status}
+    frontend={'menu':['账户只读','持仓只读'],'endpoints':['/api/v1/account-readonly/status','/api/v1/account-readonly/diagnostics','/api/v1/account-readonly/asset','/api/v1/account-readonly/positions','/api/v1/account-readonly/masking-report','/api/v1/account-readonly/rate-limit','/api/v1/account-readonly/safety','/api/v1/account-readonly/report'],'manual_confirmation_text':'我确认本次只进行账户/持仓只读查询；不下单、不自动交易；查询结果仅用于风险校验和灰度准备。','forbidden_actions_absent':True,**status}
     plan={'stage':'Stage92','title':'真实订单预览复核，不发单','uses_account_readonly':True,'order_submit_enabled':False,'real_order_submitted':False,'requires_human_approval':True}
-    report={'stage':'Stage91','status':'SUCCESS' if safety['status']=='PASS' else 'FAIL','output_dir':str(out),'canonical_dir':str(canon),'account_readonly_status':status['status'],'position_count':positions.get('position_count',0),'workflow_status':{'QMT Gateway / xtdata':'INTERACTIVE','Data Hub':'INTERACTIVE','Research':'INTERACTIVE','Strategy':'INTERACTIVE','Risk Gate':'INTERACTIVE','Paper Trading':'INTERACTIVE','xttrader Boundary':'DISABLED_FOR_SAFETY','Account Readonly':'MANUAL_CONFIRM_REQUIRED','Order Submit':'DISABLED_FOR_SAFETY'},**status,'order_submit_enabled':False,'real_order_submitted':False,'no_order_submitted':True}
-    docs={'account_input_context':context,'account_readonly_config':cfg.to_dict(),'account_readonly_status':status,'account_asset_snapshot':asset,'account_positions_snapshot':positions,'account_masking_report':masking,'account_rate_limit_report':rate,'account_readonly_safety_report':safety,'account_readonly_report':report,'frontend_account_contract':frontend,'next_order_preview_review_plan':plan}
+    report={'stage':'Stage91','status':'SUCCESS' if safety['status']=='PASS' else 'FAIL','output_dir':str(out),'canonical_dir':str(canon),'account_readonly_status':status,'account_readonly_diagnostics':diagnostics,'position_count':positions.get('position_count',0),'workflow_status':{'QMT Gateway / xtdata':'INTERACTIVE','Data Hub':'INTERACTIVE','Research':'INTERACTIVE','Strategy':'INTERACTIVE','Risk Gate':'INTERACTIVE','Paper Trading':'INTERACTIVE','xttrader Boundary':'DISABLED_FOR_SAFETY','Account Readonly':'MANUAL_CONFIRM_REQUIRED','Order Submit':'DISABLED_FOR_SAFETY'},**status,'order_submit_enabled':False,'real_order_submitted':False,'no_order_submitted':True}
+    docs={'account_input_context':context,'account_readonly_config':cfg.to_dict(),'account_readonly_status':status,'account_readonly_diagnostics':diagnostics,'account_asset_snapshot':asset,'account_positions_snapshot':positions,'account_masking_report':masking,'account_rate_limit_report':rate,'account_readonly_safety_report':safety,'account_readonly_report':report,'frontend_account_contract':frontend,'next_order_preview_review_plan':plan}
     for base in (out,canon):
         if 'local_runtime_account_stage91' in str(base): continue
         for k,o in docs.items(): _write(base,k,o)

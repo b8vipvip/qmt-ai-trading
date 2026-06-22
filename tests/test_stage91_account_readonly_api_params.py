@@ -45,7 +45,7 @@ def test_account_readonly_asset_enabled_params_do_not_silent_disable():
     assert payload["manual_confirmation_completed"] is True
     assert payload["order_submit_enabled"] is False
     assert payload["real_order_submitted"] is False
-    assert payload["status"] in {"SUCCESS", "ACCOUNT_QUERY_FAILED"}
+    assert payload["status"] in {"SUCCESS", "ACCOUNT_QUERY_FAILED", "ACCOUNT_QUERY_ERROR", "CONFIG_ERROR_USERDATA_PATH_MISSING", "CONFIG_ERROR_USERDATA_PATH_NOT_EXISTS", "CONFIG_ERROR_ACCOUNT_ID_MISSING", "IMPORT_ERROR_XTTRADER", "CONNECT_ERROR"}
     if payload["status"] == "ACCOUNT_QUERY_FAILED":
         assert payload["ok"] is False
         assert payload["mock_data"] is False
@@ -58,7 +58,7 @@ def test_account_readonly_positions_enabled_params_do_not_silent_disable():
     assert payload["manual_confirmation_completed"] is True
     assert payload["order_cancel_enabled"] is False
     assert payload["real_order_submitted"] is False
-    assert payload["status"] in {"SUCCESS", "POSITION_QUERY_FAILED"}
+    assert payload["status"] in {"SUCCESS", "POSITION_QUERY_FAILED", "POSITION_QUERY_ERROR", "CONFIG_ERROR_USERDATA_PATH_MISSING", "CONFIG_ERROR_USERDATA_PATH_NOT_EXISTS", "CONFIG_ERROR_ACCOUNT_ID_MISSING", "IMPORT_ERROR_XTTRADER", "CONNECT_ERROR"}
     if payload["status"] == "POSITION_QUERY_FAILED":
         assert payload["ok"] is False
         assert payload["mock_data"] is False
