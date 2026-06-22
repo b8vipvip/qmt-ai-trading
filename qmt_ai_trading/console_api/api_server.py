@@ -16,6 +16,7 @@ from qmt_ai_trading.research.factor_registry import catalog_as_dict
 from qmt_ai_trading.research.factor_config import config_seed_as_dict
 from qmt_ai_trading.console_api.workflow_console import workflow_status, feature_matrix, reports_index, dry_run_check
 from qmt_ai_trading.common.json_safe import json_safe
+from qmt_ai_trading.console_api.account_readonly_runtime import run_account_readonly_subprocess, format_asset_response, format_positions_response
 DEFAULT_HOST='127.0.0.1'; DEFAULT_PORT=8768
 STORE=TaskStore()
 LATEST_FACTOR_SCAN={'factor_results': [], 'factor_evaluation': {}, 'factor_candidates': []}
@@ -276,14 +277,26 @@ def _account_readonly_config_from_qs(qs):
         warnings.append('allow_order_cancel=true is not accepted; forced to false for Stage91 read-only mode')
     return build_account_readonly_config(Path.cwd(), qs), warnings
 
+def _account_readonly_enabled_for_subprocess(qs):
+    required = ['enable_account_readonly','manual_confirmed','allow_import_xttrader','allow_connect_trade_session','allow_account_query','allow_position_query','read_only','dry_run']
+    return all(_bool_param(qs, name, False) for name in required) and not _bool_param(qs, 'allow_order_submit', False) and not _bool_param(qs, 'allow_order_cancel', False)
+
+def _account_readonly_refresh(qs):
+    if not _account_readonly_enabled_for_subprocess(qs):
+        return {'ok':False,'status':'MANUAL_CONFIRM_REQUIRED','error_message':'Stage91 account readonly subprocess requires all manual read-only enable flags and forbids order permissions','read_only':True,'order_submit_enabled':False,'order_cancel_enabled':False,'real_order_submitted':False}
+    return run_account_readonly_subprocess(Path.cwd(), qs)
+
 def _account_readonly_response(qs, kind):
     from qmt_ai_trading.trading_gateway.account_readonly_provider import AccountReadonlyProvider
     cfg, warnings = _account_readonly_config_from_qs(qs)
     provider = AccountReadonlyProvider(cfg)
     if kind == 'status':
-        data = provider.get_status()
+        data = provider.get_status(); data.update({'mode':'isolated_subprocess'})
     elif kind == 'diagnostics':
-        data = provider.diagnostics()
+        data = provider.diagnostics(); data.update({'mode':'isolated_subprocess','last_runtime_status':None,'last_connect_result':None})
+    elif kind in {'asset','positions','report'} and _account_readonly_enabled_for_subprocess(qs):
+        result = _account_readonly_refresh(qs)
+        data = format_asset_response(result) if kind == 'asset' else (format_positions_response(result) if kind == 'positions' else {'ok':result.get('ok',False),'status':result.get('status'),'report':result.get('report',{}),'asset':result.get('asset'), 'positions':result.get('positions',[]),'position_count':result.get('position_count',0), 'read_only':True,'order_submit_enabled':False,'order_cancel_enabled':False,'real_order_submitted':False})
     elif kind == 'asset':
         data = provider.query_account_asset()
     elif kind == 'positions':
@@ -462,6 +475,10 @@ def make_handler(static_dir=None):
             raw=self.rfile.read(int(self.headers.get('Content-Length','0') or 0))
             body=json.loads(raw.decode('utf-8') or '{}')
             parsed=urlparse(self.path); p=parsed.path; query={k:_coerce_query_value(v[-1]) for k,v in parse_qs(parsed.query).items()}
+            if p=='/api/v1/account-readonly/refresh':
+                qs={k:v for k,v in parse_qs(parsed.query).items()}
+                for k,v in body.items(): qs[k]=[v]
+                return _json(self,200,_account_readonly_refresh(qs))
             if p=='/api/v1/tasks/run':
                 params={**query, **{k:v for k,v in body.items() if k!='task_id' and k!='params'}, **body.get('params',{})}; run=run_task(body.get('task_id') or query.get('task_id',''), params, STORE); payload=run_to_dict(run); payload.update(run.output if isinstance(run.output,dict) else {}); return _json(self,200,{'ok':True,'task':payload})
             if p=='/api/v1/ai/models/discover':

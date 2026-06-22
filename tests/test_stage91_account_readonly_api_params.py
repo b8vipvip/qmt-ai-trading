@@ -45,7 +45,7 @@ def test_account_readonly_asset_enabled_params_do_not_silent_disable():
     assert payload["manual_confirmation_completed"] is True
     assert payload["order_submit_enabled"] is False
     assert payload["real_order_submitted"] is False
-    assert payload["status"] in {"SUCCESS", "ACCOUNT_QUERY_FAILED", "ACCOUNT_QUERY_ERROR", "CONFIG_ERROR_USERDATA_PATH_MISSING", "CONFIG_ERROR_USERDATA_PATH_NOT_EXISTS", "CONFIG_ERROR_ACCOUNT_ID_MISSING", "IMPORT_ERROR_XTTRADER", "CONNECT_ERROR"}
+    assert payload["status"] in {"SUCCESS", "ACCOUNT_QUERY_FAILED", "ACCOUNT_QUERY_ERROR", "CONFIG_ERROR_USERDATA_PATH_MISSING", "CONFIG_ERROR_USERDATA_PATH_NOT_EXISTS", "CONFIG_ERROR_ACCOUNT_ID_MISSING", "IMPORT_ERROR_XTTRADER", "CONNECT_ERROR", "SUBPROCESS_QUERY_FAILED"}
     if payload["status"] == "ACCOUNT_QUERY_FAILED":
         assert payload["ok"] is False
         assert payload["mock_data"] is False
@@ -58,7 +58,7 @@ def test_account_readonly_positions_enabled_params_do_not_silent_disable():
     assert payload["manual_confirmation_completed"] is True
     assert payload["order_cancel_enabled"] is False
     assert payload["real_order_submitted"] is False
-    assert payload["status"] in {"SUCCESS", "POSITION_QUERY_FAILED", "POSITION_QUERY_ERROR", "CONFIG_ERROR_USERDATA_PATH_MISSING", "CONFIG_ERROR_USERDATA_PATH_NOT_EXISTS", "CONFIG_ERROR_ACCOUNT_ID_MISSING", "IMPORT_ERROR_XTTRADER", "CONNECT_ERROR"}
+    assert payload["status"] in {"SUCCESS", "POSITION_QUERY_FAILED", "POSITION_QUERY_ERROR", "CONFIG_ERROR_USERDATA_PATH_MISSING", "CONFIG_ERROR_USERDATA_PATH_NOT_EXISTS", "CONFIG_ERROR_ACCOUNT_ID_MISSING", "IMPORT_ERROR_XTTRADER", "CONNECT_ERROR", "SUBPROCESS_QUERY_FAILED"}
     if payload["status"] == "POSITION_QUERY_FAILED":
         assert payload["ok"] is False
         assert payload["mock_data"] is False
@@ -88,3 +88,19 @@ def test_account_readonly_task_runner_accepts_string_query_booleans(tmp_path, mo
     assert run.output["position_query_enabled"] is True
     assert run.output["order_submit_enabled"] is False
     assert run.output["real_order_submitted"] is False
+
+def test_account_readonly_refresh_uses_subprocess(monkeypatch):
+    import qmt_ai_trading.console_api.api_server as api
+    called={}
+    def fake(root, qs):
+        called['yes']=True
+        return {'ok':True,'status':'SUCCESS','asset':{'total_asset':0},'positions':[],'position_count':0,'read_only':True,'order_submit_enabled':False,'order_cancel_enabled':False,'real_order_submitted':False}
+    monkeypatch.setattr(api, 'run_account_readonly_subprocess', fake)
+    res=api._account_readonly_refresh(ENABLED_QS)
+    assert called['yes'] and res['asset'] and res['position_count']==0
+
+
+def test_runtime_dir_and_tmp_probe_ignored():
+    gi=open('.gitignore',encoding='utf-8').read()
+    assert 'local_runtime_account_stage91/' in gi
+    assert 'tmp_*.py' in gi

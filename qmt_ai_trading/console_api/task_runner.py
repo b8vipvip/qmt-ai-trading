@@ -76,7 +76,11 @@ def mock_output(task_id, params):
             warnings.append('allow_order_submit=true is not accepted; forced to false for Stage91 read-only mode')
         if _bool_value(params, 'allow_order_cancel', False):
             warnings.append('allow_order_cancel=true is not accepted; forced to false for Stage91 read-only mode')
-        report = run_account_readonly_stage91(params.get('repo_root','.'), params.get('output_dir','local_console_account_stage91'), _bool_value(params, 'enable_account_readonly', False), _bool_value(params, 'allow_import_xttrader', False), _bool_value(params, 'allow_connect_trade_session', False), _bool_value(params, 'allow_account_query', False), _bool_value(params, 'allow_position_query', False), _bool_value(params, 'manual_confirmed', False), _bool_value(params, 'dry_run', True), _bool_value(params, 'read_only', True))
+        if all(_bool_value(params, name, False) for name in ['enable_account_readonly','allow_import_xttrader','allow_connect_trade_session','allow_account_query','allow_position_query','manual_confirmed']) and _bool_value(params, 'dry_run', True) and _bool_value(params, 'read_only', True):
+            from qmt_ai_trading.console_api.account_readonly_runtime import run_account_readonly_subprocess
+            report = run_account_readonly_subprocess(params.get('repo_root','.'), params)
+        else:
+            report = run_account_readonly_stage91(params.get('repo_root','.'), params.get('output_dir','local_console_account_stage91'), _bool_value(params, 'enable_account_readonly', False), _bool_value(params, 'allow_import_xttrader', False), _bool_value(params, 'allow_connect_trade_session', False), _bool_value(params, 'allow_account_query', False), _bool_value(params, 'allow_position_query', False), _bool_value(params, 'manual_confirmed', False), _bool_value(params, 'dry_run', True), _bool_value(params, 'read_only', True))
         report.update({'allow_order_submit':False,'allow_order_cancel':False,'order_submit_enabled':False,'order_cancel_enabled':False,'real_order_submitted':False})
         if warnings:
             report['warnings']=warnings

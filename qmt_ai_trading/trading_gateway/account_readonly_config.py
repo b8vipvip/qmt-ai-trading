@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any, Mapping
-import os
+import os, time
 
 _TRUE={"1","true","yes","on"}
 _FALSE={"0","false","no","off"}
@@ -90,7 +90,7 @@ def build_account_readonly_config(repo_root, request_params: Mapping[str, Any] |
     except Exception: base=910000
     try: offset=int(str(_first(request_params,'request_offset') or 0))
     except Exception: offset=0
-    session_id=base+(os.getpid()%10000)+offset
+    session_id=base+(os.getpid()%10000)+(int(time.time())%1000)+offset
     source='/'.join(dict.fromkeys([path_source,acc_source,type_source,base_source]).keys())
     return AccountReadonlyConfig(
         enabled=_bool(_first(request_params,'enable_account_readonly'), False), dry_run=_bool(_first(request_params,'dry_run'), True), read_only=True,
