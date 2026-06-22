@@ -8,6 +8,7 @@
   "enabled": false,
   "manual_confirmation_completed": false,
   "mock_data": true,
+  "ok": true,
   "order_cancel_enabled": false,
   "order_submit_enabled": false,
   "position_query_enabled": false,

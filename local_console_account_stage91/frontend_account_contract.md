@@ -8,6 +8,7 @@
   "enabled": false,
   "endpoints": [
     "/api/v1/account-readonly/status",
+    "/api/v1/account-readonly/diagnostics",
     "/api/v1/account-readonly/asset",
     "/api/v1/account-readonly/positions",
     "/api/v1/account-readonly/masking-report",
@@ -23,6 +24,7 @@
     "持仓只读"
   ],
   "mock_data": true,
+  "ok": true,
   "order_cancel_enabled": false,
   "order_submit_enabled": false,
   "position_query_enabled": false,

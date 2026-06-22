@@ -10,6 +10,7 @@
   "manual_confirmation_completed": false,
   "message": "account readonly query disabled by safety gate",
   "mock_data": true,
+  "ok": true,
   "order_cancel_enabled": false,
   "order_submit_enabled": false,
   "position_query_enabled": false,

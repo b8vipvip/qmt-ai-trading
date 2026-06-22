@@ -1,0 +1,33 @@
+# account_readonly_diagnostics
+
+```json
+{
+  "account_configured": true,
+  "account_id_masked": "88****16",
+  "account_masked": true,
+  "account_query_enabled": false,
+  "account_type": "STOCK",
+  "config_source": ".env",
+  "connect_attempted": false,
+  "connect_result": null,
+  "connect_status": "NOT_ATTEMPTED",
+  "dry_run": true,
+  "enabled": false,
+  "manual_confirmation_completed": false,
+  "mock_data": true,
+  "ok": true,
+  "order_cancel_enabled": false,
+  "order_submit_enabled": false,
+  "position_query_enabled": false,
+  "read_only": true,
+  "real_order_submitted": false,
+  "repo_root": "D:\\AI\\qmt",
+  "requires_human_approval": true,
+  "safety_status": "DISABLED_FOR_SAFETY",
+  "session_id": 915796,
+  "status": "DISABLED",
+  "userdata_mini_path_configured": true,
+  "userdata_mini_path_exists": true,
+  "xttrader_imported": false
+}
+```
