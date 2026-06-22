@@ -1,0 +1,34 @@
+{
+  "attempts": [
+    {
+      "account_query_attempted": true,
+      "max_queries_per_minute": 3,
+      "message": "account readonly query allowed",
+      "remaining": 2,
+      "status": "PASS"
+    },
+    {
+      "account_query_attempted": true,
+      "max_queries_per_minute": 3,
+      "message": "account readonly query allowed",
+      "remaining": 1,
+      "status": "PASS"
+    },
+    {
+      "account_query_attempted": true,
+      "max_queries_per_minute": 3,
+      "message": "account readonly query allowed",
+      "remaining": 0,
+      "status": "PASS"
+    },
+    {
+      "account_query_attempted": false,
+      "max_queries_per_minute": 3,
+      "message": "account readonly query rate limit exceeded",
+      "remaining": 0,
+      "status": "BLOCKED_BY_RATE_LIMIT"
+    }
+  ],
+  "max_queries_per_minute": 3,
+  "rate_limit_required": true
+}

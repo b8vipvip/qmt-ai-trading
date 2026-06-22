@@ -59,6 +59,9 @@ def mock_output(task_id, params):
     if task_id=='xttrader_boundary_dry_run':
         from qmt_ai_trading.trading_gateway import run_xttrader_boundary_stage90
         return run_xttrader_boundary_stage90(params.get('repo_root','.'), params.get('input_stage',89), params.get('output_dir','local_console_xttrader_stage90'), True, True)
+    if task_id=='account_readonly_dry_run':
+        from qmt_ai_trading.trading_gateway.account_readonly_report import run_account_readonly_stage91
+        return run_account_readonly_stage91(params.get('repo_root','.'), params.get('output_dir','local_console_account_stage91'), False, False, False, False, False, False, True, True)
     if task_id=='workflow_dry_run_check':
         from qmt_ai_trading.console_api.workflow_console import write_workflow_outputs
         return write_workflow_outputs(params.get('repo_root','.'), params.get('output_dir','local_console_workflow_stage87'))
