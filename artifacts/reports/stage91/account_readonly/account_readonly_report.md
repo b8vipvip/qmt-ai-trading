@@ -27,7 +27,7 @@
     "repo_root": "D:\\AI\\qmt",
     "requires_human_approval": true,
     "safety_status": "DISABLED_FOR_SAFETY",
-    "session_id": 915796,
+    "session_id": 915605,
     "status": "DISABLED",
     "userdata_mini_path_configured": true,
     "userdata_mini_path_exists": true,
