@@ -1,7 +1,7 @@
 {
   "api": "/api/v1/stage88/datahub/status",
   "bar_count": 100,
-  "cache_path": "local_console_datahub_stage88/datahub_real_cache.json",
+  "cache_path": "local_console_datahub_stage88\\datahub_real_cache.json",
   "datahub_cache_ready": true,
   "dry_run": true,
   "fallback_used": true,
