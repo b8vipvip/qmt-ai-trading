@@ -9,7 +9,7 @@
   "allow_real_market_data": false,
   "allow_xttrader": false,
   "enabled": false,
-  "limit": 100,
+  "limit": 5,
   "period": "1d",
   "read_only": true,
   "sandbox_fallback": true,
