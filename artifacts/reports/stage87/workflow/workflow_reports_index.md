@@ -14,7 +14,7 @@
     },
     {
       "path": "local_console_factor_stage79/factor_report.json",
-      "exists": false
+      "exists": true
     },
     {
       "path": "local_console_agent_stage81/agent_research_report.json",
