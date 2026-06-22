@@ -28,3 +28,9 @@ def test_stage91_frontend_human_readable_cards_and_no_forbidden_actions():
     for forbidden in ["一键下单", "立即买入", "立即卖出", "撤单", "自动交易"]:
         # Only explanatory safety text may mention no cancel/no auto trading; no entry labels are present.
         assert f">{forbidden}<" not in HTML
+
+def test_stage91_frontend_enable_button_refreshes_backend_asset_and_positions():
+    assert "await Promise.all([refreshStatus(),refreshAssetOnly(),refreshPositionsOnly()])" in HTML
+    assert "正在调用后端账户/持仓只读 API" in HTML
+    assert "a.ok===false" in HTML
+    assert "p.ok===false" in HTML

@@ -110,6 +110,15 @@ def _read_xtdata_enable_file(name, default):
 
 
 
+def _coerce_query_value(value):
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"true", "1", "yes", "on"}:
+            return True
+        if lowered in {"false", "0", "no", "off"}:
+            return False
+    return value
+
 def _bool_param(qs, name, default=False):
     value = qs.get(name, [default])[0]
     if isinstance(value, bool):
@@ -267,7 +276,7 @@ def _account_readonly_config_from_qs(qs):
         warnings.append('allow_order_cancel=true is not accepted; forced to false for Stage91 read-only mode')
     cfg = AccountReadonlyConfig(
         enabled=_bool_param(qs, 'enable_account_readonly', False),
-        dry_run=True,
+        dry_run=_bool_param(qs, 'dry_run', True),
         read_only=_bool_param(qs, 'read_only', True),
         allow_import_xttrader=_bool_param(qs, 'allow_import_xttrader', False),
         allow_connect_trade_session=_bool_param(qs, 'allow_connect_trade_session', False),
@@ -287,7 +296,7 @@ def _account_readonly_response(qs, kind):
         data = provider.get_status()
     elif kind == 'asset':
         data = provider.query_account_asset()
-        data = {'asset': data, **data} if 'asset' not in data else data
+        data = {'asset': data, **data} if data.get('ok') is not False and 'asset' not in data else data
     elif kind == 'positions':
         data = provider.query_positions()
         if 'positions' in data and isinstance(data.get('positions'), list):
@@ -304,7 +313,8 @@ def _account_readonly_response(qs, kind):
         data = {}
     if warnings:
         data['warnings'] = list(data.get('warnings', [])) + warnings
-    data.update({'ok': True, 'order_submit_enabled': False, 'order_cancel_enabled': False, 'real_order_submitted': False})
+    data.update({'order_submit_enabled': False, 'order_cancel_enabled': False, 'real_order_submitted': False})
+    data.setdefault('ok', data.get('status') not in {'ACCOUNT_QUERY_FAILED', 'POSITION_QUERY_FAILED'})
     return data
 
 def _json(handler, code, payload):
@@ -462,7 +472,7 @@ def make_handler(static_dir=None):
         def _post(self):
             raw=self.rfile.read(int(self.headers.get('Content-Length','0') or 0))
             body=json.loads(raw.decode('utf-8') or '{}')
-            parsed=urlparse(self.path); p=parsed.path; query={k:v[-1] for k,v in parse_qs(parsed.query).items()}
+            parsed=urlparse(self.path); p=parsed.path; query={k:_coerce_query_value(v[-1]) for k,v in parse_qs(parsed.query).items()}
             if p=='/api/v1/tasks/run':
                 params={**query, **{k:v for k,v in body.items() if k!='task_id' and k!='params'}, **body.get('params',{})}; run=run_task(body.get('task_id') or query.get('task_id',''), params, STORE); payload=run_to_dict(run); payload.update(run.output if isinstance(run.output,dict) else {}); return _json(self,200,{'ok':True,'task':payload})
             if p=='/api/v1/ai/models/discover':
