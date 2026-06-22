@@ -354,7 +354,7 @@ def _latest_strategy_output():
         if r.task_id=='factor_strategy_dry_run' and r.output:
             return r.output
     return LATEST_FACTOR_STRATEGY
-def reports(): return [{'name':'Stage77 dry-run 业务控制台摘要','type':'dry-run report','summary':'仅白名单摘要，不暴露 reports/logs 原始目录'},{'name':'Agent 投研结构化建议','type':'agent report','summary':'只输出 confidence/reasons/risk_flags，不下单'}]
+def reports(): return [{'name':'统一 dry-run 业务控制台摘要','type':'dry-run report','summary':'仅白名单摘要，不暴露 reports/logs 原始目录'},{'name':'Agent 投研结构化建议','type':'agent report','summary':'只输出 confidence/reasons/risk_flags，不下单'}]
 def market_snapshot(qs): return {'symbol':qs.get('symbol',['510300.SH'])[0],'source':'local readonly/mock','time':'dry-run latest','ohlcv':{'open':3.91,'high':3.96,'low':3.88,'close':3.94,'volume':1200000},'quality_status':'OK','read_only':True}
 def make_handler(static_dir=None):
     root=Path(static_dir).resolve() if static_dir else None
@@ -379,6 +379,9 @@ def make_handler(static_dir=None):
             account_api_kinds={'/api/v1/account-readonly/status':'status','/api/v1/account-readonly/diagnostics':'diagnostics','/api/v1/account-readonly/asset':'asset','/api/v1/account-readonly/positions':'positions','/api/v1/account-readonly/masking-report':'masking-report','/api/v1/account-readonly/rate-limit':'rate-limit','/api/v1/account-readonly/safety':'safety','/api/v1/account-readonly/report':'report'}
             if p in account_api_kinds: return _json(self,200,_account_readonly_response(parse_qs(u.query), account_api_kinds[p]))
 
+            from qmt_ai_trading.console_api.routes import ROUTES
+            if p=='/api/v1/health': return _json(self,200,{'ok':True,'service':'unified_local_console','host':'127.0.0.1','read_only':True,'dry_run':True,'no_trade_authorization':True,'live_disabled':True,'no_order_submitted':True,'requires_human_approval':True,'account_masked':True,'order_submit_enabled':False,'order_cancel_enabled':False,'real_order_submitted':False})
+            if p in ROUTES: return _json(self,200,ROUTES[p]())
             if p=='/api/v1/trading/xttrader-boundary/config': return _json(self,200,{'ok':True,**_read_xttrader_boundary_file('xttrader_boundary_config.json',{})})
             if p=='/api/v1/trading/xttrader-boundary/import-guard': return _json(self,200,{'ok':True,**_read_xttrader_boundary_file('xttrader_import_guard_report.json',{})})
             if p=='/api/v1/trading/xttrader-boundary/capability-probe': return _json(self,200,{'ok':True,**_read_xttrader_boundary_file('xttrader_capability_probe.json',{})})
@@ -419,7 +422,7 @@ def make_handler(static_dir=None):
             if p=='/api/v1/paper-trading/report/latest': return _json(self,200,{'ok':True,'report':_read_paper_file('paper_trading_report.json',{})})
             if p=='/api/v1/shadow-trading/report/latest': return _json(self,200,{'ok':True,'report':_read_paper_file('paper_trading_report.json',{})})
             if p=='/api/v1/live/status': return _json(self,200,{'ok':True,'status':'DISABLED','feature_status':'DISABLED_FOR_SAFETY','live_trading_enabled':False,'allow_order_submit':False,'allow_xttrader':False,'requires_human_approval':True,'message':'Live trading is disabled by default'})
-            if p=='/api/v1/health': return _json(self,200,{'ok':True,'service':'console_api_stage77','host':'127.0.0.1','read_only':True,'dry_run':True,'no_trade_authorization':True,'live_disabled':True})
+            if p=='/api/v1/health': return _json(self,200,{'ok':True,'service':'unified_local_console','host':'127.0.0.1','read_only':True,'dry_run':True,'no_trade_authorization':True,'live_disabled':True})
             if p=='/api/v1/tasks/catalog': return _json(self,200,{'ok':True,'tasks':[task_to_dict(t) for t in list_tasks()]})
             if p=='/api/v1/tasks': return _json(self,200,{'ok':True,'tasks':[run_to_dict(r) for r in STORE.list()]})
             if p.startswith('/api/v1/tasks/'):
