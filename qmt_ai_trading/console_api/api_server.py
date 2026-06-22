@@ -19,6 +19,27 @@ STORE=TaskStore()
 LATEST_FACTOR_SCAN={'factor_results': [], 'factor_evaluation': {}, 'factor_candidates': []}
 LATEST_FACTOR_STRATEGY={'strategy_signals': [], 'trade_intents': [], 'risk_decisions': [], 'strategy_report': {}}
 
+def _read_json_file(path: Path, default):
+    if not path.exists():
+        return default
+    try:
+        return json.loads(path.read_text(encoding='utf-8'))
+    except Exception as e:
+        return {'error':str(e),'read_only':True,'dry_run':True,'not_live_trading':True}
+
+def _read_factor_file(name, default):
+    return _read_json_file(Path('local_console_factor_stage79')/name, default)
+
+def _read_artifact_file(name, default):
+    path=Path('local_console_artifact_migration_stage87')/name
+    if not path.exists():
+        try:
+            from qmt_ai_trading.common.artifact_migration import run_artifact_migration_stage87
+            run_artifact_migration_stage87('.', 'local_console_artifact_migration_stage87')
+        except Exception:
+            pass
+    return _read_json_file(path, default)
+
 def _read_agent_file(name, default):
     path=Path('local_console_agent_stage81')/name
     if not path.exists(): return default
@@ -144,6 +165,9 @@ def make_handler(static_dir=None):
             if p=='/api/v1/factors/results': return _json(self,200,{'ok':True,'results':_latest_factor_output().get('factor_results',[])})
             if p=='/api/v1/factors/evaluation': return _json(self,200,{'ok':True,'evaluation':_latest_factor_output().get('factor_evaluation',{})})
             if p=='/api/v1/factors/candidates': return _json(self,200,{'ok':True,'candidates':_latest_factor_output().get('factor_candidates',[])})
+            if p=='/api/v1/factor/context': return _json(self,200,{'ok':True,'context':_read_factor_file('factor_context.json',{'source_path':'local_console_factor_stage79/factor_context.json','read_only':True,'dry_run':True,'not_live_trading':True,'status':'DATA_MISSING'})})
+            if p=='/api/v1/factor/candidates/latest': return _json(self,200,{'ok':True,'source_path':'local_console_factor_stage79/factor_candidates.json','candidates':_read_factor_file('factor_candidates.json',_latest_factor_output().get('factor_candidates',[]))})
+            if p=='/api/v1/factor/report/latest': return _json(self,200,{'ok':True,'source_path':'local_console_factor_stage79/factor_report.json','report':_read_factor_file('factor_report.json',{'status':'DATA_MISSING','read_only':True,'dry_run':True,'not_live_trading':True})})
             if p=='/api/v1/strategy/factor-signals': return _json(self,200,{'ok':True,'signals':_latest_strategy_output().get('strategy_signals',[])})
             if p=='/api/v1/strategy/trade-intents': return _json(self,200,{'ok':True,'trade_intents':_latest_strategy_output().get('trade_intents',[])})
             if p=='/api/v1/strategy/risk-decisions': return _json(self,200,{'ok':True,'risk_decisions':_latest_strategy_output().get('risk_decisions',[])})
@@ -180,6 +204,7 @@ def make_handler(static_dir=None):
             if p=='/api/v1/market/xtdata/capability-probe': return _json(self,200,{'ok':True,'capability_probe':_read_xtdata_file('xtdata_capability_probe.json',{})})
             if p=='/api/v1/market/xtdata/safety': return _json(self,200,{'ok':True,'safety':_read_xtdata_file('xtdata_safety_report.json',{})})
             if p=='/api/v1/market/xtdata/report': return _json(self,200,{'ok':True,'report':_read_xtdata_file('xtdata_boundary_report.json',{})})
+            if p=='/api/v1/xtdata/boundary/report': return _json(self,200,{'ok':True,'report':_read_xtdata_file('xtdata_boundary_report.json',{})})
 
             if p=='/api/v1/market/xtdata-enable/context': return _json(self,200,{'ok':True,'context':_read_xtdata_enable_file('xtdata_enable_input_context.json',{'enable_xtdata':False,'dry_run':True,'read_only':True})})
             if p=='/api/v1/market/xtdata-enable/request': return _json(self,200,{'ok':True,'request':_read_xtdata_enable_file('xtdata_enable_request.json',{})})
@@ -188,11 +213,16 @@ def make_handler(static_dir=None):
             if p=='/api/v1/market/xtdata-enable/audit': return _json(self,200,{'ok':True,'audit':_read_xtdata_enable_file('xtdata_config_audit.json',{})})
             if p=='/api/v1/market/xtdata-enable/decision': return _json(self,200,{'ok':True,'decision':_read_xtdata_enable_file('xtdata_enable_decision.json',{})})
             if p=='/api/v1/market/xtdata-enable/report': return _json(self,200,{'ok':True,'report':_read_xtdata_enable_file('xtdata_enable_report.json',{})})
+            if p=='/api/v1/xtdata-enable/report': return _json(self,200,{'ok':True,'report':_read_xtdata_enable_file('xtdata_enable_report.json',{})})
             if p=='/api/v1/market/xtdata-live/status': return _json(self,200,{'ok':True,'status':_read_xtdata_live_file('xtdata_live_status.json',{})})
             if p=='/api/v1/market/xtdata-live/snapshots': return _json(self,200,{'ok':True,'snapshots':_read_xtdata_live_file('xtdata_live_snapshots.json',{})})
+            if p=='/api/v1/xtdata-live/status': return _json(self,200,{'ok':True,'status':_read_xtdata_live_file('xtdata_live_status.json',{})})
+            if p=='/api/v1/xtdata-live/snapshots': return _json(self,200,{'ok':True,'snapshots':_read_xtdata_live_file('xtdata_live_snapshots.json',{})})
             if p=='/api/v1/market/xtdata-live/bars': return _json(self,200,{'ok':True,'bars':_read_xtdata_live_file('xtdata_live_bars.json',{})})
             if p=='/api/v1/market/xtdata-live/safety': return _json(self,200,{'ok':True,'safety':_read_xtdata_live_file('xtdata_live_safety_report.json',{})})
             if p=='/api/v1/market/xtdata-live/report': return _json(self,200,{'ok':True,'report':_read_xtdata_live_file('xtdata_live_report.json',{})})
+            if p=='/api/v1/artifacts/migration/report': return _json(self,200,{'ok':True,'report':_read_artifact_file('artifact_migration_report.json',{})})
+            if p=='/api/v1/artifacts/registry': return _json(self,200,{'ok':True,'registry':_read_artifact_file('artifact_registry.json',{})})
             if p=='/api/v1/ai/models/latest': return _json(self,200,{'ok':True,'result':LATEST_DISCOVERY})
             if p=='/api/v1/ai/benchmark/latest': return _json(self,200,{'ok':True,'report':LATEST_BENCHMARK})
             if p=='/api/v1/ai/model-usage/draft': return _json(self,200,{'ok':True,'draft':get_usage_draft()})
