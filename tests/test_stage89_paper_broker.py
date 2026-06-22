@@ -7,3 +7,7 @@ def test_paper_broker_fills_allowed_order():
 def test_paper_broker_rejects_risk_denied_order():
     b=PaperBroker(); o=b.submit_paper_order({'intent_id':'i2','symbol':'510300.SH','side':'buy','quantity':100},{'decision':'REJECTED','reasons':['blocked']}); f=b.simulate_fill(o,{})
     assert o.fill_status=='REJECTED' and f.quantity==0
+
+def test_hold_order_is_skipped_without_fill():
+    b=PaperBroker(); o=b.submit_paper_order({'intent_id':'h1','symbol':'588000.SH','side':'hold','quantity':0},{'decision':'APPROVED_DRY_RUN','reasons':['ok']}); f=b.simulate_fill(o,{'symbols':{'588000.SH':{'bars':[{'close':2.0}]}}})
+    assert o.fill_status=='SKIPPED' and f is None and b.list_fills()==[] and o.reject_reason=='策略建议 HOLD'
