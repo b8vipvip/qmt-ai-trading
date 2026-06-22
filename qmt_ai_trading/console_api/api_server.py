@@ -224,6 +224,24 @@ def _read_paper_file(name, default):
     try: return json.loads(path.read_text(encoding='utf-8'))
     except Exception as e: return {'error':str(e),'paper_trading':True,'shadow_trading':True,'dry_run':True,'read_only':True,'not_live_trading':True,'no_xttrader':True,'no_order_submitted':True,'no_account_query':True}
 
+
+def _read_xttrader_boundary_file(name, default):
+    path=Path('local_console_xttrader_stage90')/name
+    if not path.exists():
+        try:
+            from qmt_ai_trading.trading_gateway import run_xttrader_boundary_stage90
+            run_xttrader_boundary_stage90('.', 89, 'local_console_xttrader_stage90', True, True)
+        except Exception:
+            pass
+    if not path.exists(): return default
+    safe={'enabled':False,'xttrader_imported':False,'trade_session_connected':False,'account_query_enabled':False,'order_submit_enabled':False,'real_order_submitted':False,'requires_human_approval':True,'safety_status':'DISABLED_FOR_SAFETY'}
+    try:
+        data=json.loads(path.read_text(encoding='utf-8'))
+        if isinstance(data, dict):
+            return {**safe, **data}
+        return {**safe, 'data':data}
+    except Exception as e: return {**safe, 'error':str(e)}
+
 def _json(handler, code, payload):
     raw=json.dumps(json_safe(payload), ensure_ascii=False).encode('utf-8'); handler.send_response(code); handler.send_header('Content-Type','application/json; charset=utf-8'); handler.send_header('Content-Length',str(len(raw))); handler.end_headers(); handler.wfile.write(raw)
 def summary():
@@ -255,6 +273,15 @@ def make_handler(static_dir=None):
         def _get(self):
             u=urlparse(self.path); p=u.path
 
+
+            if p=='/api/v1/trading/xttrader-boundary/config': return _json(self,200,{'ok':True,**_read_xttrader_boundary_file('xttrader_boundary_config.json',{})})
+            if p=='/api/v1/trading/xttrader-boundary/import-guard': return _json(self,200,{'ok':True,**_read_xttrader_boundary_file('xttrader_import_guard_report.json',{})})
+            if p=='/api/v1/trading/xttrader-boundary/capability-probe': return _json(self,200,{'ok':True,**_read_xttrader_boundary_file('xttrader_capability_probe.json',{})})
+            if p=='/api/v1/trading/xttrader-boundary/account-query-gate': return _json(self,200,{'ok':True,**_read_xttrader_boundary_file('xttrader_account_query_gate.json',{})})
+            if p=='/api/v1/trading/xttrader-boundary/order-submit-gate': return _json(self,200,{'ok':True,**_read_xttrader_boundary_file('xttrader_order_submit_gate.json',{})})
+            if p=='/api/v1/trading/xttrader-boundary/order-previews': return _json(self,200,{'ok':True,**_read_xttrader_boundary_file('order_previews.json',{'order_previews':[]})})
+            if p=='/api/v1/trading/xttrader-boundary/safety': return _json(self,200,{'ok':True,**_read_xttrader_boundary_file('xttrader_safety_report.json',{})})
+            if p=='/api/v1/trading/xttrader-boundary/report': return _json(self,200,{'ok':True,'report':_read_xttrader_boundary_file('xttrader_boundary_report.json',{})})
             if p=='/api/v1/stage88/datahub/status': return _json(self,200,{'ok':True,'status':_read_stage88_file('local_console_datahub_stage88','datahub_status.json',{})})
             if p=='/api/v1/stage88/research/factors': return _json(self,200,{'ok':True,'factors':_read_stage88_file('local_console_research_stage88','factor_values.json',{})})
             if p=='/api/v1/stage88/research/candidates': return _json(self,200,{'ok':True,'candidates':_read_stage88_file('local_console_research_stage88','factor_candidates.json',{})})

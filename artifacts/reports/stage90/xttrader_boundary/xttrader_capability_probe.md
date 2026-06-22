@@ -1,0 +1,83 @@
+# xttrader_capability_probe
+
+```json
+{
+  "account_query_probe": {
+    "account_query_enabled": false,
+    "attempt_status": "NOT_ATTEMPTED",
+    "block_status": "BLOCKED_BY_SAFETY",
+    "dry_run": true,
+    "enabled": false,
+    "message": "xttrader boundary is disabled by safety gate",
+    "order_submit_enabled": false,
+    "probe": "account_query",
+    "probe_status": "DISABLED",
+    "read_only": true,
+    "real_order_submitted": false,
+    "requires_human_approval": true,
+    "safety_status": "DISABLED_FOR_SAFETY",
+    "status": "DISABLED",
+    "trade_session_connected": false,
+    "xttrader_imported": false
+  },
+  "blocked_by_safety": true,
+  "connection_probe": {
+    "account_query_enabled": false,
+    "attempt_status": "NOT_ATTEMPTED",
+    "block_status": "BLOCKED_BY_SAFETY",
+    "dry_run": true,
+    "enabled": false,
+    "message": "xttrader boundary is disabled by safety gate",
+    "order_submit_enabled": false,
+    "probe": "connection",
+    "probe_status": "DISABLED",
+    "read_only": true,
+    "real_order_submitted": false,
+    "requires_human_approval": true,
+    "safety_status": "DISABLED_FOR_SAFETY",
+    "status": "DISABLED",
+    "trade_session_connected": false,
+    "xttrader_imported": false
+  },
+  "dry_run": true,
+  "import_probe": {
+    "account_query_enabled": false,
+    "attempt_status": "NOT_ATTEMPTED",
+    "block_status": "BLOCKED_BY_SAFETY",
+    "dry_run": true,
+    "enabled": false,
+    "message": "xttrader boundary is disabled by safety gate",
+    "order_submit_enabled": false,
+    "probe": "import",
+    "probe_status": "DISABLED",
+    "read_only": true,
+    "real_order_submitted": false,
+    "requires_human_approval": true,
+    "safety_status": "DISABLED_FOR_SAFETY",
+    "status": "DISABLED",
+    "trade_session_connected": false,
+    "xttrader_imported": false
+  },
+  "order_submit_probe": {
+    "account_query_enabled": false,
+    "attempt_status": "NOT_ATTEMPTED",
+    "block_status": "BLOCKED_BY_SAFETY",
+    "dry_run": true,
+    "enabled": false,
+    "message": "xttrader boundary is disabled by safety gate",
+    "order_submit_enabled": false,
+    "probe": "order_submit",
+    "probe_status": "DISABLED",
+    "read_only": true,
+    "real_order_submitted": false,
+    "requires_human_approval": true,
+    "safety_status": "DISABLED_FOR_SAFETY",
+    "status": "DISABLED",
+    "trade_session_connected": false,
+    "xttrader_imported": false
+  },
+  "read_only": true,
+  "safety_status": "DISABLED_FOR_SAFETY",
+  "status": "DISABLED"
+}
+```

@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-STAGE='Stage89'
+STAGE='Stage90'
 SAFETY={'dry_run':True,'read_only':True,'not_live_trading':True,'no_order_submitted':True,'no_xttrader':True,'no_account_query':True}
 
 def _now(): return datetime.now(timezone.utc).isoformat()
@@ -16,21 +16,25 @@ def workflow_status(repo_root='.'):
     root=Path(repo_root)
     wf=[
       _layer('QMT Gateway / xtdata','INTERACTIVE','READY','xtdata_live_or_sandbox','local_console_xtdata_live_stage87/xtdata_live_report.json',True,False,'Run xtdata readonly smoke test','xtdata only; xttrader/account/order disabled'),
-      _layer('Data Hub','BACKEND_MISSING','BACKEND_MISSING','data/cache/datahub; local parquet/duckdb/sqlite planned','local_console_workflow_stage87/workflow_status.json',False,True,'后端待开发，需要新增 Data Hub read-only status and cache API','read-only cache/status only; no trading'),
+      _layer('Data Hub','BACKEND_MISSING','BACKEND_MISSING','data/cache/datahub; local parquet/duckdb/sqlite planned','local_console_workflow_stage90/workflow_status.json',False,True,'后端待开发，需要新增 Data Hub read-only status and cache API','read-only cache/status only; no trading'),
       _layer('Research / Qlib factors','INTERACTIVE','READY','local_console_factor_stage79/*.json','local_console_factor_stage79/factor_report.json',True,False,'Run factor_research_dry_run','Research only; no order path'),
       _layer('TradingAgents','INTERACTIVE','READY','local_console_agent_stage81/*.json','local_console_agent_stage81/agent_research_report.json',True,False,'Run agent_research_dry_run','Agent analysis only; no direct order'),
       _layer('Strategy Engine','INTERACTIVE','READY','task-store factor_strategy_dry_run','local_console_factor_stage80/strategy_report.json',True,False,'Run factor_strategy_dry_run and send TradeIntent to Risk Gate dry-run','Generates TradeIntent only; no live submit'),
-      _layer('Risk Gate','INTERACTIVE','READY','risk dry-run decisions','local_console_workflow_stage87/workflow_dry_run_check.json',True,False,'Run risk_gate_dry_run','Risk rejection must include reasons; no bypass'),
-      _layer('Human Approval','BACKEND_MISSING','BACKEND_MISSING','approval CLI/store planned','local_console_workflow_stage87/workflow_status.json',False,True,'后端待开发，需要新增 approval read-only API','No approve action in console; review only'),
+      _layer('Risk Gate','INTERACTIVE','READY','risk dry-run decisions','local_console_workflow_stage90/workflow_dry_run_check.json',True,False,'Run risk_gate_dry_run','Risk rejection must include reasons; no bypass'),
+      _layer('Human Approval','BACKEND_MISSING','BACKEND_MISSING','approval CLI/store planned','local_console_workflow_stage90/workflow_status.json',False,True,'后端待开发，需要新增 approval read-only API','No approve action in console; review only'),
       _layer('Paper Trading / Shadow Trading','INTERACTIVE','READY','local_console_paper_stage89/*.json','local_console_paper_stage89/paper_trading_report.json',True,False,'Run paper_trading_dry_run','Paper/shadow only; no live order'),
-      _layer('Live Trading','DISABLED','READY','live trading disabled by default','local_console_workflow_stage87/workflow_status.json',False,False,'Keep disabled until explicit human approval and risk signoff','DISABLED_FOR_SAFETY; allow_xttrader=false; allow_order_submit=false'),
+      _layer('xttrader Boundary','DISABLED_FOR_SAFETY','READY','local_console_xttrader_stage90/*.json','local_console_xttrader_stage90/xttrader_boundary_report.json',False,False,'查看安全边界','DISABLED_FOR_SAFETY; import/account/order disabled'),
+      _layer('Account Query','DISABLED_FOR_SAFETY','READY','local_console_xttrader_stage90/xttrader_account_query_gate.json','local_console_xttrader_stage90/xttrader_account_query_gate.json',False,False,'Stage91 readonly plan only','DISABLED_FOR_SAFETY'),
+      _layer('Order Submit','DISABLED_FOR_SAFETY','READY','local_console_xttrader_stage90/xttrader_order_submit_gate.json','local_console_xttrader_stage90/xttrader_order_submit_gate.json',False,False,'Keep disabled','DISABLED_FOR_SAFETY'),
+      _layer('Live Trading','DISABLED_FOR_SAFETY','READY','live trading disabled by default','local_console_xttrader_stage90/xttrader_boundary_report.json',False,False,'Keep disabled until explicit human approval and risk signoff','DISABLED_FOR_SAFETY; allow_xttrader=false; allow_order_submit=false'),
     ]
     return {'stage':STAGE,'workflow':wf,**SAFETY}
 
 FEATURES=[
 ('QMT Gateway / xtdata','INTERACTIVE','/api/v1/market/xtdata-live/status','readonly xtdata smoke'),
-('QMT Gateway / xttrader account query','DISABLED_FOR_SAFETY',None,'xttrader/account query forbidden'),
-('QMT Gateway / order submit','DISABLED_FOR_SAFETY',None,'order submit forbidden'),
+('QMT Gateway / xttrader Boundary','DISABLED_FOR_SAFETY','/api/v1/trading/xttrader-boundary/report','Stage90 boundary disabled'),
+('QMT Gateway / xttrader account query','DISABLED_FOR_SAFETY','/api/v1/trading/xttrader-boundary/account-query-gate','xttrader/account query forbidden'),
+('QMT Gateway / order submit','DISABLED_FOR_SAFETY','/api/v1/trading/xttrader-boundary/order-submit-gate','order submit forbidden'),
 ('Data Hub / symbols','BACKEND_MISSING','/api/v1/datahub/symbols','needs readonly API'),
 ('Data Hub / market cache','BACKEND_MISSING','/api/v1/datahub/cache/status','needs cache API'),
 ('Data Hub / ETF universe','READY',None,'python datahub ETF universe exists; API pending'),
@@ -59,13 +63,13 @@ def reports_index(repo_root='.'):
     return {'stage':STAGE,'reports':[{'path':p,'exists':Path(repo_root,p).exists()} for p in paths],**SAFETY}
 
 def dry_run_check(repo_root='.'):
-    return {'stage':STAGE,'task_id':'workflow_dry_run_check','status':'SUCCESS','sequence':['GET /api/v1/market/xtdata-live/status','GET /api/v1/datahub/status','POST /api/v1/tasks/run factor_research_dry_run','POST /api/v1/tasks/run agent_research_dry_run','POST /api/v1/tasks/run factor_strategy_dry_run','POST /api/v1/tasks/run risk_gate_dry_run','GET /api/v1/approval/status','POST /api/v1/tasks/run paper_trading_dry_run','GET /api/v1/paper-trading/status'],'message':'dry-run only; no orders submitted',**SAFETY}
+    return {'stage':STAGE,'task_id':'workflow_dry_run_check','status':'SUCCESS','sequence':['GET /api/v1/market/xtdata-live/status','GET /api/v1/datahub/status','POST /api/v1/tasks/run factor_research_dry_run','POST /api/v1/tasks/run agent_research_dry_run','POST /api/v1/tasks/run factor_strategy_dry_run','POST /api/v1/tasks/run risk_gate_dry_run','GET /api/v1/approval/status','POST /api/v1/tasks/run paper_trading_dry_run','GET /api/v1/paper-trading/status','GET /api/v1/trading/xttrader-boundary/report'],'message':'dry-run only; no orders submitted',**SAFETY}
 
 def _md(title,obj):
     return '# '+title+'\n\n```json\n'+json.dumps(obj,ensure_ascii=False,indent=2)+'\n```\n'
 
 def write_workflow_outputs(repo_root='.', output_dir='local_console_workflow_stage87'):
-    root=Path(repo_root); out=root/output_dir; canon=root/'artifacts/reports/stage87/workflow'; out.mkdir(parents=True,exist_ok=True); canon.mkdir(parents=True,exist_ok=True)
+    root=Path(repo_root); out=root/output_dir; canon=root/'artifacts/reports/stage90/workflow'; out.mkdir(parents=True,exist_ok=True); canon.mkdir(parents=True,exist_ok=True)
     docs={'workflow_status':workflow_status(repo_root),'workflow_feature_matrix':feature_matrix(repo_root),'workflow_reports_index':reports_index(repo_root),'workflow_dry_run_check':dry_run_check(repo_root)}
     for stem,obj in docs.items():
         for base in (out,canon):

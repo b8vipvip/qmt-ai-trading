@@ -1,0 +1,19 @@
+{
+  "account_query_enabled": false,
+  "auto_trading_allowed": false,
+  "dry_run": true,
+  "enabled": false,
+  "mask_account_required": true,
+  "message": "xttrader boundary is disabled by safety gate",
+  "order_submit_enabled": false,
+  "rate_limit_required": true,
+  "read_only": true,
+  "real_order_submitted": false,
+  "requires_human_approval": true,
+  "safety_status": "DISABLED_FOR_SAFETY",
+  "stage": "Stage91",
+  "status": "DISABLED",
+  "title": "账户/持仓只读查询边界，默认 disabled，人工确认后只读查询",
+  "trade_session_connected": false,
+  "xttrader_imported": false
+}
