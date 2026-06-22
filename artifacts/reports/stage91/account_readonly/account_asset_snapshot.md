@@ -1,0 +1,21 @@
+# account_asset_snapshot
+
+```json
+{
+  "account_masked": true,
+  "account_query_enabled": false,
+  "enabled": false,
+  "gate": "account_asset",
+  "message": "account readonly query disabled by safety gate",
+  "mock_data": true,
+  "order_cancel_enabled": false,
+  "order_submit_enabled": false,
+  "position_query_enabled": false,
+  "query_attempted": false,
+  "read_only": true,
+  "real_order_submitted": false,
+  "requires_human_approval": true,
+  "safety_status": "DISABLED_FOR_SAFETY",
+  "status": "DISABLED"
+}
+```

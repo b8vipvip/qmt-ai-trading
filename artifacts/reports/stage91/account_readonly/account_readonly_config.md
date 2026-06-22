@@ -1,0 +1,25 @@
+# account_readonly_config
+
+```json
+{
+  "allow_account_query": false,
+  "allow_auto_refresh": false,
+  "allow_connect_trade_session": false,
+  "allow_create_xtquant_trader": false,
+  "allow_import_xttrader": false,
+  "allow_order_cancel": false,
+  "allow_order_query": false,
+  "allow_order_submit": false,
+  "allow_position_query": false,
+  "allow_trade_query": false,
+  "dry_run": true,
+  "enabled": false,
+  "manual_confirmation_completed": false,
+  "mask_account_required": true,
+  "max_queries_per_minute": 3,
+  "notes": "Stage91 account readonly boundary; order submit disabled",
+  "rate_limit_required": true,
+  "read_only": true,
+  "requires_human_approval": true
+}
+```

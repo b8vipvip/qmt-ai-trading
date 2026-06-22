@@ -752,3 +752,6 @@ __pycache__/
 local_runtime_xtdata_live_stage87/
 artifacts/runtime/
 local_runtime_xtdata_live_stage87/**
+
+# Stage91 real account readonly runtime outputs (must not be committed)
+local_runtime_account_stage91/

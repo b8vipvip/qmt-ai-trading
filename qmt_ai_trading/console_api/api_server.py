@@ -242,6 +242,21 @@ def _read_xttrader_boundary_file(name, default):
         return {**safe, 'data':data}
     except Exception as e: return {**safe, 'error':str(e)}
 
+def _read_account_readonly_file(name, default):
+    path=Path('local_console_account_stage91')/name
+    if not path.exists():
+        try:
+            from qmt_ai_trading.trading_gateway.account_readonly_report import run_account_readonly_stage91
+            run_account_readonly_stage91('.', 'local_console_account_stage91', False, False, False, False, False, False, True, True)
+        except Exception:
+            pass
+    if not path.exists(): return default
+    safe={'enabled':False,'account_query_enabled':False,'position_query_enabled':False,'order_submit_enabled':False,'real_order_submitted':False,'safety_status':'DISABLED_FOR_SAFETY','mock_data':True,'read_only':True}
+    try:
+        data=json.loads(path.read_text(encoding='utf-8'))
+        return {**safe, **data} if isinstance(data, dict) else {**safe, 'data':data}
+    except Exception as e: return {**safe, 'error':str(e)}
+
 def _json(handler, code, payload):
     raw=json.dumps(json_safe(payload), ensure_ascii=False).encode('utf-8'); handler.send_response(code); handler.send_header('Content-Type','application/json; charset=utf-8'); handler.send_header('Content-Length',str(len(raw))); handler.end_headers(); handler.wfile.write(raw)
 def summary():
@@ -273,6 +288,9 @@ def make_handler(static_dir=None):
         def _get(self):
             u=urlparse(self.path); p=u.path
 
+            account_routes={'/api/v1/account-readonly/status':'account_readonly_status.json','/api/v1/account-readonly/asset':'account_asset_snapshot.json','/api/v1/account-readonly/positions':'account_positions_snapshot.json','/api/v1/account-readonly/masking-report':'account_masking_report.json','/api/v1/account-readonly/rate-limit':'account_rate_limit_report.json','/api/v1/account-readonly/safety':'account_readonly_safety_report.json'}
+            if p in account_routes: return _json(self,200,{'ok':True,**_read_account_readonly_file(account_routes[p],{})})
+            if p=='/api/v1/account-readonly/report': return _json(self,200,{'ok':True,'report':_read_account_readonly_file('account_readonly_report.json',{})})
 
             if p=='/api/v1/trading/xttrader-boundary/config': return _json(self,200,{'ok':True,**_read_xttrader_boundary_file('xttrader_boundary_config.json',{})})
             if p=='/api/v1/trading/xttrader-boundary/import-guard': return _json(self,200,{'ok':True,**_read_xttrader_boundary_file('xttrader_import_guard_report.json',{})})
