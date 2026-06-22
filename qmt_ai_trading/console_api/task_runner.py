@@ -32,7 +32,14 @@ def mock_output(task_id, params):
         return {'task_id':'xtdata_enable_dry_run','status':'SUCCESS','output_dir':report.get('output_dir'),'report_path':report.get('report_path'),'decision':report.get('decision'),'enable_xtdata':False,'real_market_data':False,'mini_qmt_connected':False,'xtdata_imported':False,'dry_run':True,'read_only':True,'requires_human_review':True,'warnings':report.get('warnings',[])}
     if task_id=='xtdata_live_readonly_smoke':
         from qmt_ai_trading.market_gateway import run_xtdata_live_stage87
-        report=run_xtdata_live_stage87(repo_root=params.get('repo_root','.'), output_dir=params.get('output_dir','local_console_xtdata_live_stage87'), enabled=params.get('enable_xtdata',False), allow_import_xtdata=params.get('allow_import_xtdata',False), allow_real_market_data=params.get('allow_real_market_data',False), allow_connect_miniqmt=params.get('allow_connect_miniqmt',False), read_only=params.get('read_only',True), allow_xttrader=False, allow_account_query=False, allow_order_submit=False, symbols=params.get('symbols',['510300.SH','510500.SH','588000.SH']), period=params.get('period','1d'), limit=int(params.get('limit',20)))
+        warnings=[]
+        for forbidden in ('allow_xttrader','allow_order_submit','allow_account_query'):
+            if params.get(forbidden) is True:
+                warnings.append(f'{forbidden}=true is not accepted; forced to false for read-only xtdata mode')
+        report=run_xtdata_live_stage87(repo_root=params.get('repo_root','.'), output_dir=params.get('output_dir','local_console_xtdata_live_stage87'), enabled=params.get('enable_xtdata',False), allow_import_xtdata=params.get('allow_import_xtdata',False), allow_real_market_data=params.get('allow_real_market_data',False), allow_connect_miniqmt=params.get('allow_connect_miniqmt',False), read_only=True, allow_xttrader=False, allow_account_query=False, allow_order_submit=False, symbols=params.get('symbols',['510300.SH','510500.SH','588000.SH']), period=params.get('period','1d'), limit=int(params.get('limit',20)))
+        report.update({'read_only':True,'allow_xttrader':False,'allow_order_submit':False,'allow_account_query':False,'no_xttrader':True,'no_order_submitted':True,'no_account_query':True})
+        if warnings:
+            report['warnings']=list(report.get('warnings',[]))+warnings
         return report
     if task_id=='workflow_dry_run_check':
         from qmt_ai_trading.console_api.workflow_console import write_workflow_outputs

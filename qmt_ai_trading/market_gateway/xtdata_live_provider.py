@@ -33,7 +33,7 @@ class XtDataLiveReadOnlyProvider:
         return bool(c.enabled and c.allow_import_xtdata and c.allow_real_market_data and c.allow_connect_miniqmt and c.read_only and not c.allow_xttrader and not c.allow_account_query and not c.allow_order_submit)
 
     def _base(self, status: str, real: bool = False) -> dict:
-        return {**BASE_FLAGS, "status": status, "real_market_data": real, "sandbox_fallback": (not real) and self.config.sandbox_fallback, "allow_xttrader": False, "allow_order_submit": False, "allow_account_query": False, "import_status": self._import_status}
+        return {**BASE_FLAGS, "status": status, "real_market_data": real, "sandbox_fallback": (not real) and self.config.sandbox_fallback, "allow_xttrader": False, "allow_order_submit": False, "allow_account_query": False, "import_status": self._import_status, "xtdata_imported": self._import_status == "IMPORTED"}
 
     def _ensure_xtdata(self):
         if not self._enabled_for_real():
@@ -46,7 +46,7 @@ class XtDataLiveReadOnlyProvider:
     def get_status(self) -> dict:
         xtdata = self._ensure_xtdata()
         if xtdata is None:
-            return {**self._base("FALLBACK_TO_SANDBOX", False), "mini_qmt_connected": False, "symbols": self.config.symbols}
+            return {**self._base("FALLBACK_TO_SANDBOX", False), "mini_qmt_connected": False, "symbols": self.config.symbols, "error_message": "xtdata real readonly mode is disabled or unavailable; using sandbox fallback"}
         return {**self._base("XTData_AVAILABLE_READONLY", True), "mini_qmt_connected": True, "symbols": self.config.symbols}
 
     def get_snapshot(self, symbols: list[str]) -> dict:
@@ -59,7 +59,7 @@ class XtDataLiveReadOnlyProvider:
             return {**self._base("SUCCESS", True), "symbols": symbols, "snapshots": _normalize_snapshots(raw)}
         except Exception as exc:
             snaps = [s.to_dict() for s in self._sandbox.get_snapshot(symbols)]
-            return {**self._base("FALLBACK_TO_SANDBOX", False), "symbols": symbols, "snapshots": snaps, "error": f"{type(exc).__name__}: {exc}"}
+            return {**self._base("FALLBACK_TO_SANDBOX", False), "symbols": symbols, "snapshots": snaps, "get_full_tick_error": f"{type(exc).__name__}: {exc}", "error_message": f"{type(exc).__name__}: {exc}"}
 
     def get_bars(self, symbol: str, period: str = "1d", limit: int = 100) -> dict:
         xtdata = self._ensure_xtdata()
@@ -71,7 +71,7 @@ class XtDataLiveReadOnlyProvider:
             return {**self._base("SUCCESS", True), "symbol": symbol, "period": period, "limit": limit, "bars": _normalize_bars(raw, symbol)}
         except Exception as exc:
             bars = [b.to_dict() for b in self._sandbox.get_bars(symbol, period, min(limit, 100))]
-            return {**self._base("FALLBACK_TO_SANDBOX", False), "symbol": symbol, "period": period, "limit": limit, "bars": bars, "error": f"{type(exc).__name__}: {exc}"}
+            return {**self._base("FALLBACK_TO_SANDBOX", False), "symbol": symbol, "period": period, "limit": limit, "bars": bars, "get_market_data_ex_error": f"{type(exc).__name__}: {exc}", "error_message": f"{type(exc).__name__}: {exc}"}
 
 def _normalize_snapshots(raw: Any) -> list[dict]:
     if isinstance(raw, dict):

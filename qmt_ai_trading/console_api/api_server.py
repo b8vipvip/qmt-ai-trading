@@ -108,6 +108,78 @@ def _read_xtdata_enable_file(name, default):
 
 
 
+
+def _bool_param(qs, name, default=False):
+    value = qs.get(name, [default])[0]
+    if isinstance(value, bool):
+        return value
+    return str(value).lower() in {"1", "true", "yes", "on"}
+
+def _split_symbols(value):
+    if isinstance(value, list):
+        if len(value) == 1 and isinstance(value[0], str):
+            value = value[0]
+        else:
+            return [str(x).strip() for x in value if str(x).strip()]
+    if isinstance(value, str):
+        return [x.strip() for x in value.split(',') if x.strip()]
+    return ["510300.SH", "510500.SH", "588000.SH"]
+
+def _xtdata_live_config_from_qs(qs):
+    from qmt_ai_trading.market_gateway.xtdata_live_config import XtDataLiveReadOnlyConfig
+    warnings=[]
+    for forbidden in ("allow_xttrader", "allow_order_submit", "allow_account_query"):
+        if _bool_param(qs, forbidden, False):
+            warnings.append(f"{forbidden}=true is not accepted; forced to false for read-only xtdata mode")
+    symbols = _split_symbols(qs.get('symbols', [None])[0] or qs.get('symbol', [None])[0] or "510300.SH,510500.SH,588000.SH")
+    try:
+        limit = max(1, min(int(qs.get('limit', [20])[0]), 500))
+    except Exception:
+        limit = 20
+    cfg = XtDataLiveReadOnlyConfig(
+        enabled=_bool_param(qs, 'enable_xtdata', False),
+        allow_import_xtdata=_bool_param(qs, 'allow_import_xtdata', False),
+        allow_real_market_data=_bool_param(qs, 'allow_real_market_data', False),
+        allow_connect_miniqmt=_bool_param(qs, 'allow_connect_miniqmt', False),
+        read_only=True,
+        allow_xttrader=False,
+        allow_account_query=False,
+        allow_order_submit=False,
+        symbols=symbols,
+        period=str(qs.get('period', ['1d'])[0] or '1d'),
+        limit=limit,
+    )
+    return cfg, warnings
+
+def _with_xtdata_live_safety(payload, warnings=None):
+    payload = dict(payload or {})
+    payload.update({'read_only': True, 'allow_xttrader': False, 'allow_order_submit': False, 'allow_account_query': False, 'no_xttrader': True, 'no_order_submitted': True, 'no_account_query': True})
+    payload['xtdata_imported'] = payload.get('import_status') == 'IMPORTED'
+    payload.setdefault('mini_qmt_connected', bool(payload.get('real_market_data')))
+    if payload.get('sandbox_fallback') and payload.get('status') == 'FALLBACK_TO_SANDBOX':
+        payload.setdefault('error_message', payload.get('error') or payload.get('import_error') or payload.get('connection_error') or 'xtdata real readonly mode is disabled or unavailable; using sandbox fallback')
+    if warnings:
+        payload['warnings'] = list(payload.get('warnings', [])) + warnings
+    return payload
+
+def _xtdata_live_response(qs, kind):
+    from qmt_ai_trading.market_gateway.xtdata_live_provider import XtDataLiveReadOnlyProvider
+    cfg, warnings = _xtdata_live_config_from_qs(qs)
+    provider = XtDataLiveReadOnlyProvider(cfg)
+    if kind == 'status':
+        payload = provider.get_status()
+    elif kind == 'snapshots':
+        payload = provider.get_snapshot(cfg.symbols)
+    elif kind == 'bars':
+        symbol = str(qs.get('symbol', [cfg.symbols[0]])[0] or cfg.symbols[0])
+        payload = provider.get_bars(symbol, cfg.period, cfg.limit)
+    elif kind == 'report':
+        status = provider.get_status()
+        payload = {'stage':'Stage87','task_id':'xtdata_live_readonly_smoke','provider':'xtdata_live_readonly', **status}
+    else:
+        payload = {}
+    return _with_xtdata_live_safety(payload, warnings)
+
 def _read_xtdata_live_file(name, default):
     path=Path('local_console_xtdata_live_stage87')/name
     if not path.exists():
@@ -235,13 +307,13 @@ def make_handler(static_dir=None):
             if p=='/api/v1/market/xtdata-enable/decision': return _json(self,200,{'ok':True,'decision':_read_xtdata_enable_file('xtdata_enable_decision.json',{})})
             if p=='/api/v1/market/xtdata-enable/report': return _json(self,200,{'ok':True,'report':_read_xtdata_enable_file('xtdata_enable_report.json',{})})
             if p=='/api/v1/xtdata-enable/report': return _json(self,200,{'ok':True,'report':_read_xtdata_enable_file('xtdata_enable_report.json',{})})
-            if p=='/api/v1/market/xtdata-live/status': return _json(self,200,{'ok':True,'status':_read_xtdata_live_file('xtdata_live_status.json',{})})
-            if p=='/api/v1/market/xtdata-live/snapshots': return _json(self,200,{'ok':True,'snapshots':_read_xtdata_live_file('xtdata_live_snapshots.json',{})})
-            if p=='/api/v1/xtdata-live/status': return _json(self,200,{'ok':True,'status':_read_xtdata_live_file('xtdata_live_status.json',{})})
-            if p=='/api/v1/xtdata-live/snapshots': return _json(self,200,{'ok':True,'snapshots':_read_xtdata_live_file('xtdata_live_snapshots.json',{})})
-            if p=='/api/v1/market/xtdata-live/bars': return _json(self,200,{'ok':True,'bars':_read_xtdata_live_file('xtdata_live_bars.json',{})})
+            if p=='/api/v1/market/xtdata-live/status': return _json(self,200,{'ok':True,'status':_xtdata_live_response(parse_qs(u.query),'status')})
+            if p=='/api/v1/market/xtdata-live/snapshots': return _json(self,200,{'ok':True,'snapshots':_xtdata_live_response(parse_qs(u.query),'snapshots')})
+            if p=='/api/v1/xtdata-live/status': return _json(self,200,{'ok':True,'status':_xtdata_live_response(parse_qs(u.query),'status')})
+            if p=='/api/v1/xtdata-live/snapshots': return _json(self,200,{'ok':True,'snapshots':_xtdata_live_response(parse_qs(u.query),'snapshots')})
+            if p=='/api/v1/market/xtdata-live/bars': return _json(self,200,{'ok':True,'bars':_xtdata_live_response(parse_qs(u.query),'bars')})
             if p=='/api/v1/market/xtdata-live/safety': return _json(self,200,{'ok':True,'safety':_read_xtdata_live_file('xtdata_live_safety_report.json',{})})
-            if p=='/api/v1/market/xtdata-live/report': return _json(self,200,{'ok':True,'report':_read_xtdata_live_file('xtdata_live_report.json',{})})
+            if p=='/api/v1/market/xtdata-live/report': return _json(self,200,{'ok':True,'report':_xtdata_live_response(parse_qs(u.query),'report')})
             if p=='/api/v1/artifacts/migration/report': return _json(self,200,{'ok':True,'report':_read_artifact_file('artifact_migration_report.json',{})})
             if p=='/api/v1/artifacts/registry': return _json(self,200,{'ok':True,'registry':_read_artifact_file('artifact_registry.json',{})})
             if p=='/api/v1/ai/models/latest': return _json(self,200,{'ok':True,'result':LATEST_DISCOVERY})
