@@ -257,6 +257,56 @@ def _read_account_readonly_file(name, default):
         return {**safe, **data} if isinstance(data, dict) else {**safe, 'data':data}
     except Exception as e: return {**safe, 'error':str(e)}
 
+
+def _account_readonly_config_from_qs(qs):
+    from qmt_ai_trading.trading_gateway.account_readonly_config import AccountReadonlyConfig
+    warnings = []
+    if _bool_param(qs, 'allow_order_submit', False):
+        warnings.append('allow_order_submit=true is not accepted; forced to false for Stage91 read-only mode')
+    if _bool_param(qs, 'allow_order_cancel', False):
+        warnings.append('allow_order_cancel=true is not accepted; forced to false for Stage91 read-only mode')
+    cfg = AccountReadonlyConfig(
+        enabled=_bool_param(qs, 'enable_account_readonly', False),
+        dry_run=True,
+        read_only=_bool_param(qs, 'read_only', True),
+        allow_import_xttrader=_bool_param(qs, 'allow_import_xttrader', False),
+        allow_connect_trade_session=_bool_param(qs, 'allow_connect_trade_session', False),
+        allow_account_query=_bool_param(qs, 'allow_account_query', False),
+        allow_position_query=_bool_param(qs, 'allow_position_query', False),
+        manual_confirmation_completed=_bool_param(qs, 'manual_confirmed', False),
+        allow_order_submit=False,
+        allow_order_cancel=False,
+    )
+    return cfg, warnings
+
+def _account_readonly_response(qs, kind):
+    from qmt_ai_trading.trading_gateway.account_readonly_provider import AccountReadonlyProvider
+    cfg, warnings = _account_readonly_config_from_qs(qs)
+    provider = AccountReadonlyProvider(cfg)
+    if kind == 'status':
+        data = provider.get_status()
+    elif kind == 'asset':
+        data = provider.query_account_asset()
+        data = {'asset': data, **data} if 'asset' not in data else data
+    elif kind == 'positions':
+        data = provider.query_positions()
+        if 'positions' in data and isinstance(data.get('positions'), list):
+            data = {**data, 'positions': {'position_count': data.get('position_count', len(data['positions'])), 'positions': data['positions'], 'account_masked': True, 'order_submit_enabled': False, 'real_order_submitted': False}}
+    elif kind == 'rate-limit':
+        data = {'status':'PASS','max_queries_per_minute':cfg.max_queries_per_minute,'remaining':cfg.max_queries_per_minute,'read_only':True,'order_submit_enabled':False,'real_order_submitted':False}
+    elif kind == 'masking-report':
+        data = {'status':'PASS','account_masked':True,'message':'完整账号不会写入日志和前端','read_only':True,'order_submit_enabled':False,'real_order_submitted':False}
+    elif kind == 'safety':
+        data = {'status':'PASS','safety_status':'READONLY_ENABLED' if provider.get_status()['enabled'] else 'DISABLED_FOR_SAFETY','read_only':True,'dry_run':True,'allow_order_submit':False,'allow_order_cancel':False,'order_submit_enabled':False,'order_cancel_enabled':False,'real_order_submitted':False}
+    elif kind == 'report':
+        data = {'report': {'stage':'Stage91', **provider.get_status(), 'order_submit_enabled':False, 'order_cancel_enabled':False, 'real_order_submitted':False}}
+    else:
+        data = {}
+    if warnings:
+        data['warnings'] = list(data.get('warnings', [])) + warnings
+    data.update({'ok': True, 'order_submit_enabled': False, 'order_cancel_enabled': False, 'real_order_submitted': False})
+    return data
+
 def _json(handler, code, payload):
     raw=json.dumps(json_safe(payload), ensure_ascii=False).encode('utf-8'); handler.send_response(code); handler.send_header('Content-Type','application/json; charset=utf-8'); handler.send_header('Content-Length',str(len(raw))); handler.end_headers(); handler.wfile.write(raw)
 def summary():
@@ -288,9 +338,8 @@ def make_handler(static_dir=None):
         def _get(self):
             u=urlparse(self.path); p=u.path
 
-            account_routes={'/api/v1/account-readonly/status':'account_readonly_status.json','/api/v1/account-readonly/asset':'account_asset_snapshot.json','/api/v1/account-readonly/positions':'account_positions_snapshot.json','/api/v1/account-readonly/masking-report':'account_masking_report.json','/api/v1/account-readonly/rate-limit':'account_rate_limit_report.json','/api/v1/account-readonly/safety':'account_readonly_safety_report.json'}
-            if p in account_routes: return _json(self,200,{'ok':True,**_read_account_readonly_file(account_routes[p],{})})
-            if p=='/api/v1/account-readonly/report': return _json(self,200,{'ok':True,'report':_read_account_readonly_file('account_readonly_report.json',{})})
+            account_api_kinds={'/api/v1/account-readonly/status':'status','/api/v1/account-readonly/asset':'asset','/api/v1/account-readonly/positions':'positions','/api/v1/account-readonly/masking-report':'masking-report','/api/v1/account-readonly/rate-limit':'rate-limit','/api/v1/account-readonly/safety':'safety','/api/v1/account-readonly/report':'report'}
+            if p in account_api_kinds: return _json(self,200,_account_readonly_response(parse_qs(u.query), account_api_kinds[p]))
 
             if p=='/api/v1/trading/xttrader-boundary/config': return _json(self,200,{'ok':True,**_read_xttrader_boundary_file('xttrader_boundary_config.json',{})})
             if p=='/api/v1/trading/xttrader-boundary/import-guard': return _json(self,200,{'ok':True,**_read_xttrader_boundary_file('xttrader_import_guard_report.json',{})})
@@ -413,9 +462,9 @@ def make_handler(static_dir=None):
         def _post(self):
             raw=self.rfile.read(int(self.headers.get('Content-Length','0') or 0))
             body=json.loads(raw.decode('utf-8') or '{}')
-            p=urlparse(self.path).path
+            parsed=urlparse(self.path); p=parsed.path; query={k:v[-1] for k,v in parse_qs(parsed.query).items()}
             if p=='/api/v1/tasks/run':
-                params={**{k:v for k,v in body.items() if k!='task_id' and k!='params'}, **body.get('params',{})}; run=run_task(body.get('task_id',''), params, STORE); payload=run_to_dict(run); payload.update(run.output if isinstance(run.output,dict) else {}); return _json(self,200,{'ok':True,'task':payload})
+                params={**query, **{k:v for k,v in body.items() if k!='task_id' and k!='params'}, **body.get('params',{})}; run=run_task(body.get('task_id') or query.get('task_id',''), params, STORE); payload=run_to_dict(run); payload.update(run.output if isinstance(run.output,dict) else {}); return _json(self,200,{'ok':True,'task':payload})
             if p=='/api/v1/ai/models/discover':
                 res=discover_models(body.get('provider_type','openai_compatible'), body.get('base_url',''), body.get('api_key',''), int(body.get('timeout_seconds',60))); return _json(self,200,{'ok':res.success,'result':to_dict(res)})
             if p=='/api/v1/ai/models/stress-test':
