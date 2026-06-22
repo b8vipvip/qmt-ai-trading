@@ -55,6 +55,10 @@ def mock_output(task_id, params):
         from qmt_ai_trading.paper_trading import run_paper_trading_stage89
         report=run_paper_trading_stage89(params.get('repo_root','.'), params.get('input_stage',88), params.get('output_dir','local_console_paper_stage89'), True, True)
         return {'task_id':'paper_trading_dry_run','status':'SUCCESS','output_dir':report.get('output_dir','local_console_paper_stage89'),'paper_order_count':report.get('paper_order_count',0),'paper_fill_count':report.get('paper_fill_count',0),'shadow_position_count':report.get('shadow_position_count',0),'paper_trading':True,'shadow_trading':True,'real_order_submitted':False,'no_xttrader':True,'no_account_query':True,'no_order_submitted':True,'dry_run':True,'read_only':True,'not_live_trading':True}
+
+    if task_id=='xttrader_boundary_dry_run':
+        from qmt_ai_trading.trading_gateway import run_xttrader_boundary_stage90
+        return run_xttrader_boundary_stage90(params.get('repo_root','.'), params.get('input_stage',89), params.get('output_dir','local_console_xttrader_stage90'), True, True)
     if task_id=='workflow_dry_run_check':
         from qmt_ai_trading.console_api.workflow_console import write_workflow_outputs
         return write_workflow_outputs(params.get('repo_root','.'), params.get('output_dir','local_console_workflow_stage87'))
