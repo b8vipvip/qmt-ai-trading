@@ -5,6 +5,7 @@
   "allow_account_query": false,
   "allow_order_submit": false,
   "allow_xttrader": false,
+  "error_message": "xtdata real readonly mode is disabled or unavailable; using sandbox fallback",
   "import_status": "DISABLED",
   "mini_qmt_connected": false,
   "no_account_query": true,
@@ -20,6 +21,7 @@
     "510300.SH",
     "510500.SH",
     "588000.SH"
-  ]
+  ],
+  "xtdata_imported": false
 }
 ```

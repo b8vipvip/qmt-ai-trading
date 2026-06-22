@@ -93,6 +93,7 @@
     "510300.SH",
     "510500.SH",
     "588000.SH"
-  ]
+  ],
+  "xtdata_imported": false
 }
 ```
