@@ -3,7 +3,7 @@
 ```json
 {
   "account_query_enabled": false,
-  "canonical_dir": "artifacts/reports/stage90/xttrader_boundary",
+  "canonical_dir": "artifacts\\reports\\stage90\\xttrader_boundary",
   "dry_run": true,
   "enabled": false,
   "message": "xttrader boundary is disabled by safety gate",
