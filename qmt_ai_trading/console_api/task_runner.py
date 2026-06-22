@@ -3,6 +3,15 @@ import uuid
 from .models import TaskRun, now_iso
 from .task_registry import get_task
 from .safety import *
+
+def _bool_value(params, name, default=False):
+    value = params.get(name, default)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return bool(value)
+
 def mock_output(task_id, params):
     if task_id in {'factor_scan','factor_research_dry_run'}:
         from qmt_ai_trading.research.factor_engine import run_factor_scan
@@ -63,11 +72,11 @@ def mock_output(task_id, params):
         from qmt_ai_trading.trading_gateway.account_readonly_report import run_account_readonly_stage91
         
         warnings=[]
-        if params.get('allow_order_submit') is True:
+        if _bool_value(params, 'allow_order_submit', False):
             warnings.append('allow_order_submit=true is not accepted; forced to false for Stage91 read-only mode')
-        if params.get('allow_order_cancel') is True:
+        if _bool_value(params, 'allow_order_cancel', False):
             warnings.append('allow_order_cancel=true is not accepted; forced to false for Stage91 read-only mode')
-        report = run_account_readonly_stage91(params.get('repo_root','.'), params.get('output_dir','local_console_account_stage91'), params.get('enable_account_readonly', False), params.get('allow_import_xttrader', False), params.get('allow_connect_trade_session', False), params.get('allow_account_query', False), params.get('allow_position_query', False), params.get('manual_confirmed', False), True, params.get('read_only', True))
+        report = run_account_readonly_stage91(params.get('repo_root','.'), params.get('output_dir','local_console_account_stage91'), _bool_value(params, 'enable_account_readonly', False), _bool_value(params, 'allow_import_xttrader', False), _bool_value(params, 'allow_connect_trade_session', False), _bool_value(params, 'allow_account_query', False), _bool_value(params, 'allow_position_query', False), _bool_value(params, 'manual_confirmed', False), _bool_value(params, 'dry_run', True), _bool_value(params, 'read_only', True))
         report.update({'allow_order_submit':False,'allow_order_cancel':False,'order_submit_enabled':False,'order_cancel_enabled':False,'real_order_submitted':False})
         if warnings:
             report['warnings']=warnings

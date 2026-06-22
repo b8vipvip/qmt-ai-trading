@@ -12,3 +12,9 @@ def test_stage91_safety_report_passes_and_outputs_are_safe(tmp_path):
 
 def test_stage91_repo_safety_scan_passes():
     assert scan_stage91_safety(".")["status"] == "PASS"
+
+def test_stage91_no_order_or_auto_trade_entrypoints_in_frontend():
+    html = Path("local_console_app_stage91/index.html").read_text(encoding="utf-8")
+    forbidden_entries = ["order_stock", "order_stock_async", "cancel_order_stock", "cancel_order_stock_async", "place_order", "execute_order", "real_order_submitted=true"]
+    for marker in forbidden_entries:
+        assert marker not in html
