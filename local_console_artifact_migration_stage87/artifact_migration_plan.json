@@ -1,0 +1,86 @@
+{
+  "delete_legacy": false,
+  "move_all_history": false,
+  "plan_only": true,
+  "roots_to_create": [
+    "artifacts/console_apps",
+    "artifacts/reports",
+    "artifacts/market_data",
+    "artifacts/validation",
+    "artifacts/runtime",
+    "legacy"
+  ],
+  "stage": "Stage87",
+  "steps": [
+    {
+      "action": "PLAN_ONLY_NO_DELETE",
+      "destructive": false,
+      "from_legacy": [
+        "local_console_app_stage86"
+      ],
+      "logical_name": "local_console_app",
+      "stage": "stage86",
+      "to_canonical": "artifacts/console_apps/stage86"
+    },
+    {
+      "action": "PLAN_ONLY_NO_DELETE",
+      "destructive": false,
+      "from_legacy": [
+        "local_console_app_stage87"
+      ],
+      "logical_name": "local_console_app",
+      "stage": "stage87",
+      "to_canonical": "artifacts/console_apps/stage87"
+    },
+    {
+      "action": "PLAN_ONLY_NO_DELETE",
+      "destructive": false,
+      "from_legacy": [
+        "local_console_xtdata_enable_stage86"
+      ],
+      "logical_name": "xtdata_enable",
+      "stage": "stage86",
+      "to_canonical": "artifacts/reports/stage86/xtdata_enable"
+    },
+    {
+      "action": "PLAN_ONLY_NO_DELETE",
+      "destructive": false,
+      "from_legacy": [
+        "local_console_market_stage84"
+      ],
+      "logical_name": "market_gateway",
+      "stage": "stage84",
+      "to_canonical": "artifacts/reports/stage84/market_gateway"
+    },
+    {
+      "action": "PLAN_ONLY_NO_DELETE",
+      "destructive": false,
+      "from_legacy": [
+        "local_console_xtdata_live_stage87"
+      ],
+      "logical_name": "xtdata_live",
+      "stage": "stage87",
+      "to_canonical": "artifacts/reports/stage87/xtdata_live"
+    },
+    {
+      "action": "PLAN_ONLY_NO_DELETE",
+      "destructive": false,
+      "from_legacy": [
+        "local_console_artifact_migration_stage87"
+      ],
+      "logical_name": "artifact_migration",
+      "stage": "stage87",
+      "to_canonical": "artifacts/reports/stage87/artifact_migration"
+    },
+    {
+      "action": "PLAN_ONLY_NO_DELETE",
+      "destructive": false,
+      "from_legacy": [
+        "validation_logs"
+      ],
+      "logical_name": "validation_logs",
+      "stage": "",
+      "to_canonical": "artifacts/validation/logs"
+    }
+  ]
+}

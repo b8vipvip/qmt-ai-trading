@@ -1,0 +1,27 @@
+{
+  "created_at": "2026-01-01T00:00:00+00:00#Stage87-2753ad0dfd0e",
+  "fallback_used": true,
+  "input_files": [
+    "docs/qmt-ai-trading-project-roadmap.md",
+    "docs/qmt-ai-trading-architecture.md",
+    "local_console_xtdata_enable_stage86/xtdata_enable_report.json",
+    "local_console_xtdata_enable_stage86/xtdata_enable_decision.json",
+    "local_console_xtdata_enable_stage86/xtdata_environment_check.json",
+    "local_console_xtdata_enable_stage86/xtdata_manual_checklist.json",
+    "local_console_xtdata_enable_stage86/frontend_xtdata_enable_contract.json",
+    "local_console_xtdata_stage85/xtdata_boundary_report.json",
+    "local_console_xtdata_stage85/xtdata_adapter_config.json",
+    "local_console_xtdata_stage85/xtdata_safety_report.json",
+    "local_console_market_stage84/market_gateway_report.json",
+    "local_console_market_stage84/market_symbols.json",
+    "local_console_market_stage84/frontend_market_contract.json"
+  ],
+  "missing_inputs": [],
+  "no_account_query": true,
+  "no_order_submitted": true,
+  "no_xttrader": true,
+  "not_live_trading": true,
+  "read_only": true,
+  "sandbox_fallback": true,
+  "stage": "Stage87"
+}
