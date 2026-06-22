@@ -1,0 +1,14 @@
+{
+  "environment_status": "PASS",
+  "mini_qmt_connection_attempted": false,
+  "platform": "Linux-6.12.47-x86_64-with-glibc2.39",
+  "python_version": "3.14.4",
+  "qmt_config_placeholder_exists": false,
+  "real_market_data_attempted": false,
+  "repo_root": "/workspace/qmt-ai-trading",
+  "sandbox_fallback_exists": true,
+  "sandbox_gateway_exists": true,
+  "stage85_config_exists": true,
+  "warnings": [],
+  "xtdata_import_attempted": false
+}
