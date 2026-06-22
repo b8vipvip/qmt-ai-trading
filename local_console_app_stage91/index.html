@@ -23,6 +23,7 @@
 <section class="card"><h2>持仓列表</h2><div id="pos"><p>持仓查询：默认关闭</p></div></section>
 <section class="card"><h2>查询频率状态</h2><div id="rate">每分钟最多 3 次<br>当前剩余次数：--</div></section>
 <section class="card"><h2>账号脱敏状态</h2><div>账号脱敏：已开启<br>完整账号不会写入日志和前端</div></section>
+<section class="card"><h2>查询模式</h2><p>查询模式：隔离子进程，只读，查询后自动释放连接</p></section>
 <section class="card"><h2>安全边界</h2><pre>read_only=true
 order_submit_enabled=false
 order_cancel_enabled=false
@@ -43,7 +44,8 @@ function renderRaw(){ raw.textContent=JSON.stringify({status:accountReadonlyStat
 async function refreshStatus(){ const s=await j('/api/v1/account-readonly/status'); accountReadonlyState.lastStatus=s; renderStatus(s); renderRaw(); return s; }
 async function refreshAssetOnly(){ const a=await j('/api/v1/account-readonly/asset'); accountReadonlyState.lastAsset=a; renderAsset(a); renderRaw(); }
 async function refreshPositionsOnly(){ const p=await j('/api/v1/account-readonly/positions'); accountReadonlyState.lastPositions=p; renderPositions(p); renderRaw(); }
-enableReadonly.onclick=async()=>{ if(!manualConfirm.checked){ setMsg('请先勾选人工确认。'); return; } accountReadonlyState.enabled=true; accountReadonlyState.manualConfirmed=true; setMsg('正在调用后端账户/持仓只读 API...','ok'); await Promise.all([refreshStatus(),refreshAssetOnly(),refreshPositionsOnly()]); };
+async function refreshAllReadonly(){ const r=await fetch('/api/v1/account-readonly/refresh' + qs(), {method:'POST'}); const data=await r.json(); accountReadonlyState.lastAsset=data; accountReadonlyState.lastPositions=data; renderAsset(data); renderPositions(data); if(data.ok){ setMsg('账户/持仓只读查询成功','ok'); } else { setMsg(data.error_message||'子进程只读查询失败'); } renderRaw(); return data; }
+enableReadonly.onclick=async()=>{ if(!manualConfirm.checked){ setMsg('请先勾选人工确认。'); return; } accountReadonlyState.enabled=true; accountReadonlyState.manualConfirmed=true; setMsg('正在启动隔离只读查询进程...','ok'); await refreshAllReadonly(); };
 disableReadonly.onclick=async()=>{ accountReadonlyState.enabled=false; accountReadonlyState.manualConfirmed=false; manualConfirm.checked=false; setMsg('账户只读模式已关闭。'); await refreshStatus(); };
 refreshAsset.onclick=refreshAssetOnly; refreshPositions.onclick=refreshPositionsOnly;
 Promise.all([refreshStatus(),refreshAssetOnly(),refreshPositionsOnly(),j('/api/v1/account-readonly/rate-limit')]).then(([, , , r])=>{rate.innerHTML=`每分钟最多 ${r.max_queries_per_minute||3} 次<br>当前剩余次数：${r.remaining ?? '--'}`});
