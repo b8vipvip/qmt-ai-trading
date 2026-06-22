@@ -5,7 +5,7 @@
   "account_masked": true,
   "account_query_enabled": false,
   "account_readonly_status": "DISABLED",
-  "canonical_dir": "artifacts/reports/stage91/account_readonly",
+  "canonical_dir": "artifacts\\reports\\stage91\\account_readonly",
   "enabled": false,
   "mock_data": true,
   "no_order_submitted": true,
