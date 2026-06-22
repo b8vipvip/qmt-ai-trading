@@ -1,0 +1,39 @@
+{
+  "decisions": [
+    {
+      "checks": {
+        "dry_run": true,
+        "etf_whitelist": true,
+        "lot_size_100": true,
+        "max_portfolio_weight": true,
+        "max_single_notional": true,
+        "max_symbol_weight": true,
+        "no_account_query": true,
+        "no_order_submitted": true,
+        "no_xttrader": true,
+        "requires_human_approval": true,
+        "t_plus_1": true
+      },
+      "decision": "APPROVED_DRY_RUN",
+      "dry_run": true,
+      "intent_id": "stage88-510300.SH",
+      "no_account_query": true,
+      "no_order_submitted": true,
+      "no_xttrader": true,
+      "not_live_trading": true,
+      "read_only": true,
+      "reasons": [
+        "dry-run only; human approval required"
+      ],
+      "requires_human_approval": true,
+      "symbol": "510300.SH"
+    }
+  ],
+  "dry_run": true,
+  "no_account_query": true,
+  "no_order_submitted": true,
+  "no_xttrader": true,
+  "not_live_trading": true,
+  "read_only": true,
+  "requires_human_approval": true
+}

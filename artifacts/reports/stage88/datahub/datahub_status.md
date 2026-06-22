@@ -1,0 +1,25 @@
+# datahub_status
+
+```json
+{
+  "bar_count": 100,
+  "datahub_cache_ready": true,
+  "dry_run": true,
+  "fallback_used": true,
+  "mini_qmt_connected": false,
+  "mock_data": true,
+  "module": "Data Hub",
+  "no_account_query": true,
+  "no_order_submitted": true,
+  "no_xttrader": true,
+  "not_live_trading": true,
+  "quality_status": "PASS",
+  "read_only": true,
+  "real_market_data": false,
+  "requires_human_approval": true,
+  "sandbox_fallback": true,
+  "stage": "Stage88",
+  "status": "SUCCESS",
+  "xtdata_imported": false
+}
+```

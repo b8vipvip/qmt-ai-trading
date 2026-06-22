@@ -1,0 +1,14 @@
+{
+  "dry_run": true,
+  "module": "Strategy Engine",
+  "no_account_query": true,
+  "no_order_submitted": true,
+  "no_xttrader": true,
+  "not_live_trading": true,
+  "read_only": true,
+  "requires_human_approval": true,
+  "signal_count": 1,
+  "stage": "Stage88",
+  "status": "SUCCESS",
+  "trade_intent_count": 1
+}
