@@ -212,6 +212,18 @@ def _read_stage88_file(subdir, name, default):
     try: return json.loads(path.read_text(encoding='utf-8'))
     except Exception as e: return {'error':str(e),'dry_run':True,'read_only':True,'not_live_trading':True,'no_xttrader':True,'no_order_submitted':True,'no_account_query':True,'requires_human_approval':True}
 
+def _read_paper_file(name, default):
+    path=Path('local_console_paper_stage89')/name
+    if not path.exists():
+        try:
+            from qmt_ai_trading.paper_trading import run_paper_trading_stage89
+            run_paper_trading_stage89('.', 88, 'local_console_paper_stage89', True, True)
+        except Exception:
+            pass
+    if not path.exists(): return default
+    try: return json.loads(path.read_text(encoding='utf-8'))
+    except Exception as e: return {'error':str(e),'paper_trading':True,'shadow_trading':True,'dry_run':True,'read_only':True,'not_live_trading':True,'no_xttrader':True,'no_order_submitted':True,'no_account_query':True}
+
 def _json(handler, code, payload):
     raw=json.dumps(json_safe(payload), ensure_ascii=False).encode('utf-8'); handler.send_response(code); handler.send_header('Content-Type','application/json; charset=utf-8'); handler.send_header('Content-Length',str(len(raw))); handler.end_headers(); handler.wfile.write(raw)
 def summary():
@@ -265,9 +277,15 @@ def make_handler(static_dir=None):
             if p=='/api/v1/risk/report/latest': return _json(self,200,{'ok':True,'report':{'status':'INTERACTIVE','source':'risk_gate_dry_run','dry_run':True,'no_order_submitted':True}})
             if p=='/api/v1/approval/status': return _json(self,200,{'ok':True,'status':'BACKEND_MISSING','module':'Human Approval','message':'Human Approval read-only API is not implemented yet','next_action':'后端待开发，需要新增 approval status API','read_only':True,'not_live_trading':True})
             if p=='/api/v1/approval/requests/latest': return _json(self,200,{'ok':True,'status':'BACKEND_MISSING','requests':[],'next_action':'后端待开发，需要新增 approval requests API','read_only':True})
-            if p=='/api/v1/paper-trading/status': return _json(self,200,{'ok':True,'status':'BACKEND_MISSING','module':'Paper Trading','next_action':'后端待开发，需要新增 paper trading status API','read_only':True,'not_live_trading':True})
-            if p=='/api/v1/paper-trading/orders/latest': return _json(self,200,{'ok':True,'status':'BACKEND_MISSING','orders':[],'next_action':'后端待开发，需要新增 paper orders API','read_only':True})
-            if p=='/api/v1/shadow-trading/report/latest': return _json(self,200,{'ok':True,'status':'BACKEND_MISSING','report':{},'next_action':'后端待开发，需要新增 shadow trading report API','read_only':True})
+            if p=='/api/v1/paper-trading/status': return _json(self,200,{'ok':True,'status':_read_paper_file('paper_trading_report.json',{})})
+            if p=='/api/v1/paper-trading/orders/latest': return _json(self,200,{'ok':True,**_read_paper_file('paper_orders.json',{'orders':[]})})
+            if p=='/api/v1/paper-trading/fills/latest': return _json(self,200,{'ok':True,**_read_paper_file('paper_fills.json',{'fills':[]})})
+            if p=='/api/v1/paper-trading/positions/latest': return _json(self,200,{'ok':True,**_read_paper_file('shadow_positions.json',{'positions':[]})})
+            if p=='/api/v1/paper-trading/portfolio/latest': return _json(self,200,{'ok':True,'portfolio':_read_paper_file('shadow_portfolio.json',{})})
+            if p=='/api/v1/paper-trading/pnl/latest': return _json(self,200,{'ok':True,'pnl':_read_paper_file('shadow_pnl.json',{})})
+            if p=='/api/v1/paper-trading/risk-replay/latest': return _json(self,200,{'ok':True,**_read_paper_file('risk_replay.json',{'results':[]})})
+            if p=='/api/v1/paper-trading/report/latest': return _json(self,200,{'ok':True,'report':_read_paper_file('paper_trading_report.json',{})})
+            if p=='/api/v1/shadow-trading/report/latest': return _json(self,200,{'ok':True,'report':_read_paper_file('paper_trading_report.json',{})})
             if p=='/api/v1/live/status': return _json(self,200,{'ok':True,'status':'DISABLED','feature_status':'DISABLED_FOR_SAFETY','live_trading_enabled':False,'allow_order_submit':False,'allow_xttrader':False,'requires_human_approval':True,'message':'Live trading is disabled by default'})
             if p=='/api/v1/health': return _json(self,200,{'ok':True,'service':'console_api_stage77','host':'127.0.0.1','read_only':True,'dry_run':True,'no_trade_authorization':True,'live_disabled':True})
             if p=='/api/v1/tasks/catalog': return _json(self,200,{'ok':True,'tasks':[task_to_dict(t) for t in list_tasks()]})

@@ -51,6 +51,10 @@ def mock_output(task_id, params):
         dh=run_stage88_datahub(params.get('repo_root','.'),'local_console_datahub_stage88',symbols,params.get('period','1d'),int(params.get('limit',120)),enable_xtdata=params.get('enable_xtdata',False),allow_import_xtdata=params.get('allow_import_xtdata',False),allow_real_market_data=params.get('allow_real_market_data',False),allow_connect_miniqmt=params.get('allow_connect_miniqmt',False))
         rs=write_research(params.get('repo_root','.')); st=write_strategy(params.get('repo_root','.')); rk=write_risk(params.get('repo_root','.'))
         return {'task_id':'stage88_real_data_dry_run','status':'SUCCESS','datahub':dh,'research':rs,'strategy':st,'risk':rk,'dry_run':True,'read_only':True,'not_live_trading':True,'no_xttrader':True,'no_order_submitted':True,'no_account_query':True,'requires_human_approval':True}
+    if task_id=='paper_trading_dry_run':
+        from qmt_ai_trading.paper_trading import run_paper_trading_stage89
+        report=run_paper_trading_stage89(params.get('repo_root','.'), params.get('input_stage',88), params.get('output_dir','local_console_paper_stage89'), True, True)
+        return {'task_id':'paper_trading_dry_run','status':'SUCCESS','output_dir':report.get('output_dir','local_console_paper_stage89'),'paper_order_count':report.get('paper_order_count',0),'paper_fill_count':report.get('paper_fill_count',0),'shadow_position_count':report.get('shadow_position_count',0),'paper_trading':True,'shadow_trading':True,'real_order_submitted':False,'no_xttrader':True,'no_account_query':True,'no_order_submitted':True,'dry_run':True,'read_only':True,'not_live_trading':True}
     if task_id=='workflow_dry_run_check':
         from qmt_ai_trading.console_api.workflow_console import write_workflow_outputs
         return write_workflow_outputs(params.get('repo_root','.'), params.get('output_dir','local_console_workflow_stage87'))

@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-STAGE='Stage87'
+STAGE='Stage89'
 SAFETY={'dry_run':True,'read_only':True,'not_live_trading':True,'no_order_submitted':True,'no_xttrader':True,'no_account_query':True}
 
 def _now(): return datetime.now(timezone.utc).isoformat()
@@ -22,7 +22,7 @@ def workflow_status(repo_root='.'):
       _layer('Strategy Engine','INTERACTIVE','READY','task-store factor_strategy_dry_run','local_console_factor_stage80/strategy_report.json',True,False,'Run factor_strategy_dry_run and send TradeIntent to Risk Gate dry-run','Generates TradeIntent only; no live submit'),
       _layer('Risk Gate','INTERACTIVE','READY','risk dry-run decisions','local_console_workflow_stage87/workflow_dry_run_check.json',True,False,'Run risk_gate_dry_run','Risk rejection must include reasons; no bypass'),
       _layer('Human Approval','BACKEND_MISSING','BACKEND_MISSING','approval CLI/store planned','local_console_workflow_stage87/workflow_status.json',False,True,'后端待开发，需要新增 approval read-only API','No approve action in console; review only'),
-      _layer('Paper Trading / Shadow Trading','BACKEND_MISSING','BACKEND_MISSING','paper/shadow stores planned','local_console_workflow_stage87/workflow_status.json',False,True,'后端待开发，需要新增 paper-trading and shadow-trading read-only API','Paper/shadow only; no live order'),
+      _layer('Paper Trading / Shadow Trading','INTERACTIVE','READY','local_console_paper_stage89/*.json','local_console_paper_stage89/paper_trading_report.json',True,False,'Run paper_trading_dry_run','Paper/shadow only; no live order'),
       _layer('Live Trading','DISABLED','READY','live trading disabled by default','local_console_workflow_stage87/workflow_status.json',False,False,'Keep disabled until explicit human approval and risk signoff','DISABLED_FOR_SAFETY; allow_xttrader=false; allow_order_submit=false'),
     ]
     return {'stage':STAGE,'workflow':wf,**SAFETY}
@@ -46,8 +46,8 @@ FEATURES=[
 ('Strategy Engine / position sizing','INTERACTIVE','/api/v1/strategy/trade-intents/latest','dry-run intents'),
 ('Risk Gate / trade validator','INTERACTIVE','/api/v1/risk/decisions/latest','risk dry-run'),
 ('Human Approval','BACKEND_MISSING','/api/v1/approval/status','readonly approval API pending'),
-('Paper Trading','BACKEND_MISSING','/api/v1/paper-trading/status','paper API pending'),
-('Shadow Trading','BACKEND_MISSING','/api/v1/shadow-trading/report/latest','shadow API pending'),
+('Paper Trading','INTERACTIVE','/api/v1/paper-trading/status','Stage89 paper trading dashboard/API'),
+('Shadow Trading','INTERACTIVE','/api/v1/paper-trading/portfolio/latest','Stage89 shadow position/PnL API'),
 ('Live Trading','DISABLED_FOR_SAFETY','/api/v1/live/status','disabled by default'),
 ]
 
@@ -59,7 +59,7 @@ def reports_index(repo_root='.'):
     return {'stage':STAGE,'reports':[{'path':p,'exists':Path(repo_root,p).exists()} for p in paths],**SAFETY}
 
 def dry_run_check(repo_root='.'):
-    return {'stage':STAGE,'task_id':'workflow_dry_run_check','status':'SUCCESS','sequence':['GET /api/v1/market/xtdata-live/status','GET /api/v1/datahub/status','POST /api/v1/tasks/run factor_research_dry_run','POST /api/v1/tasks/run agent_research_dry_run','POST /api/v1/tasks/run factor_strategy_dry_run','POST /api/v1/tasks/run risk_gate_dry_run','GET /api/v1/approval/status','GET /api/v1/paper-trading/status'],'message':'dry-run only; no orders submitted',**SAFETY}
+    return {'stage':STAGE,'task_id':'workflow_dry_run_check','status':'SUCCESS','sequence':['GET /api/v1/market/xtdata-live/status','GET /api/v1/datahub/status','POST /api/v1/tasks/run factor_research_dry_run','POST /api/v1/tasks/run agent_research_dry_run','POST /api/v1/tasks/run factor_strategy_dry_run','POST /api/v1/tasks/run risk_gate_dry_run','GET /api/v1/approval/status','POST /api/v1/tasks/run paper_trading_dry_run','GET /api/v1/paper-trading/status'],'message':'dry-run only; no orders submitted',**SAFETY}
 
 def _md(title,obj):
     return '# '+title+'\n\n```json\n'+json.dumps(obj,ensure_ascii=False,indent=2)+'\n```\n'

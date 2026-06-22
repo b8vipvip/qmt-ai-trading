@@ -1,0 +1,35 @@
+# risk_replay
+
+```json
+{
+  "dry_run": true,
+  "no_account_query": true,
+  "no_order_submitted": true,
+  "no_xttrader": true,
+  "not_live_trading": true,
+  "paper_trading": true,
+  "read_only": true,
+  "requires_human_approval": true,
+  "results": [
+    {
+      "allowed": true,
+      "dry_run": true,
+      "no_account_query": true,
+      "no_order_submitted": true,
+      "no_xttrader": true,
+      "not_live_trading": true,
+      "order_id": "paper-stage88-510300.SH",
+      "paper_trading": true,
+      "read_only": true,
+      "reasons": [
+        "dry-run only; human approval required"
+      ],
+      "requires_human_approval": true,
+      "safety_violation": false,
+      "shadow_trading": true
+    }
+  ],
+  "safety_violation_count": 0,
+  "shadow_trading": true
+}
+```
