@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Any
 from .xtdata_live_config import XtDataLiveReadOnlyConfig
 from .sandbox_gateway import SandboxMarketDataGateway
+from qmt_ai_trading.common.json_safe import json_safe
 
 BASE_FLAGS = {
     "provider": "xtdata_live_readonly",
@@ -67,18 +68,56 @@ class XtDataLiveReadOnlyProvider:
             bars = [b.to_dict() for b in self._sandbox.get_bars(symbol, period, min(limit, 100))]
             return {**self._base("FALLBACK_TO_SANDBOX", False), "symbol": symbol, "period": period, "limit": limit, "bars": bars}
         try:
-            raw = xtdata.get_market_data([], [symbol], period=period, count=limit)
-            return {**self._base("SUCCESS", True), "symbol": symbol, "period": period, "limit": limit, "bars": _normalize_bars(raw, symbol)}
+            if hasattr(xtdata, "get_market_data_ex"):
+                raw = xtdata.get_market_data_ex([], [symbol], period=period, count=limit)
+            else:
+                raw = xtdata.get_market_data([], [symbol], period=period, count=limit)
+            return {**self._base("REAL_MARKET_DATA", True), "symbol": symbol, "period": period, "limit": limit, "bars": _normalize_bars(raw, symbol)}
         except Exception as exc:
             bars = [b.to_dict() for b in self._sandbox.get_bars(symbol, period, min(limit, 100))]
             return {**self._base("FALLBACK_TO_SANDBOX", False), "symbol": symbol, "period": period, "limit": limit, "bars": bars, "get_market_data_ex_error": f"{type(exc).__name__}: {exc}", "error_message": f"{type(exc).__name__}: {exc}"}
 
 def _normalize_snapshots(raw: Any) -> list[dict]:
-    if isinstance(raw, dict):
-        return [{"symbol": k, **(v if isinstance(v, dict) else {"value": str(v)})} for k, v in raw.items()]
-    return [{"value": str(raw)}]
+    safe = json_safe(raw)
+    if isinstance(safe, dict):
+        return [{"symbol": k, **(v if isinstance(v, dict) else {"value": v})} for k, v in safe.items()]
+    if isinstance(safe, list):
+        return [v if isinstance(v, dict) else {"value": v} for v in safe]
+    return [{"value": safe}]
 
 def _normalize_bars(raw: Any, symbol: str) -> list[dict]:
-    if hasattr(raw, "to_dict"):
-        raw = raw.to_dict()
-    return [{"symbol": symbol, "raw": raw if isinstance(raw, (dict, list)) else str(raw)}]
+    safe = json_safe(raw)
+    rows: list[dict] = []
+    if isinstance(safe, dict):
+        if symbol in safe:
+            candidate = safe[symbol]
+            if isinstance(candidate, list):
+                rows = [r if isinstance(r, dict) else {"value": r} for r in candidate]
+            elif isinstance(candidate, dict):
+                rows = _column_dict_to_rows(candidate)
+        if not rows:
+            rows = _column_dict_to_rows(safe)
+    elif isinstance(safe, list):
+        rows = [r if isinstance(r, dict) else {"value": r} for r in safe]
+    else:
+        rows = [{"value": safe}]
+
+    normalized = []
+    for row in rows:
+        item = dict(row)
+        item.setdefault("symbol", symbol)
+        for source, target in (("index", "time"), ("stime", "time"), ("datetime", "time"), ("timestamp", "time")):
+            if source in item and target not in item:
+                item[target] = item[source]
+        item.update({"read_only": True, "no_xttrader": True, "no_order_submitted": True, "no_account_query": True})
+        normalized.append(json_safe(item))
+    return normalized
+
+def _column_dict_to_rows(data: dict) -> list[dict]:
+    if not data:
+        return []
+    values = list(data.values())
+    if values and all(isinstance(v, list) for v in values):
+        max_len = max((len(v) for v in values), default=0)
+        return [{k: (v[i] if i < len(v) else None) for k, v in data.items()} for i in range(max_len)]
+    return [data]
