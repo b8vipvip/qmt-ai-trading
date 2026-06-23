@@ -99,6 +99,47 @@ function collectTaskParams(taskId) {
   return params;
 }
 
+function orderedColumns(rows) {
+  const preferred = ['symbol', 'period', 'time', 'index', 'open', 'high', 'low', 'close', 'volume', 'amount', 'source', 'real_market_data', 'sandbox_fallback'];
+  const all = [...new Set(rows.flatMap((item) => Object.keys(item)))];
+  const ordered = preferred.filter((key) => all.includes(key)).concat(all.filter((key) => !preferred.includes(key)));
+  return ordered.slice(0, 13);
+}
+
+function renderRowsTable(rows, title = '行情表格') {
+  if (!Array.isArray(rows) || !rows.length) return '<p class="empty">暂无可展示的表格数据。</p>';
+  const objects = rows.filter((row) => row && typeof row === 'object' && !Array.isArray(row));
+  if (!objects.length) return renderList({rows});
+  const cols = orderedColumns(objects);
+  return `<div class="task-market-table"><h4>${escapeHtml(title)}</h4><table><thead><tr>${cols.map((col) => `<th>${escapeHtml(humanKey(col))}</th>`).join('')}</tr></thead><tbody>${objects.slice(-20).map((row) => `<tr>${cols.map((col) => `<td>${formatCell(row[col])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+
+async function renderUpdatedArtifacts(taskId) {
+  if (taskId === 'xtdata_live_readonly_smoke' || taskId === 'market_snapshot_readonly') {
+    const market = await apiGet('/datahub/market/latest');
+    const payload = market.market || market;
+    const rows = payload.latest || payload.rows || [];
+    return `<section class="task-artifact-preview"><h4>已写入 Data Hub 最新行情</h4>${renderMetricCards(payload)}${renderRowsTable(rows, 'Data Hub / market latest')}</section>`;
+  }
+  if (taskId === 'etf_rotation_candidates' || taskId === 'factor_scan' || taskId === 'factor_research_dry_run') {
+    const data = await apiGet('/research/candidates/latest');
+    return `<section class="task-artifact-preview"><h4>已写入 Research 候选池</h4>${renderList(data.candidates || data)}</section>`;
+  }
+  if (taskId === 'strategy_dry_run_signals' || taskId === 'factor_strategy_dry_run') {
+    const intents = await apiGet('/strategy/trade-intents/latest');
+    return `<section class="task-artifact-preview"><h4>已写入 TradeIntent dry-run</h4>${renderList(intents.trade_intents || intents)}</section>`;
+  }
+  if (taskId === 'risk_gate_dry_run') {
+    const decisions = await apiGet('/risk/decisions/latest');
+    return `<section class="task-artifact-preview"><h4>已写入 Risk Gate 决策</h4>${renderList(decisions.decisions || decisions)}</section>`;
+  }
+  if (taskId === 'paper_trading_dry_run') {
+    const orders = await apiGet('/paper-trading/orders/latest');
+    return `<section class="task-artifact-preview"><h4>已写入 Paper Orders</h4>${renderList(orders.orders || orders)}</section>`;
+  }
+  return '';
+}
+
 renderTaskPanel = async function() {
   try {
     const catalog = await apiGet('/tasks/catalog');
@@ -119,7 +160,7 @@ renderTaskPanel = async function() {
             <button class="task-run-button" onclick="runTask('${escapeHtml(task.task_id)}')">运行该任务</button>
           </div>
         </article>`).join('')}</div>
-      <div id="taskResult" class="task-result empty">选择任务并确认参数后，会在这里显示运行状态和日志摘要。</div>
+      <div id="taskResult" class="task-result empty">选择任务并确认参数后，会在这里显示运行状态、日志摘要和已写入的统一控制台产物。</div>
     </section>`;
   } catch (error) {
     return `<p class="empty">任务目录暂不可用：${escapeHtml(error.message)}</p>`;
@@ -146,12 +187,13 @@ runTask = async function(taskId) {
   try {
     const res = await apiPost('/tasks/run', {task_id: taskId, params});
     const task = res.task || {};
+    const artifactPreview = await renderUpdatedArtifacts(taskId);
     box.innerHTML = `<h4>${escapeHtml(task.task_name || taskId)}</h4>
       <p>${badge(task.status || 'SUCCESS')} ${badge('dry-run')} ${badge('未下单')} ${badge('产物已更新')}</p>
       <p class="hint">运行参数：${escapeHtml(JSON.stringify(task.params || params))}</p>
       <ul class="plain-list">${(task.logs || []).slice(-8).map((line) => `<li>${escapeHtml(line)}</li>`).join('')}</ul>
       ${renderMetricCards(task.output || {})}
-      ${renderList(task.output || {})}`;
+      ${artifactPreview || renderList(task.output || {})}`;
   } catch (error) {
     box.className = 'task-result empty';
     box.textContent = `任务失败：${error.message}`;
