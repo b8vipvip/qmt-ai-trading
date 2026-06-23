@@ -5,6 +5,8 @@ def test_frontend_interactive_human_readable_not_json_shell():
     app = Path('local_console_app/app.js').read_text(encoding='utf-8')
     html = Path('local_console_app/index.html').read_text(encoding='utf-8')
     css = Path('local_console_app/style.css').read_text(encoding='utf-8')
+    task_params = Path('local_console_app/task_params.js').read_text(encoding='utf-8')
+    task_css = Path('local_console_app/task_params.css').read_text(encoding='utf-8')
 
     for term in [
         '刷新',
@@ -18,7 +20,19 @@ def test_frontend_interactive_human_readable_not_json_shell():
     ]:
         assert term in app
 
-    assert 'app.js' in html and 'style.css' in html and 'ui_sanitize.js' in html
-    assert 'table' in app and 'badge' in app and 'metrics' in css and 'task-card' in css
+    for term in [
+        'TASK_PARAM_PRESETS',
+        'xtdata_live_readonly_smoke',
+        'allow_real_market_data',
+        'allow_connect_miniqmt',
+        'enable_account_readonly',
+        'manual_confirmed',
+        'allow_order_submit = false',
+        'allow_order_cancel = false',
+    ]:
+        assert term in task_params
+
+    assert 'app.js' in html and 'style.css' in html and 'task_params.js' in html and 'ui_sanitize.js' in html
+    assert 'table' in app and 'badge' in app and 'metrics' in css and 'task-card' in css and 'task-param-grid' in task_css
     assert '<pre>' not in app and '调试 JSON' not in app
     assert 'stageXX' not in app and 'local_console_' not in app
