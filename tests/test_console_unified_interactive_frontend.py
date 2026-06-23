@@ -29,6 +29,10 @@ def test_frontend_interactive_human_readable_not_json_shell():
         'manual_confirmed',
         'allow_order_submit = false',
         'allow_order_cancel = false',
+        'renderUpdatedArtifacts',
+        '/datahub/market/latest',
+        'Data Hub / market latest',
+        'orderedColumns',
     ]:
         assert term in task_params
 
