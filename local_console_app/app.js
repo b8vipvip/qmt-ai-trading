@@ -1,4 +1,4 @@
-const API = '/api/v1';
+const API='/api/v1';
 
 const safetyKeys = [
   'read_only',
@@ -40,10 +40,28 @@ const modules = [
     eps: ['/research/context', '/research/factors/latest', '/research/candidates/latest']
   },
   {
+    id: 'candidates',
+    name: '候选池排名',
+    lead: '展示 Research 候选池排名、评分和风险提示，所有结果只用于人工复核。',
+    eps: ['/research/candidates/latest']
+  },
+  {
+    id: 'agent',
+    name: 'Agent 投研',
+    lead: '展示 Agent 结构化投研建议，不允许直接下单或绕过风控。',
+    eps: ['/agents/context', '/agents/report/latest']
+  },
+  {
     id: 'strategy',
     name: 'Strategy 策略信号',
     lead: '展示策略信号和 TradeIntent dry-run 结果；策略不能绕过 Risk Gate。',
     eps: ['/strategy/context', '/strategy/signals/latest', '/strategy/trade-intents/latest']
+  },
+  {
+    id: 'intent',
+    name: 'TradeIntent dry-run',
+    lead: '单独查看 Strategy 输出的 TradeIntent，只允许 dry-run，不允许直接下单。',
+    eps: ['/strategy/trade-intents/latest']
   },
   {
     id: 'risk',
@@ -59,7 +77,7 @@ const modules = [
   },
   {
     id: 'paper',
-    name: 'Paper Trading / Shadow Trading',
+    name: 'Paper Trading / Shadow Replay',
     lead: '查看模拟订单、影子持仓和 PnL 摘要；只消费已批准的 dry-run 结果。',
     eps: ['/paper-trading/status', '/paper-trading/orders/latest', '/paper-trading/positions/latest', '/paper-trading/pnl/latest']
   },
@@ -91,7 +109,7 @@ const modules = [
   },
   {
     id: 'safety',
-    name: 'Safety / Live Disabled',
+    name: 'Safety / Live Disabled 安全边界',
     lead: '集中查看安全边界，确认实盘、下单、撤单和自动批准全部关闭。',
     eps: ['/safety/status', '/live/status']
   },
@@ -307,7 +325,7 @@ async function loadModule(module, query) {
     } catch (error) {
       results.push({
         endpoint,
-        data: {ok: false, status: 'BACKEND_MISSING', error: error.message, read_only: true, dry_run: true, live_disabled: true, no_order_submitted: true},
+        data: {ok: false, status: 'DATA_MISSING', error: error.message, read_only: true, dry_run: true, live_disabled: true, no_order_submitted: true},
         error
       });
     }
