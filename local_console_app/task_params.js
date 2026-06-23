@@ -15,6 +15,9 @@ const TASK_PARAM_PRESETS = {
     allow_account_query: false,
     allow_order_submit: false,
   },
+  factor_scan: {
+    limit: 5,
+  },
   etf_rotation_candidates: {
     symbol: '510300.SH',
     limit: 5,
@@ -50,6 +53,15 @@ const TASK_PARAM_PRESETS = {
     read_only: true,
   },
 };
+
+const TASK_PRIORITY = [
+  'xtdata_live_readonly_smoke',
+  'factor_scan',
+  'strategy_dry_run_signals',
+  'risk_gate_dry_run',
+  'paper_trading_dry_run',
+  'account_readonly_dry_run',
+];
 
 function taskPreset(taskId) {
   return TASK_PARAM_PRESETS[taskId] || {limit: 5};
@@ -100,18 +112,28 @@ function collectTaskParams(taskId) {
 }
 
 function orderedColumns(rows) {
-  const preferred = ['symbol', 'period', 'time', 'index', 'open', 'high', 'low', 'close', 'volume', 'amount', 'source', 'real_market_data', 'sandbox_fallback'];
+  const preferred = ['symbol', 'period', 'time', 'index', 'intent_id', 'order_id', 'side', 'quantity', 'target_weight', 'decision', 'status', 'risk_decision', 'fill_status', 'open', 'high', 'low', 'close', 'volume', 'amount', 'source', 'real_market_data', 'sandbox_fallback'];
   const all = [...new Set(rows.flatMap((item) => Object.keys(item)))];
   const ordered = preferred.filter((key) => all.includes(key)).concat(all.filter((key) => !preferred.includes(key)));
-  return ordered.slice(0, 13);
+  return ordered.slice(0, 14);
 }
 
-function renderRowsTable(rows, title = '行情表格') {
+function renderRowsTable(rows, title = '表格数据') {
   if (!Array.isArray(rows) || !rows.length) return '<p class="empty">暂无可展示的表格数据。</p>';
   const objects = rows.filter((row) => row && typeof row === 'object' && !Array.isArray(row));
   if (!objects.length) return renderList({rows});
   const cols = orderedColumns(objects);
   return `<div class="task-market-table"><h4>${escapeHtml(title)}</h4><table><thead><tr>${cols.map((col) => `<th>${escapeHtml(humanKey(col))}</th>`).join('')}</tr></thead><tbody>${objects.slice(-20).map((row) => `<tr>${cols.map((col) => `<td>${formatCell(row[col])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+
+function sortTasksForWorkflow(tasks) {
+  const priority = new Map(TASK_PRIORITY.map((id, idx) => [id, idx]));
+  return [...tasks].sort((a, b) => {
+    const ai = priority.has(a.task_id) ? priority.get(a.task_id) : 1000;
+    const bi = priority.has(b.task_id) ? priority.get(b.task_id) : 1000;
+    if (ai !== bi) return ai - bi;
+    return String(a.category || '').localeCompare(String(b.category || '')) || String(a.task_id).localeCompare(String(b.task_id));
+  });
 }
 
 async function renderUpdatedArtifacts(taskId) {
@@ -134,8 +156,15 @@ async function renderUpdatedArtifacts(taskId) {
     return `<section class="task-artifact-preview"><h4>已写入 Risk Gate 决策</h4>${renderList(decisions.decisions || decisions)}</section>`;
   }
   if (taskId === 'paper_trading_dry_run') {
+    const status = await apiGet('/paper-trading/status');
     const orders = await apiGet('/paper-trading/orders/latest');
-    return `<section class="task-artifact-preview"><h4>已写入 Paper Orders</h4>${renderList(orders.orders || orders)}</section>`;
+    const positions = await apiGet('/paper-trading/positions/latest');
+    const pnl = await apiGet('/paper-trading/pnl/latest');
+    const orderPayload = orders.orders || orders;
+    const positionPayload = positions.positions || positions;
+    const orderRows = orderPayload.orders || [];
+    const positionRows = positionPayload.positions || [];
+    return `<section class="task-artifact-preview"><h4>已写入 Paper / Shadow 产物</h4>${renderMetricCards(status.report || status)}${renderRowsTable(orderRows, 'Paper Orders')}${renderRowsTable(positionRows, 'Shadow Positions')}${renderList(pnl.pnl || pnl)}</section>`;
   }
   return '';
 }
@@ -143,11 +172,11 @@ async function renderUpdatedArtifacts(taskId) {
 renderTaskPanel = async function() {
   try {
     const catalog = await apiGet('/tasks/catalog');
-    const tasks = (catalog.tasks || []).slice(0, 24);
+    const tasks = sortTasksForWorkflow(catalog.tasks || []);
     if (!tasks.length) return '<p class="empty">暂无可执行任务。</p>';
     return `<section class="card">
       <h3>白名单任务</h3>
-      <p class="hint">点击任务卡片后可先检查参数，再运行。所有任务仍强制只读 / dry-run；下单和撤单参数会被前端与后端同时固定为 false。</p>
+      <p class="hint">点击任务卡片后可先检查参数，再运行。推荐顺序：xtdata 只读行情 smoke → 多因子扫描 → 策略 dry-run 信号 → Risk Gate dry-run → Paper Trading / Shadow Trading dry-run。所有任务仍强制只读 / dry-run；下单和撤单参数会被前端与后端同时固定为 false。</p>
       <div class="task-grid">${tasks.map((task) => `
         <article class="task-card task-card-panel">
           <button class="task-title" onclick="selectTask('${escapeHtml(task.task_id)}')">
