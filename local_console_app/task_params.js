@@ -9,7 +9,7 @@ const TASK_PARAM_PRESETS = {
   paper_trading_dry_run: {limit: 5},
   human_approval_review_dry_run: {limit: 5},
   monitoring_alert_dry_run: {limit: 5},
-  account_readonly_dry_run: {enable_account_readonly: false, manual_confirmed: false, allow_import_xttrader: false, allow_connect_trade_session: false, allow_account_query: false, allow_position_query: false, account_timeout_seconds: 90, allow_order_submit: false, allow_order_cancel: false, dry_run: true, read_only: true},
+  account_readonly_dry_run: {enable_account_readonly: true, manual_confirmed: true, allow_import_xttrader: true, allow_connect_trade_session: true, allow_account_query: true, allow_position_query: true, account_timeout_seconds: 120, allow_order_submit: false, allow_order_cancel: false, dry_run: true, read_only: true},
 };
 
 const TASK_PRIORITY = ['xtdata_live_readonly_smoke', 'factor_scan', 'strategy_dry_run_signals', 'risk_gate_dry_run', 'paper_trading_dry_run', 'human_approval_review_dry_run', 'account_readonly_dry_run'];
@@ -112,7 +112,7 @@ renderTaskPanel = async function() {
     if (!tasks.length) return '<p class="empty">暂无可执行任务。</p>';
     return `<section class="card">
       <h3>白名单任务</h3>
-      <p class="hint">点击任务卡片后可先检查参数，再运行。推荐顺序：xtdata 只读行情 smoke → 多因子扫描 → 策略 dry-run 信号 → Risk Gate dry-run → Paper Trading / Shadow Trading dry-run → Human Approval 人工复核 dry-run。所有任务仍强制只读 / dry-run；下单和撤单参数会被前端与后端同时固定为 false。</p>
+      <p class="hint">点击任务卡片后可先检查参数，再运行。推荐顺序：xtdata 只读行情 smoke → 多因子扫描 → 策略 dry-run 信号 → Risk Gate dry-run → Paper Trading / Shadow Trading dry-run → Human Approval 人工复核 dry-run。Account Readonly 默认只读查询资产/持仓；下单和撤单参数会被前端与后端同时固定为 false。</p>
       <div class="task-grid">${tasks.map((task) => `
         <article class="task-card task-card-panel">
           <button class="task-title" onclick="selectTask('${escapeHtml(task.task_id)}')">
