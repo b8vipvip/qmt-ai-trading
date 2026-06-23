@@ -3,7 +3,7 @@ from pathlib import Path
 
 from qmt_ai_trading.console_api.task_runner import run_task
 from qmt_ai_trading.console_api.task_store import TaskStore
-from qmt_ai_trading.console_api.routes import research, strategy, risk
+from qmt_ai_trading.console_api.routes import research, strategy, risk, paper
 
 
 def _seed_real_market_artifact():
@@ -81,3 +81,23 @@ def test_risk_gate_reviews_latest_real_trade_intents(tmp_path, monkeypatch):
     assert decision["no_account_query"] is True
     assert decision["risk_gate"] == "unified_risk_gate_dry_run"
     assert risk.decisions()["decisions"]["status"] == "READY"
+
+
+def test_paper_trading_consumes_passed_risk_decisions(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    _seed_real_market_artifact()
+    run_task("strategy_dry_run_signals", {"limit": 3, "max_positions": 1}, TaskStore())
+    run_task("risk_gate_dry_run", {}, TaskStore())
+    paper_run = run_task("paper_trading_dry_run", {}, TaskStore())
+
+    assert paper_run.status == "SUCCESS"
+    assert paper_run.output["source"] == "artifacts/reports/console/risk/risk_decisions.json"
+    assert paper_run.output["paper_order_count"] == 1
+    assert paper_run.output["shadow_position_count"] == 1
+    order = paper_run.output["orders"][0]
+    assert order["symbol"] == "510300.SH"
+    assert order["real_order_submitted"] is False
+    assert order["no_order_submitted"] is True
+    assert order["status"] in {"PAPER_ACCEPTED_NO_FILL_QUANTITY_ZERO", "PAPER_ACCEPTED_DRY_RUN"}
+    assert paper.orders()["orders"]["status"] == "READY"
+    assert paper.positions()["positions"]["status"] == "READY"
