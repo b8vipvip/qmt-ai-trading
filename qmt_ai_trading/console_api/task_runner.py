@@ -37,50 +37,22 @@ def _latest_trade_intents():
 
 def _run_risk_gate_from_latest_intents(params):
     from qmt_ai_trading.risk.factor_strategy_risk_review import review_trade_intents
-
     intents = _latest_trade_intents()
     decisions = review_trade_intents(intents)
-    return {
-        "task_id": "risk_gate_dry_run",
-        "status": "SUCCESS",
-        "source": "artifacts/reports/console/strategy/trade_intents.json",
-        "trade_intent_count": len(intents),
-        "decision_count": len(decisions),
-        "decisions": decisions,
-        "blocked_by_risk": any(d.get("decision") != "PASS_DRY_RUN" for d in decisions) or not intents,
-        "dry_run": True,
-        "read_only": True,
-        "live_disabled": True,
-        "no_order_submitted": True,
-        "no_account_query": True,
-        "no_qmt_trader_api": True,
-        "auto_approve": False,
-    }
+    return {"task_id": "risk_gate_dry_run", "status": "SUCCESS", "source": "artifacts/reports/console/strategy/trade_intents.json", "trade_intent_count": len(intents), "decision_count": len(decisions), "decisions": decisions, "blocked_by_risk": any(d.get("decision") != "PASS_DRY_RUN" for d in decisions) or not intents, "dry_run": True, "read_only": True, "live_disabled": True, "no_order_submitted": True, "no_account_query": True, "no_qmt_trader_api": True, "auto_approve": False}
 
 
 def _run_paper_from_latest_risk(params):
     from qmt_ai_trading.paper_trading import run_paper_trading_stage89
+    report = run_paper_trading_stage89(params.get("repo_root", "."), params.get("input_stage", 88), params.get("output_dir", "local_console_paper_stage89"), True, True)
+    report.update({"task_id": "paper_trading_dry_run", "status": "SUCCESS", "paper_trading": True, "shadow_trading": True, "real_order_submitted": False, "no_xttrader": True, "no_account_query": True, "no_order_submitted": True, "dry_run": True, "read_only": True, "not_live_trading": True})
+    return report
 
-    report = run_paper_trading_stage89(
-        params.get("repo_root", "."),
-        params.get("input_stage", 88),
-        params.get("output_dir", "local_console_paper_stage89"),
-        True,
-        True,
-    )
-    report.update({
-        "task_id": "paper_trading_dry_run",
-        "status": "SUCCESS",
-        "paper_trading": True,
-        "shadow_trading": True,
-        "real_order_submitted": False,
-        "no_xttrader": True,
-        "no_account_query": True,
-        "no_order_submitted": True,
-        "dry_run": True,
-        "read_only": True,
-        "not_live_trading": True,
-    })
+
+def _run_human_approval_from_latest_paper(params):
+    from qmt_ai_trading.approval import build_human_approval_review
+    report = build_human_approval_review(params.get("repo_root", "."), params.get("output_dir", "local_console_approval"))
+    report.update({"task_id": "human_approval_review_dry_run", "status": "SUCCESS", "approval_enabled": False, "approve_in_console": False, "auto_approve": False, "real_order_submitted": False, "no_order_submitted": True, "dry_run": True, "read_only": True, "not_live_trading": True})
     return report
 
 
@@ -89,38 +61,17 @@ def _run_unified_factor_strategy(params, task_id='strategy_dry_run_signals'):
     from qmt_ai_trading.strategies.factor_strategy_engine import build_factor_strategy
     from qmt_ai_trading.risk.factor_strategy_risk_review import review_trade_intents
     from qmt_ai_trading.strategies.strategy_report import build_strategy_report
-
     scan = run_factor_scan(params)
     built = build_factor_strategy(scan.get('factor_candidates', []), int(params.get('max_positions', 3)))
     decisions = review_trade_intents(built['trade_intents'])
     report = build_strategy_report(built['strategy_signals'], built['trade_intents'], decisions)
-    return {
-        'task_id': task_id,
-        'data_source': scan.get('data_source'),
-        'quality_level': scan.get('quality_level'),
-        'real_market_data': scan.get('real_market_data', False),
-        'sandbox_fallback': scan.get('sandbox_fallback', True),
-        'bar_source': scan.get('bar_source'),
-        'factor_candidates': scan.get('factor_candidates', []),
-        'strategy_signals': built['strategy_signals'],
-        'trade_intents': built['trade_intents'],
-        'risk_decisions': decisions,
-        'strategy_report': report,
-        'dry_run': True,
-        'read_only': True,
-        'no_qmt_trader_api': True,
-        'no_account_query': True,
-        'no_order_submitted': True,
-        'auto_approve': False,
-    }
+    return {'task_id': task_id, 'data_source': scan.get('data_source'), 'quality_level': scan.get('quality_level'), 'real_market_data': scan.get('real_market_data', False), 'sandbox_fallback': scan.get('sandbox_fallback', True), 'bar_source': scan.get('bar_source'), 'factor_candidates': scan.get('factor_candidates', []), 'strategy_signals': built['strategy_signals'], 'trade_intents': built['trade_intents'], 'risk_decisions': decisions, 'strategy_report': report, 'dry_run': True, 'read_only': True, 'no_qmt_trader_api': True, 'no_account_query': True, 'no_order_submitted': True, 'auto_approve': False}
 
 
 def mock_output(task_id, params):
     if task_id in {'factor_scan', 'factor_research_dry_run', 'etf_rotation_candidates', 'research_score_etf'}:
         from qmt_ai_trading.research.factor_engine import run_factor_scan
-        result = run_factor_scan(params)
-        result['task_id'] = task_id
-        return result
+        result = run_factor_scan(params); result['task_id'] = task_id; return result
     if task_id in {'strategy_dry_run_signals', 'daily_pipeline_dry_run'}:
         return _run_unified_factor_strategy(params, task_id)
     if task_id == 'agent_research_dry_run':
@@ -154,8 +105,7 @@ def mock_output(task_id, params):
                 warnings.append(f'{forbidden}=true is not accepted; forced to false for read-only xtdata mode')
         report = run_xtdata_live_stage87(repo_root=params.get('repo_root', '.'), output_dir=params.get('output_dir', 'local_console_xtdata_live_stage87'), enabled=params.get('enable_xtdata', False), allow_import_xtdata=params.get('allow_import_xtdata', False), allow_real_market_data=params.get('allow_real_market_data', False), allow_connect_miniqmt=params.get('allow_connect_miniqmt', False), read_only=True, allow_xttrader=False, allow_account_query=False, allow_order_submit=False, symbols=params.get('symbols', ['510300.SH', '510500.SH', '588000.SH']), period=params.get('period', '1d'), limit=int(params.get('limit', 20)))
         report.update({'read_only': True, 'allow_xttrader': False, 'allow_order_submit': False, 'allow_account_query': False, 'no_xttrader': True, 'no_order_submitted': True, 'no_account_query': True})
-        if warnings:
-            report['warnings'] = list(report.get('warnings', [])) + warnings
+        if warnings: report['warnings'] = list(report.get('warnings', [])) + warnings
         return report
     if task_id == 'stage88_real_data_dry_run':
         from qmt_ai_trading.datahub.datahub_report import run_stage88_datahub
@@ -163,26 +113,19 @@ def mock_output(task_id, params):
         from qmt_ai_trading.strategies.stage88_dry_run import write_strategy
         from qmt_ai_trading.risk.stage88_risk_gate import write_risk
         symbols = params.get('symbols', ['510300.SH', '510500.SH', '588000.SH', '159915.SZ', '512100.SH'])
-        if isinstance(symbols, str):
-            symbols = [x.strip() for x in symbols.split(',') if x.strip()]
+        if isinstance(symbols, str): symbols = [x.strip() for x in symbols.split(',') if x.strip()]
         dh = run_stage88_datahub(params.get('repo_root', '.'), 'local_console_datahub_stage88', symbols, params.get('period', '1d'), int(params.get('limit', 120)), enable_xtdata=params.get('enable_xtdata', False), allow_import_xtdata=params.get('allow_import_xtdata', False), allow_real_market_data=params.get('allow_real_market_data', False), allow_connect_miniqmt=params.get('allow_connect_miniqmt', False))
-        rs = write_research(params.get('repo_root', '.'))
-        st = write_strategy(params.get('repo_root', '.'))
-        rk = write_risk(params.get('repo_root', '.'))
-        return {'task_id': 'stage88_real_data_dry_run', 'status': 'SUCCESS', 'datahub': dh, 'research': rs, 'strategy': st, 'risk': rk, 'dry_run': True, 'read_only': True, 'not_live_trading': True, 'no_xttrader': True, 'no_order_submitted': True, 'no_account_query': True, 'requires_human_approval': True}
-    if task_id == 'paper_trading_dry_run':
-        return _run_paper_from_latest_risk(params)
-
+        return {'task_id': 'stage88_real_data_dry_run', 'status': 'SUCCESS', 'datahub': dh, 'research': write_research(params.get('repo_root', '.')), 'strategy': write_strategy(params.get('repo_root', '.')), 'risk': write_risk(params.get('repo_root', '.')), 'dry_run': True, 'read_only': True, 'not_live_trading': True, 'no_xttrader': True, 'no_order_submitted': True, 'no_account_query': True, 'requires_human_approval': True}
+    if task_id == 'paper_trading_dry_run': return _run_paper_from_latest_risk(params)
+    if task_id == 'human_approval_review_dry_run': return _run_human_approval_from_latest_paper(params)
     if task_id == 'xttrader_boundary_dry_run':
         from qmt_ai_trading.trading_gateway import run_xttrader_boundary_stage90
         return run_xttrader_boundary_stage90(params.get('repo_root', '.'), params.get('input_stage', 89), params.get('output_dir', 'local_console_xttrader_stage90'), True, True)
     if task_id == 'account_readonly_dry_run':
         from qmt_ai_trading.trading_gateway.account_readonly_report import run_account_readonly_stage91
         warnings = []
-        if _bool_value(params, 'allow_order_submit', False):
-            warnings.append('allow_order_submit=true is not accepted; forced to false for account read-only mode')
-        if _bool_value(params, 'allow_order_cancel', False):
-            warnings.append('allow_order_cancel=true is not accepted; forced to false for account read-only mode')
+        if _bool_value(params, 'allow_order_submit', False): warnings.append('allow_order_submit=true is not accepted; forced to false for account read-only mode')
+        if _bool_value(params, 'allow_order_cancel', False): warnings.append('allow_order_cancel=true is not accepted; forced to false for account read-only mode')
         if warnings:
             report = {'ok': False, 'status': 'BLOCKED_BY_SAFETY', 'error_message': 'Account readonly task is read-only; order submit/cancel permissions are forbidden'}
         elif all(_bool_value(params, name, False) for name in ['enable_account_readonly', 'allow_import_xttrader', 'allow_connect_trade_session', 'allow_account_query', 'allow_position_query', 'manual_confirmed']) and _bool_value(params, 'dry_run', True) and _bool_value(params, 'read_only', True):
@@ -191,16 +134,13 @@ def mock_output(task_id, params):
         else:
             report = run_account_readonly_stage91(params.get('repo_root', '.'), params.get('output_dir', 'local_console_account_stage91'), _bool_value(params, 'enable_account_readonly', False), _bool_value(params, 'allow_import_xttrader', False), _bool_value(params, 'allow_connect_trade_session', False), _bool_value(params, 'allow_account_query', False), _bool_value(params, 'allow_position_query', False), _bool_value(params, 'manual_confirmed', False), _bool_value(params, 'dry_run', True), _bool_value(params, 'read_only', True))
         report.update({'allow_order_submit': False, 'allow_order_cancel': False, 'order_submit_enabled': False, 'order_cancel_enabled': False, 'real_order_submitted': False})
-        if warnings:
-            report['warnings'] = warnings
+        if warnings: report['warnings'] = warnings
         return report
     if task_id == 'workflow_dry_run_check':
         from qmt_ai_trading.console_api.workflow_console import write_workflow_outputs
         return write_workflow_outputs(params.get('repo_root', '.'), params.get('output_dir', 'local_console_workflow_stage87'))
-    if task_id == 'risk_gate_dry_run':
-        return _run_risk_gate_from_latest_intents(params)
-    if task_id == 'factor_strategy_dry_run':
-        return _run_unified_factor_strategy(params, task_id)
+    if task_id == 'risk_gate_dry_run': return _run_risk_gate_from_latest_intents(params)
+    if task_id == 'factor_strategy_dry_run': return _run_unified_factor_strategy(params, task_id)
     base = {'mode': 'dry-run/shadow', 'no_trade_authorization': True, 'read_only': True, 'params': params}
     if task_id in {'ai_model_discovery', 'ai_model_stress_test', 'ai_model_usage_draft'}:
         base.update({'ai_provider_task': True, 'local_api_only': True, 'trade_chain': False, 'note': 'AI Provider 白名单任务，仅调用本地 Console API，不进入交易链路'})
@@ -220,18 +160,15 @@ def mock_output(task_id, params):
 def run_task(task_id, params, store):
     assert_safe_task_id(task_id); assert_safe_task_params(params)
     task = get_task(task_id)
-    if not task:
-        raise ConsoleSafetyError('未知任务，不在白名单')
+    if not task: raise ConsoleSafetyError('未知任务，不在白名单')
     assert_task_allowed(task); assert_no_forbidden_live_task(task)
     run = TaskRun(str(uuid.uuid4()), task.task_id, task.title_zh, task.category, 'RUNNING', {**task.default_params, **params}, now_iso())
     store.add(run); run.logs.append('任务已通过白名单与安全边界校验'); run.logs.append('以 dry-run / shadow / read-only 模式执行')
     run.output = mock_output(task_id, run.params)
     written = write_task_output_to_console_artifacts(task_id, run.output)
     if written:
-        run.output_artifacts = sorted(set(list(task.output_artifacts) + written))
-        run.logs.append(f'统一控制台产物已更新：{len(written)} 个文件')
+        run.output_artifacts = sorted(set(list(task.output_artifacts) + written)); run.logs.append(f'统一控制台产物已更新：{len(written)} 个文件')
     else:
-        run.output_artifacts = task.output_artifacts
-        run.logs.append('该任务暂无统一控制台产物映射，仅保留任务输出')
+        run.output_artifacts = task.output_artifacts; run.logs.append('该任务暂无统一控制台产物映射，仅保留任务输出')
     run.status = 'SUCCESS'; run.finished_at = now_iso(); run.logs.append('任务完成：未下单、未查账户、未自动批准')
     return run
