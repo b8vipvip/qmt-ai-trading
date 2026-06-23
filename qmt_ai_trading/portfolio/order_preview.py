@@ -258,13 +258,19 @@ def build_order_preview(repo_root: str | Path = ".", output_dir: str | Path = "l
         "generated_at": _now(),
         **SAFETY,
     }
+    preview_doc = {"status": portfolio_status, "previews": previews, **SAFETY}
+    budget_doc = {"status": portfolio_status, "budget": summary, **SAFETY}
     report = {"status": portfolio_status, "summary": summary, "previews": previews, "blockers": blockers, "asset": asset, "positions": positions, **SAFETY}
     out_dir = root / output_dir
+    console_dir = root / CONSOLE_ROOT / "portfolio"
     written = [
         _write_json(out_dir / "order_preview_summary.json", summary),
-        _write_json(out_dir / "order_preview_latest.json", {"status": portfolio_status, "previews": previews, **SAFETY}),
-        _write_json(out_dir / "portfolio_budget.json", {"status": portfolio_status, "budget": summary, **SAFETY}),
+        _write_json(out_dir / "order_preview_latest.json", preview_doc),
+        _write_json(out_dir / "portfolio_budget.json", budget_doc),
         _write_json(out_dir / "order_preview_report.json", report),
+        _write_json(console_dir / "order_preview_latest.json", preview_doc),
+        _write_json(console_dir / "portfolio_budget.json", budget_doc),
+        _write_json(console_dir / "portfolio_status.json", summary),
     ]
     report.update({"output_dir": str(output_dir), "output_artifacts": written, "task_id": "order_preview_dry_run"})
     return report
