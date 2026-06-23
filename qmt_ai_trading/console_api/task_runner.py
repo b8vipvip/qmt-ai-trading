@@ -3,6 +3,8 @@ import uuid
 from .models import TaskRun, now_iso
 from .task_registry import get_task
 from .safety import *
+from .artifact_writer import write_task_output_to_console_artifacts
+
 
 def _bool_value(params, name, default=False):
     value = params.get(name, default)
@@ -11,6 +13,7 @@ def _bool_value(params, name, default=False):
     if isinstance(value, str):
         return value.strip().lower() in {"1", "true", "yes", "on"}
     return bool(value)
+
 
 def mock_output(task_id, params):
     if task_id in {'factor_scan','factor_research_dry_run'}:
@@ -70,7 +73,6 @@ def mock_output(task_id, params):
         return run_xttrader_boundary_stage90(params.get('repo_root','.'), params.get('input_stage',89), params.get('output_dir','local_console_xttrader_stage90'), True, True)
     if task_id=='account_readonly_dry_run':
         from qmt_ai_trading.trading_gateway.account_readonly_report import run_account_readonly_stage91
-        
         warnings=[]
         if _bool_value(params, 'allow_order_submit', False):
             warnings.append('allow_order_submit=true is not accepted; forced to false for Stage91 read-only mode')
@@ -109,6 +111,8 @@ def mock_output(task_id, params):
     elif 'backtest' in task_id or 'replay' in task_id: base.update({'total_return':0.032,'max_drawdown':0.041,'win_rate':0.55,'trade_count':12})
     else: base.update({'candidates':[{'symbol':'510300.SH','rank':1,'score':82,'reasons':['动量稳定'],'risk_flags':['dry-run']}], 'signals':[{'symbol':'159915.SZ','signal':'HOLD','trade_intent':'DRY_RUN_ONLY'}]})
     return base
+
+
 def run_task(task_id, params, store):
     assert_safe_task_id(task_id); assert_safe_task_params(params)
     task=get_task(task_id)
@@ -116,5 +120,13 @@ def run_task(task_id, params, store):
     assert_task_allowed(task); assert_no_forbidden_live_task(task)
     run=TaskRun(str(uuid.uuid4()),task.task_id,task.title_zh,task.category,'RUNNING', {**task.default_params, **params}, now_iso())
     store.add(run); run.logs.append('任务已通过白名单与安全边界校验'); run.logs.append('以 dry-run / shadow / read-only 模式执行')
-    run.output=mock_output(task_id, run.params); run.output_artifacts=task.output_artifacts; run.status='SUCCESS'; run.finished_at=now_iso(); run.logs.append('任务完成：未下单、未查账户、未自动批准')
+    run.output=mock_output(task_id, run.params)
+    written=write_task_output_to_console_artifacts(task_id, run.output)
+    if written:
+        run.output_artifacts=sorted(set(list(task.output_artifacts)+written))
+        run.logs.append(f'统一控制台产物已更新：{len(written)} 个文件')
+    else:
+        run.output_artifacts=task.output_artifacts
+        run.logs.append('该任务暂无统一控制台产物映射，仅保留任务输出')
+    run.status='SUCCESS'; run.finished_at=now_iso(); run.logs.append('任务完成：未下单、未查账户、未自动批准')
     return run
