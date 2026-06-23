@@ -1,5 +1,25 @@
 from .common import payload, read_json
-def status(): return payload(status='READY_EMPTY', module='Data Hub', report=read_json('datahub','datahub_status.json',{}))
-def symbols(): return payload(status='READY_EMPTY', symbols=read_json('datahub','datahub_symbols.json',{'symbols':[]}).get('symbols',[]))
-def cache_status(): return payload(status='READY_EMPTY', cache=read_json('datahub','datahub_real_cache.json',{}))
-def market_latest(): return payload(status='READY_EMPTY', market=read_json('datahub','market_latest.json',{}))
+
+
+def _status(data, default='READY_EMPTY'):
+    return data.get('status', default) if isinstance(data, dict) else default
+
+
+def status():
+    report = read_json('datahub', 'datahub_status.json', {})
+    return payload(status=_status(report), module='Data Hub', report=report)
+
+
+def symbols():
+    data = read_json('datahub', 'datahub_symbols.json', {'symbols': []})
+    return payload(status=_status(data), symbols=data.get('symbols', []), report=data)
+
+
+def cache_status():
+    cache = read_json('datahub', 'datahub_real_cache.json', {})
+    return payload(status=_status(cache), cache=cache)
+
+
+def market_latest():
+    market = read_json('datahub', 'market_latest.json', {})
+    return payload(status=_status(market), market=market)
