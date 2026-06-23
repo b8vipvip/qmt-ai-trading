@@ -15,7 +15,14 @@ _SAFE = {
     "no_order_submitted": True,
 }
 
-_ENV_KEYS = ["QMT_USERDATA_MINI_PATH", "QMT_USERDATA_PATH", "QMT_ACCOUNT_ID", "QMT_ACCOUNT_TYPE", "QMT_SESSION_ID_BASE"]
+_ENV_KEYS = [
+    "QMT_USERDATA_MINI_PATH",
+    "QMT_USERDATA_PATH",
+    "QMT_ACCOUNT_ID",
+    "QMT_ACCOUNT_TYPE",
+    "QMT_SESSION_ID_BASE",
+    "ACCOUNT_READONLY_TIMEOUT_SECONDS",
+]
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -31,6 +38,20 @@ def _read_json(path: Path) -> dict[str, Any]:
 def _mask_account(account_id: Any) -> str:
     s = "" if account_id is None else str(account_id)
     return "" if not s else ("****" if len(s) < 6 else f"{s[:2]}****{s[-2:]}")
+
+
+def _int_param(params: Mapping[str, Any], *names: str, default: int = 30, min_value: int = 5, max_value: int = 180) -> int:
+    for name in names:
+        value = params.get(name)
+        if isinstance(value, (list, tuple)):
+            value = value[0] if value else None
+        if value not in (None, ""):
+            try:
+                parsed = int(float(value))
+                return max(min_value, min(max_value, parsed))
+            except Exception:
+                return default
+    return default
 
 
 def _success_payload(output_dir: Path) -> dict[str, Any]:
@@ -82,16 +103,38 @@ def run_account_readonly_subprocess(repo_root: str | Path, request_params: Mappi
             val = val[0] if val else None
         if val not in (None, ""):
             env[key] = str(val)
-    timeout_seconds = 30
+    timeout_seconds = _int_param(
+        request_params,
+        "account_timeout_seconds",
+        "timeout_seconds",
+        "ACCOUNT_READONLY_TIMEOUT_SECONDS",
+        default=int(env.get("ACCOUNT_READONLY_TIMEOUT_SECONDS", "30") or 30),
+        min_value=10,
+        max_value=180,
+    )
     try:
         completed = subprocess.run(cmd, cwd=str(root), env=env, text=True, capture_output=True, timeout=timeout_seconds)
-    except subprocess.TimeoutExpired:
-        return {"ok": False, "status": "SUBPROCESS_TIMEOUT", "error_message": "账户/持仓只读查询超过 30 秒未返回，已自动终止。请检查 MiniQMT 是否登录、session_id 是否冲突。", "timeout_seconds": timeout_seconds, "enabled": True, "manual_confirmation_completed": True, "account_query_enabled": True, "position_query_enabled": True, "mock_data": False, **_SAFE}
+    except subprocess.TimeoutExpired as exc:
+        return {
+            "ok": False,
+            "status": "SUBPROCESS_TIMEOUT",
+            "error_message": f"账户/持仓只读查询超过 {timeout_seconds} 秒未返回，已自动终止。请检查 MiniQMT 是否登录、session_id 是否冲突、交易端是否允许 xttrader 连接。",
+            "timeout_seconds": timeout_seconds,
+            "stdout_tail": (exc.stdout or "")[-1000:] if isinstance(exc.stdout, str) else "",
+            "stderr_tail": (exc.stderr or "")[-1000:] if isinstance(exc.stderr, str) else "",
+            "enabled": True,
+            "manual_confirmation_completed": True,
+            "account_query_enabled": True,
+            "position_query_enabled": True,
+            "mock_data": False,
+            **_SAFE,
+        }
     if completed.returncode != 0:
         return {"ok": False, "status": "SUBPROCESS_QUERY_FAILED", "error_message": (completed.stderr or completed.stdout or "account readonly subprocess failed")[-2000:], "returncode": completed.returncode, "enabled": True, "manual_confirmation_completed": True, "account_query_enabled": True, "position_query_enabled": True, "mock_data": False, **_SAFE}
     payload = _success_payload(output_dir)
     if not all((output_dir / name).exists() for name in ("account_readonly_report.json", "account_asset_snapshot.json", "account_positions_snapshot.json")):
         return {"ok": False, "status": "RUNTIME_OUTPUT_MISSING", "error_message": "隔离子进程已结束，但没有生成账户/持仓只读输出文件。", "stdout_tail": completed.stdout[-1000:], "stderr_tail": completed.stderr[-1000:], "enabled": True, "manual_confirmation_completed": True, "account_query_enabled": True, "position_query_enabled": True, "mock_data": False, **_SAFE}
+    payload["timeout_seconds"] = timeout_seconds
     return payload
 
 
