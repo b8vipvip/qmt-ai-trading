@@ -22,7 +22,11 @@ def test_frontend_interactive_human_readable_not_json_shell():
 
     for term in [
         'TASK_PARAM_PRESETS',
+        'TASK_PRIORITY',
+        'sortTasksForWorkflow',
         'xtdata_live_readonly_smoke',
+        'paper_trading_dry_run',
+        'Paper Trading / Shadow Trading dry-run',
         'allow_real_market_data',
         'allow_connect_miniqmt',
         'enable_account_readonly',
@@ -31,11 +35,16 @@ def test_frontend_interactive_human_readable_not_json_shell():
         'allow_order_cancel = false',
         'renderUpdatedArtifacts',
         '/datahub/market/latest',
+        '/paper-trading/orders/latest',
+        '/paper-trading/positions/latest',
         'Data Hub / market latest',
+        'Paper Orders',
+        'Shadow Positions',
         'orderedColumns',
     ]:
         assert term in task_params
 
+    assert '.slice(0, 24)' not in task_params
     assert 'app.js' in html and 'style.css' in html and 'task_params.js' in html and 'ui_sanitize.js' in html
     assert 'table' in app and 'badge' in app and 'metrics' in css and 'task-card' in css and 'task-param-grid' in task_css
     assert '<pre>' not in app and '调试 JSON' not in app
