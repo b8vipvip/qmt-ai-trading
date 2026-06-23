@@ -48,8 +48,7 @@ def _with_safety(task_id: str, payload: dict[str, Any]) -> dict[str, Any]:
 def _write(module: str, filename: str, task_id: str, payload: dict[str, Any]) -> str:
     path = CONSOLE_ROOT / module / filename
     path.parent.mkdir(parents=True, exist_ok=True)
-    data = _with_safety(task_id, payload)
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    path.write_text(json.dumps(_with_safety(task_id, payload), ensure_ascii=False, indent=2), encoding="utf-8")
     return path.as_posix()
 
 
@@ -72,20 +71,20 @@ def _read_json(path: Path, default: Any = None) -> Any:
     return default
 
 
-def _load_xtdata_live_details(output: dict[str, Any]) -> dict[str, Any]:
-    out_dir = output.get("output_dir") or "local_console_xtdata_live_stage87"
-    root = Path(str(out_dir))
-    status = _read_json(root / "xtdata_live_status.json", {}) or {}
-    snapshots = _read_json(root / "xtdata_live_snapshots.json", {}) or {}
-    bars = _read_json(root / "xtdata_live_bars.json", {}) or {}
-    return {"status": status, "snapshots": snapshots, "bars": bars}
-
-
 def _first_not_none(*values: Any) -> Any:
     for value in values:
         if value is not None:
             return value
     return None
+
+
+def _load_xtdata_live_details(output: dict[str, Any]) -> dict[str, Any]:
+    root = Path(str(output.get("output_dir") or "local_console_xtdata_live_stage87"))
+    return {
+        "status": _read_json(root / "xtdata_live_status.json", {}) or {},
+        "snapshots": _read_json(root / "xtdata_live_snapshots.json", {}) or {},
+        "bars": _read_json(root / "xtdata_live_bars.json", {}) or {},
+    }
 
 
 def _market_rows_from_xtdata(output: dict[str, Any]) -> list[dict[str, Any]]:
@@ -97,7 +96,6 @@ def _market_rows_from_xtdata(output: dict[str, Any]) -> list[dict[str, Any]]:
     source = output.get("provider") or "xtdata_live_readonly"
     real_market_data = bool(output.get("real_market_data") or (isinstance(bars_payload, dict) and bars_payload.get("real_market_data")))
     sandbox_fallback = bool(output.get("sandbox_fallback", False))
-
     normalized: list[dict[str, Any]] = []
     for row in rows[-20:]:
         if not isinstance(row, dict):
@@ -119,29 +117,25 @@ def _market_rows_from_xtdata(output: dict[str, Any]) -> list[dict[str, Any]]:
         if item["open"] is None and item["close"] is None and "value" in row:
             item["value"] = row.get("value")
         normalized.append(item)
-
     if normalized:
         return normalized
-
     snapshots_payload = details.get("snapshots") or {}
-    snap_rows = _as_list(snapshots_payload.get("snapshots") if isinstance(snapshots_payload, dict) else snapshots_payload)
-    for row in snap_rows:
-        if not isinstance(row, dict):
-            continue
-        normalized.append({
-            "symbol": row.get("symbol", symbol),
-            "period": period,
-            "time": _first_not_none(row.get("time"), row.get("datetime"), row.get("timestamp")),
-            "open": row.get("open"),
-            "high": row.get("high"),
-            "low": row.get("low"),
-            "close": _first_not_none(row.get("lastPrice"), row.get("last_price"), row.get("price"), row.get("close")),
-            "volume": _first_not_none(row.get("volume"), row.get("vol")),
-            "amount": row.get("amount"),
-            "source": source,
-            "real_market_data": real_market_data,
-            "sandbox_fallback": sandbox_fallback,
-        })
+    for row in _as_list(snapshots_payload.get("snapshots") if isinstance(snapshots_payload, dict) else snapshots_payload):
+        if isinstance(row, dict):
+            normalized.append({
+                "symbol": row.get("symbol", symbol),
+                "period": period,
+                "time": _first_not_none(row.get("time"), row.get("datetime"), row.get("timestamp")),
+                "open": row.get("open"),
+                "high": row.get("high"),
+                "low": row.get("low"),
+                "close": _first_not_none(row.get("lastPrice"), row.get("last_price"), row.get("price"), row.get("close")),
+                "volume": _first_not_none(row.get("volume"), row.get("vol")),
+                "amount": row.get("amount"),
+                "source": source,
+                "real_market_data": real_market_data,
+                "sandbox_fallback": sandbox_fallback,
+            })
     return normalized
 
 
@@ -162,15 +156,8 @@ def _risk_decisions(output: dict[str, Any]) -> list[Any]:
 
 
 def write_task_output_to_console_artifacts(task_id: str, output: dict[str, Any]) -> list[str]:
-    """Persist one completed task result into unified console artifact files.
-
-    This is intentionally conservative: it never enables live trading, never writes
-    credentials, and only mirrors dry-run/read-only task results into the console
-    artifact root consumed by /api/v1 routes.
-    """
     if not isinstance(output, dict):
         output = {"value": output}
-
     written: list[str] = []
 
     def w(module: str, filename: str, payload: dict[str, Any]) -> None:
@@ -184,14 +171,7 @@ def write_task_output_to_console_artifacts(task_id: str, output: dict[str, Any])
         if task_id == "xtdata_live_readonly_smoke":
             market_rows = _market_rows_from_xtdata(output)
             symbols = sorted({str(row.get("symbol")) for row in market_rows if row.get("symbol")}) or _as_list(output.get("symbols")) or ["510300.SH"]
-            sample = {
-                "symbol": symbols[0],
-                "period": output.get("period", "1d"),
-                "source": output.get("provider", "xtdata_live_readonly"),
-                "real_market_data": bool(output.get("real_market_data", False)),
-                "sandbox_fallback": bool(output.get("sandbox_fallback", True)),
-                "rows": market_rows,
-            }
+            sample = {"symbol": symbols[0], "period": output.get("period", "1d"), "source": output.get("provider", "xtdata_live_readonly"), "real_market_data": bool(output.get("real_market_data", False)), "sandbox_fallback": bool(output.get("sandbox_fallback", True)), "rows": market_rows}
             w("market", "xtdata_live_status.json", {"status": "READY", "real_market_data": sample["real_market_data"], "sandbox_fallback": sample["sandbox_fallback"], "sample": sample, "rows": market_rows, "report": output})
             w("datahub", "market_latest.json", {"status": "READY", "latest": market_rows or [sample], "source": sample["source"], "real_market_data": sample["real_market_data"], "sandbox_fallback": sample["sandbox_fallback"]})
             w("datahub", "datahub_symbols.json", {"status": "READY", "symbols": symbols})
@@ -199,12 +179,7 @@ def write_task_output_to_console_artifacts(task_id: str, output: dict[str, Any])
             w("datahub", "datahub_status.json", {"module": "Data Hub", "status": "READY", "last_market_task": task_id, "real_market_data": sample["real_market_data"], "sandbox_fallback": sample["sandbox_fallback"]})
         else:
             market = output.get("market") or output.get("ohlcv") or output
-            sample = {
-                "symbol": output.get("symbol", "510300.SH"),
-                "period": output.get("period", output.get("timeframe", "1d")),
-                "source": output.get("source", output.get("provider", "readonly/mock")),
-                "market": market,
-            }
+            sample = {"symbol": output.get("symbol", "510300.SH"), "period": output.get("period", output.get("timeframe", "1d")), "source": output.get("source", output.get("provider", "readonly/mock")), "market": market}
             w("market", "xtdata_live_status.json", {"status": "READY", "real_market_data": bool(output.get("real_market_data", False)), "sample": sample})
             w("datahub", "market_latest.json", {"status": "READY", "latest": [sample]})
             w("datahub", "datahub_symbols.json", {"status": "READY", "symbols": [sample["symbol"]]})
@@ -249,6 +224,12 @@ def write_task_output_to_console_artifacts(task_id: str, output: dict[str, Any])
         w("paper", "shadow_positions.json", {"status": "READY", "positions": positions})
         w("paper", "shadow_pnl.json", {"status": "READY", "pnl": pnl})
 
+    if task_id == "human_approval_review_dry_run":
+        approval_status = output.get("approval_status") or {"status": "MANUAL_REVIEW_ONLY", "approval_enabled": False, "approve_in_console": False}
+        approval_requests = _as_list(output.get("approval_requests"))
+        w("approval", "approval_status.json", {"status": approval_status.get("status", "MANUAL_REVIEW_ONLY"), "approval": approval_status})
+        w("approval", "approval_requests.json", {"status": "READY", "requests": approval_requests})
+
     if task_id == "monitoring_alert_dry_run":
         w("monitoring", "monitoring_input_context.json", {"status": "READY", "context": output})
         w("monitoring", "monitoring_alerts.json", {"status": "READY", "alerts": _as_list(output.get("alerts"))})
@@ -262,5 +243,4 @@ def write_task_output_to_console_artifacts(task_id: str, output: dict[str, Any])
 
     if written:
         w("workflow", "last_task_output.json", {"status": "READY", "last_task_id": task_id, "written_artifacts": written})
-
     return written
