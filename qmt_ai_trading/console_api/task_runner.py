@@ -58,6 +58,32 @@ def _run_risk_gate_from_latest_intents(params):
     }
 
 
+def _run_paper_from_latest_risk(params):
+    from qmt_ai_trading.paper_trading import run_paper_trading_stage89
+
+    report = run_paper_trading_stage89(
+        params.get("repo_root", "."),
+        params.get("input_stage", 88),
+        params.get("output_dir", "local_console_paper_stage89"),
+        True,
+        True,
+    )
+    report.update({
+        "task_id": "paper_trading_dry_run",
+        "status": "SUCCESS",
+        "paper_trading": True,
+        "shadow_trading": True,
+        "real_order_submitted": False,
+        "no_xttrader": True,
+        "no_account_query": True,
+        "no_order_submitted": True,
+        "dry_run": True,
+        "read_only": True,
+        "not_live_trading": True,
+    })
+    return report
+
+
 def _run_unified_factor_strategy(params, task_id='strategy_dry_run_signals'):
     from qmt_ai_trading.research.factor_engine import run_factor_scan
     from qmt_ai_trading.strategies.factor_strategy_engine import build_factor_strategy
@@ -145,9 +171,7 @@ def mock_output(task_id, params):
         rk = write_risk(params.get('repo_root', '.'))
         return {'task_id': 'stage88_real_data_dry_run', 'status': 'SUCCESS', 'datahub': dh, 'research': rs, 'strategy': st, 'risk': rk, 'dry_run': True, 'read_only': True, 'not_live_trading': True, 'no_xttrader': True, 'no_order_submitted': True, 'no_account_query': True, 'requires_human_approval': True}
     if task_id == 'paper_trading_dry_run':
-        from qmt_ai_trading.paper_trading import run_paper_trading_stage89
-        report = run_paper_trading_stage89(params.get('repo_root', '.'), params.get('input_stage', 88), params.get('output_dir', 'local_console_paper_stage89'), True, True)
-        return {'task_id': 'paper_trading_dry_run', 'status': 'SUCCESS', 'output_dir': report.get('output_dir', 'local_console_paper_stage89'), 'paper_order_count': report.get('paper_order_count', 0), 'paper_fill_count': report.get('paper_fill_count', 0), 'shadow_position_count': report.get('shadow_position_count', 0), 'paper_trading': True, 'shadow_trading': True, 'real_order_submitted': False, 'no_xttrader': True, 'no_account_query': True, 'no_order_submitted': True, 'dry_run': True, 'read_only': True, 'not_live_trading': True}
+        return _run_paper_from_latest_risk(params)
 
     if task_id == 'xttrader_boundary_dry_run':
         from qmt_ai_trading.trading_gateway import run_xttrader_boundary_stage90
