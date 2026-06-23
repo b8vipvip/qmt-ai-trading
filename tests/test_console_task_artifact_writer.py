@@ -26,18 +26,17 @@ def test_market_snapshot_task_updates_datahub_and_market_artifacts(tmp_path, mon
     assert datahub.market_latest()["market"]["status"] == "READY"
 
 
-def test_factor_strategy_task_updates_research_strategy_and_risk_artifacts(tmp_path, monkeypatch):
+def test_candidate_and_strategy_tasks_update_visible_console_artifacts(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    run = run_task("factor_strategy_dry_run", {"limit": 3, "max_positions": 2}, TaskStore())
+    run = run_task("etf_rotation_candidates", {"limit": 3}, TaskStore())
 
     assert run.status == "SUCCESS"
     assert any("research/factor_candidates.json" in p for p in run.output_artifacts)
     assert any("strategy/trade_intents.json" in p for p in run.output_artifacts)
-    assert any("risk/risk_decisions.json" in p for p in run.output_artifacts)
 
     assert research.candidates()["candidates"]["status"] == "READY"
+    assert strategy.signals()["signals"]["status"] == "READY"
     assert strategy.intents()["trade_intents"]["status"] == "READY"
-    assert risk.decisions()["decisions"]["status"] == "READY"
 
 
 def test_risk_and_paper_tasks_update_visible_console_artifacts(tmp_path, monkeypatch):
