@@ -14,6 +14,7 @@ TASK_SPECS=[
 ('stage88_real_data_dry_run','真实行情 dry-run','STRATEGY','真实 xtdata/Data Hub/Research/Strategy/Risk Gate dry-run 链路'),
 ('paper_trading_dry_run','Paper Trading / Shadow Trading dry-run','STRATEGY','影子交易模拟，不接 xttrader、不查账户、不下单'),
 ('human_approval_review_dry_run','Human Approval 人工复核 dry-run','RISK','读取 RiskDecision 与 PaperOrder 生成只读人工审批卡'),
+('order_preview_dry_run','真实订单预览 dry-run','RISK','读取真实账户只读、行情、TradeIntent 和 RiskDecision，生成预览单但不发单'),
 ('xttrader_boundary_dry_run','xttrader Boundary dry-run','RISK','交易接口边界适配器，默认禁用'),
 ('account_readonly_dry_run','Account Readonly dry-run','RISK','账户/持仓只读边界，默认禁用'),
 ('risk_gate_dry_run_check','Risk Gate dry-run','RISK','风控闸门校验'),('risk_gate_dry_run','Risk Gate dry-run','RISK','风控闸门校验'),('workflow_dry_run_check','Workflow Console dry-run','RISK','系统链路顺序 dry-run 检查'),('live_readiness_blockers_review','实盘阻断项复核','RISK','列出阻断项'),
