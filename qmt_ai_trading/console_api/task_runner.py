@@ -1,5 +1,7 @@
 from __future__ import annotations
+import json
 import uuid
+from pathlib import Path
 from .models import TaskRun, now_iso
 from .task_registry import get_task
 from .safety import *
@@ -13,6 +15,47 @@ def _bool_value(params, name, default=False):
     if isinstance(value, str):
         return value.strip().lower() in {"1", "true", "yes", "on"}
     return bool(value)
+
+
+def _read_console_artifact(module: str, filename: str, default):
+    path = Path("artifacts/reports/console") / module / filename
+    try:
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return default
+    return default
+
+
+def _latest_trade_intents():
+    data = _read_console_artifact("strategy", "trade_intents.json", {})
+    if isinstance(data, dict):
+        intents = data.get("trade_intents") or data.get("intents") or []
+        return intents if isinstance(intents, list) else []
+    return []
+
+
+def _run_risk_gate_from_latest_intents(params):
+    from qmt_ai_trading.risk.factor_strategy_risk_review import review_trade_intents
+
+    intents = _latest_trade_intents()
+    decisions = review_trade_intents(intents)
+    return {
+        "task_id": "risk_gate_dry_run",
+        "status": "SUCCESS",
+        "source": "artifacts/reports/console/strategy/trade_intents.json",
+        "trade_intent_count": len(intents),
+        "decision_count": len(decisions),
+        "decisions": decisions,
+        "blocked_by_risk": any(d.get("decision") != "PASS_DRY_RUN" for d in decisions) or not intents,
+        "dry_run": True,
+        "read_only": True,
+        "live_disabled": True,
+        "no_order_submitted": True,
+        "no_account_query": True,
+        "no_qmt_trader_api": True,
+        "auto_approve": False,
+    }
 
 
 def _run_unified_factor_strategy(params, task_id='strategy_dry_run_signals'):
@@ -131,7 +174,7 @@ def mock_output(task_id, params):
         from qmt_ai_trading.console_api.workflow_console import write_workflow_outputs
         return write_workflow_outputs(params.get('repo_root', '.'), params.get('output_dir', 'local_console_workflow_stage87'))
     if task_id == 'risk_gate_dry_run':
-        return {'task_id': 'risk_gate_dry_run', 'status': 'SUCCESS', 'decisions': [{'intent_id': 'dry-run-sample', 'decision': 'REJECTED', 'reasons': ['dry-run only', 'live trading disabled', 'requires human approval']}], 'dry_run': True, 'read_only': True, 'no_order_submitted': True, 'blocked_by_risk': True}
+        return _run_risk_gate_from_latest_intents(params)
     if task_id == 'factor_strategy_dry_run':
         return _run_unified_factor_strategy(params, task_id)
     base = {'mode': 'dry-run/shadow', 'no_trade_authorization': True, 'read_only': True, 'params': params}
