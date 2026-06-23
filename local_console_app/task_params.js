@@ -9,7 +9,7 @@ const TASK_PARAM_PRESETS = {
   paper_trading_dry_run: {limit: 5},
   human_approval_review_dry_run: {limit: 5},
   monitoring_alert_dry_run: {limit: 5},
-  account_readonly_dry_run: {enable_account_readonly: false, manual_confirmed: false, allow_import_xttrader: false, allow_connect_trade_session: false, allow_account_query: false, allow_position_query: false, allow_order_submit: false, allow_order_cancel: false, dry_run: true, read_only: true},
+  account_readonly_dry_run: {enable_account_readonly: false, manual_confirmed: false, allow_import_xttrader: false, allow_connect_trade_session: false, allow_account_query: false, allow_position_query: false, account_timeout_seconds: 90, allow_order_submit: false, allow_order_cancel: false, dry_run: true, read_only: true},
 };
 
 const TASK_PRIORITY = ['xtdata_live_readonly_smoke', 'factor_scan', 'strategy_dry_run_signals', 'risk_gate_dry_run', 'paper_trading_dry_run', 'human_approval_review_dry_run', 'account_readonly_dry_run'];
