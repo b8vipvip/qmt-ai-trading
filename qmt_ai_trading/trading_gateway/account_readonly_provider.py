@@ -6,14 +6,14 @@ from .account_masking import mask_payload
 from .account_rate_limit import AccountReadonlyRateLimiter
 
 ERRORS={
- 'path_missing':'CONFIG_ERROR_USERDATA_PATH_MISSING','path_not_exists':'CONFIG_ERROR_USERDATA_PATH_NOT_EXISTS','account_missing':'CONFIG_ERROR_ACCOUNT_ID_MISSING','import':'IMPORT_ERROR_XTTRADER','connect':'CONNECT_ERROR','asset':'ACCOUNT_QUERY_ERROR','positions':'POSITION_QUERY_ERROR'}
+ 'path_missing':'CONFIG_ERROR_USERDATA_PATH_MISSING','path_not_exists':'CONFIG_ERROR_USERDATA_PATH_NOT_EXISTS','account_missing':'CONFIG_ERROR_ACCOUNT_ID_MISSING','import':'IMPORT_ERROR_XTTRADER','connect':'CONNECT_ERROR','asset':'ACCOUNT_QUERY_ERROR','positions':'POSITION_QUERY_ERROR','start':'XTTRADER_START_ERROR'}
 
 class AccountReadonlyProvider:
     def __init__(self, config: AccountReadonlyConfig | None = None, trader: Any = None, account: Any = None, rate_limiter: AccountReadonlyRateLimiter | None = None):
-        self.config=config or AccountReadonlyConfig(); self.trader=trader; self.account=account; self.rate_limiter=rate_limiter or AccountReadonlyRateLimiter(self.config.max_queries_per_minute); self._connect_result=None; self._import_error=''
+        self.config=config or AccountReadonlyConfig(); self.trader=trader; self.account=account; self.rate_limiter=rate_limiter or AccountReadonlyRateLimiter(self.config.max_queries_per_minute); self._connect_result=None; self._import_error=''; self._started=False; self._start_result=None
     def _base_diag(self):
         p=Path(self.config.userdata_mini_path) if self.config.userdata_mini_path else None
-        return {'ok':True,'config_source':self.config.config_source,'repo_root':self.config.repo_root,'userdata_mini_path_configured':bool(self.config.userdata_mini_path),'userdata_mini_path_exists':bool(p and p.exists()),'account_configured':bool(self.config.account_id),'account_id_masked':mask_account_for_config(self.config.account_id),'account_type':self.config.account_type,'session_id':self.config.session_id,'xttrader_imported':False,'connect_attempted':False,'connect_result':self._connect_result,'connect_status':'NOT_ATTEMPTED','read_only':True,'order_submit_enabled':False,'order_cancel_enabled':False,'real_order_submitted':False}
+        return {'ok':True,'config_source':self.config.config_source,'repo_root':self.config.repo_root,'userdata_mini_path_configured':bool(self.config.userdata_mini_path),'userdata_mini_path_exists':bool(p and p.exists()),'account_configured':bool(self.config.account_id),'account_id_masked':mask_account_for_config(self.config.account_id),'account_type':self.config.account_type,'session_id':self.config.session_id,'xttrader_imported':False,'trader_started':self._started,'start_result':self._start_result,'connect_attempted':False,'connect_result':self._connect_result,'connect_status':'NOT_ATTEMPTED','read_only':True,'order_submit_enabled':False,'order_cancel_enabled':False,'real_order_submitted':False}
     def get_status(self) -> dict:
         enabled=bool(self.config.enabled and self.config.read_only and self.config.dry_run and self.config.manual_confirmation_completed)
         status='MANUAL_CONFIRM_REQUIRED' if self.config.enabled and not self.config.manual_confirmation_completed else ('SUCCESS' if enabled else 'DISABLED')
@@ -34,20 +34,31 @@ class AccountReadonlyProvider:
             except Exception as exc:
                 return self._error(ERRORS['import'],str(exc),xttrader_imported=False)
         if self.config.allow_connect_trade_session:
-            cr=self._ensure_real_client(connect=True); return {**self.get_status(), **self._base_diag(), 'ok': cr==0, 'xttrader_imported':True, 'connect_attempted':True, 'connect_result':cr, 'connect_status':'SUCCESS' if cr==0 else 'FAILED', **({} if cr==0 else {'status':ERRORS['connect'],'error_code':ERRORS['connect'],'error_message':'MiniQMT connect_result != 0'})}
+            cr=self._ensure_real_client(connect=True); return {**self.get_status(), **self._base_diag(), 'ok': cr==0, 'xttrader_imported':True, 'trader_started':self._started, 'connect_attempted':True, 'connect_result':cr, 'connect_status':'SUCCESS' if cr==0 else 'FAILED', **({} if cr==0 else {'status':ERRORS['connect'],'error_code':ERRORS['connect'],'error_message':'MiniQMT connect_result != 0'})}
         d['xttrader_imported']=True; return d
     def _import_xttrader_classes(self):
         from xtquant.xttrader import XtQuantTrader
         from xtquant.xttype import StockAccount
         return XtQuantTrader, StockAccount
+    def _ensure_started(self):
+        if self.trader is None or self._started:
+            return
+        start_fn=getattr(self.trader, 'start', None)
+        if callable(start_fn):
+            self._start_result=start_fn()
+        else:
+            self._start_result='NO_START_METHOD'
+        self._started=True
     def _ensure_real_client(self, connect=False):
         if self.trader is not None:
+            self._ensure_started()
             if connect and self._connect_result is None and hasattr(self.trader, 'connect'):
                 self._connect_result=self.trader.connect()
             return self._connect_result if self._connect_result is not None else 0
         XtQuantTrader, StockAccount = self._import_xttrader_classes()
         self.trader=XtQuantTrader(self.config.userdata_mini_path, self.config.session_id)
         self.account=StockAccount(self.config.account_id, self.config.account_type)
+        self._ensure_started()
         if connect:
             self._connect_result=self.trader.connect()
             return self._connect_result
