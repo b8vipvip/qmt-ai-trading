@@ -14,11 +14,12 @@ def mask(obj):
 def read_json(module,name,default):
     p=CONSOLE/module/name
     if p.exists():
-        try: return mask(json.loads(p.read_text(encoding='utf-8')))
+        try: return mask(json.loads(p.read_text(encoding='utf-8-sig')))
         except Exception as e: return {**SAFETY,'status':'DATA_ERROR','error':str(e),'source_path':_source_path(p)}
     return mask({**SAFETY,'status':'DATA_MISSING','empty_reason':'统一控制台产物不存在，请运行 scripts/refresh_console_artifacts.ps1','source_path':_source_path(p), **(default if isinstance(default,dict) else {'items':default})})
 def payload(**kw):
     out={"ok":True, **SAFETY, **kw}
     if out.get('ok') is False: out['ok']=False
     return mask(out)
+
 
