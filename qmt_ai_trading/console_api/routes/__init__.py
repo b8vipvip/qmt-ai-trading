@@ -1,4 +1,4 @@
-from . import workflow,datahub,research,strategy,risk,agent,paper,approval,account_readonly,market,safety,monitoring,backtest
+from . import workflow,datahub,research,strategy,risk,agent,paper,approval,account_readonly,market,safety,monitoring,backtest,portfolio
 ROUTES={
 '/api/v1/console/bootstrap': workflow.bootstrap, '/api/v1/workflow/status': workflow.status, '/api/v1/workflow/feature-matrix': workflow.feature_matrix,
 '/api/v1/datahub/status': datahub.status, '/api/v1/datahub/symbols': datahub.symbols, '/api/v1/datahub/cache/status': datahub.cache_status, '/api/v1/datahub/market/latest': datahub.market_latest,
@@ -11,5 +11,6 @@ ROUTES={
 '/api/v1/monitoring/context': monitoring.context, '/api/v1/monitoring/alerts/latest': monitoring.alerts, '/api/v1/monitoring/circuit-breaker/latest': monitoring.circuit,
 '/api/v1/approval/status': approval.status, '/api/v1/approval/requests/latest': approval.requests,
 '/api/v1/account-readonly/status': account_readonly.status, '/api/v1/account-readonly/diagnostics': account_readonly.diagnostics, '/api/v1/account-readonly/asset': account_readonly.asset, '/api/v1/account-readonly/positions': account_readonly.positions,
+'/api/v1/portfolio/status': portfolio.status, '/api/v1/portfolio/order-preview/latest': portfolio.preview, '/api/v1/portfolio/budget/latest': portfolio.budget,
 '/api/v1/safety/status': safety.status, '/api/v1/live/status': safety.live, '/api/v1/market/xtdata-live/status': market.xtdata_status,
 }
