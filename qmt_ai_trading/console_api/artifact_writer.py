@@ -63,6 +63,88 @@ def _as_list(value: Any) -> list[Any]:
     return [value]
 
 
+def _read_json(path: Path, default: Any = None) -> Any:
+    try:
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return default
+    return default
+
+
+def _load_xtdata_live_details(output: dict[str, Any]) -> dict[str, Any]:
+    out_dir = output.get("output_dir") or "local_console_xtdata_live_stage87"
+    root = Path(str(out_dir))
+    status = _read_json(root / "xtdata_live_status.json", {}) or {}
+    snapshots = _read_json(root / "xtdata_live_snapshots.json", {}) or {}
+    bars = _read_json(root / "xtdata_live_bars.json", {}) or {}
+    return {"status": status, "snapshots": snapshots, "bars": bars}
+
+
+def _first_not_none(*values: Any) -> Any:
+    for value in values:
+        if value is not None:
+            return value
+    return None
+
+
+def _market_rows_from_xtdata(output: dict[str, Any]) -> list[dict[str, Any]]:
+    details = _load_xtdata_live_details(output)
+    bars_payload = details.get("bars") or {}
+    rows = _as_list(bars_payload.get("bars") if isinstance(bars_payload, dict) else bars_payload)
+    symbol = output.get("symbol") or (bars_payload.get("symbol") if isinstance(bars_payload, dict) else None) or "510300.SH"
+    period = output.get("period") or (bars_payload.get("period") if isinstance(bars_payload, dict) else None) or "1d"
+    source = output.get("provider") or "xtdata_live_readonly"
+    real_market_data = bool(output.get("real_market_data") or (isinstance(bars_payload, dict) and bars_payload.get("real_market_data")))
+    sandbox_fallback = bool(output.get("sandbox_fallback", False))
+
+    normalized: list[dict[str, Any]] = []
+    for row in rows[-20:]:
+        if not isinstance(row, dict):
+            continue
+        item = {
+            "symbol": row.get("symbol", symbol),
+            "period": period,
+            "time": _first_not_none(row.get("time"), row.get("datetime"), row.get("timestamp"), row.get("stime"), row.get("index")),
+            "open": row.get("open"),
+            "high": row.get("high"),
+            "low": row.get("low"),
+            "close": row.get("close"),
+            "volume": _first_not_none(row.get("volume"), row.get("vol")),
+            "amount": row.get("amount"),
+            "source": source,
+            "real_market_data": real_market_data,
+            "sandbox_fallback": sandbox_fallback,
+        }
+        if item["open"] is None and item["close"] is None and "value" in row:
+            item["value"] = row.get("value")
+        normalized.append(item)
+
+    if normalized:
+        return normalized
+
+    snapshots_payload = details.get("snapshots") or {}
+    snap_rows = _as_list(snapshots_payload.get("snapshots") if isinstance(snapshots_payload, dict) else snapshots_payload)
+    for row in snap_rows:
+        if not isinstance(row, dict):
+            continue
+        normalized.append({
+            "symbol": row.get("symbol", symbol),
+            "period": period,
+            "time": _first_not_none(row.get("time"), row.get("datetime"), row.get("timestamp")),
+            "open": row.get("open"),
+            "high": row.get("high"),
+            "low": row.get("low"),
+            "close": _first_not_none(row.get("lastPrice"), row.get("last_price"), row.get("price"), row.get("close")),
+            "volume": _first_not_none(row.get("volume"), row.get("vol")),
+            "amount": row.get("amount"),
+            "source": source,
+            "real_market_data": real_market_data,
+            "sandbox_fallback": sandbox_fallback,
+        })
+    return normalized
+
+
 def _candidates(output: dict[str, Any]) -> list[Any]:
     return _as_list(output.get("factor_candidates") or output.get("candidates"))
 
@@ -99,17 +181,34 @@ def write_task_output_to_console_artifacts(task_id: str, output: dict[str, Any])
         w("datahub", "datahub_real_cache.json", {"status": "READY", "cache": output})
 
     if task_id in {"market_snapshot_readonly", "xtdata_live_readonly_smoke", "market_replay_sandbox"}:
-        market = output.get("market") or output.get("ohlcv") or output
-        sample = {
-            "symbol": output.get("symbol", "510300.SH"),
-            "period": output.get("period", output.get("timeframe", "1d")),
-            "source": output.get("source", output.get("provider", "readonly/mock")),
-            "market": market,
-        }
-        w("market", "xtdata_live_status.json", {"status": "READY", "real_market_data": bool(output.get("real_market_data", False)), "sample": sample})
-        w("datahub", "market_latest.json", {"status": "READY", "latest": [sample]})
-        w("datahub", "datahub_symbols.json", {"symbols": [sample["symbol"]]})
-        w("datahub", "datahub_status.json", {"module": "Data Hub", "status": "READY", "last_market_task": task_id})
+        if task_id == "xtdata_live_readonly_smoke":
+            market_rows = _market_rows_from_xtdata(output)
+            symbols = sorted({str(row.get("symbol")) for row in market_rows if row.get("symbol")}) or _as_list(output.get("symbols")) or ["510300.SH"]
+            sample = {
+                "symbol": symbols[0],
+                "period": output.get("period", "1d"),
+                "source": output.get("provider", "xtdata_live_readonly"),
+                "real_market_data": bool(output.get("real_market_data", False)),
+                "sandbox_fallback": bool(output.get("sandbox_fallback", True)),
+                "rows": market_rows,
+            }
+            w("market", "xtdata_live_status.json", {"status": "READY", "real_market_data": sample["real_market_data"], "sandbox_fallback": sample["sandbox_fallback"], "sample": sample, "rows": market_rows, "report": output})
+            w("datahub", "market_latest.json", {"status": "READY", "latest": market_rows or [sample], "source": sample["source"], "real_market_data": sample["real_market_data"], "sandbox_fallback": sample["sandbox_fallback"]})
+            w("datahub", "datahub_symbols.json", {"status": "READY", "symbols": symbols})
+            w("datahub", "datahub_real_cache.json", {"status": "READY", "rows": market_rows, "source": sample["source"], "real_market_data": sample["real_market_data"]})
+            w("datahub", "datahub_status.json", {"module": "Data Hub", "status": "READY", "last_market_task": task_id, "real_market_data": sample["real_market_data"], "sandbox_fallback": sample["sandbox_fallback"]})
+        else:
+            market = output.get("market") or output.get("ohlcv") or output
+            sample = {
+                "symbol": output.get("symbol", "510300.SH"),
+                "period": output.get("period", output.get("timeframe", "1d")),
+                "source": output.get("source", output.get("provider", "readonly/mock")),
+                "market": market,
+            }
+            w("market", "xtdata_live_status.json", {"status": "READY", "real_market_data": bool(output.get("real_market_data", False)), "sample": sample})
+            w("datahub", "market_latest.json", {"status": "READY", "latest": [sample]})
+            w("datahub", "datahub_symbols.json", {"status": "READY", "symbols": [sample["symbol"]]})
+            w("datahub", "datahub_status.json", {"module": "Data Hub", "status": "READY", "last_market_task": task_id})
 
     if task_id in {"factor_scan", "factor_research_dry_run", "research_score_etf", "etf_rotation_candidates"} or _candidates(output):
         candidates = _candidates(output)
