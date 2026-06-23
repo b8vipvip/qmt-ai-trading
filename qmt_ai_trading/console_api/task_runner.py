@@ -56,6 +56,13 @@ def _run_human_approval_from_latest_paper(params):
     return report
 
 
+def _run_order_preview(params):
+    from qmt_ai_trading.portfolio.order_preview import build_order_preview
+    report = build_order_preview(params.get("repo_root", "."), params.get("output_dir", "local_console_order_preview"), params)
+    report.update({"task_id": "order_preview_dry_run", "status": report.get("status", "PREVIEW_READY"), "preview_only": True, "can_submit_order": False, "allow_order_submit": False, "allow_order_cancel": False, "order_submit_enabled": False, "order_cancel_enabled": False, "real_order_submitted": False, "no_order_submitted": True, "dry_run": True, "read_only": True, "not_live_trading": True})
+    return report
+
+
 def _run_unified_factor_strategy(params, task_id='strategy_dry_run_signals'):
     from qmt_ai_trading.research.factor_engine import run_factor_scan
     from qmt_ai_trading.strategies.factor_strategy_engine import build_factor_strategy
@@ -118,6 +125,7 @@ def mock_output(task_id, params):
         return {'task_id': 'stage88_real_data_dry_run', 'status': 'SUCCESS', 'datahub': dh, 'research': write_research(params.get('repo_root', '.')), 'strategy': write_strategy(params.get('repo_root', '.')), 'risk': write_risk(params.get('repo_root', '.')), 'dry_run': True, 'read_only': True, 'not_live_trading': True, 'no_xttrader': True, 'no_order_submitted': True, 'no_account_query': True, 'requires_human_approval': True}
     if task_id == 'paper_trading_dry_run': return _run_paper_from_latest_risk(params)
     if task_id == 'human_approval_review_dry_run': return _run_human_approval_from_latest_paper(params)
+    if task_id == 'order_preview_dry_run': return _run_order_preview(params)
     if task_id == 'xttrader_boundary_dry_run':
         from qmt_ai_trading.trading_gateway import run_xttrader_boundary_stage90
         return run_xttrader_boundary_stage90(params.get('repo_root', '.'), params.get('input_stage', 89), params.get('output_dir', 'local_console_xttrader_stage90'), True, True)
@@ -170,5 +178,5 @@ def run_task(task_id, params, store):
         run.output_artifacts = sorted(set(list(task.output_artifacts) + written)); run.logs.append(f'统一控制台产物已更新：{len(written)} 个文件')
     else:
         run.output_artifacts = task.output_artifacts; run.logs.append('该任务暂无统一控制台产物映射，仅保留任务输出')
-    run.status = 'SUCCESS'; run.finished_at = now_iso(); run.logs.append('任务完成：未下单、未查账户、未自动批准')
+    run.status = 'SUCCESS'; run.finished_at = now_iso(); run.logs.append('任务完成：未下单、未自动批准')
     return run
