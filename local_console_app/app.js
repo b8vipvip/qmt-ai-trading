@@ -1,30 +1,398 @@
-const API='/api/v1';
-const safetyKeys=['read_only','dry_run','live_disabled','no_order_submitted','requires_human_approval','account_masked','order_submit_enabled','order_cancel_enabled','real_order_submitted'];
-const modules=[
- {id:'overview',name:'总览 / 工作流状态',eps:['/console/bootstrap','/workflow/status','/workflow/feature-matrix']},
- {id:'market',name:'QMT / xtdata 行情状态',eps:['/market/xtdata-live/status','/datahub/market/latest'],params:[['symbol','510300.SH'],['period','1d']]},
- {id:'datahub',name:'Data Hub 行情缓存',eps:['/datahub/status','/datahub/symbols','/datahub/cache/status','/datahub/market/latest']},
- {id:'research',name:'Research 因子研究',eps:['/research/context','/research/factors/latest','/research/candidates/latest']},
- {id:'strategy',name:'Strategy 策略信号',eps:['/strategy/context','/strategy/signals/latest','/strategy/trade-intents/latest']},
- {id:'risk',name:'Risk Gate 风控审查',eps:['/risk/context','/risk/decisions/latest','/risk/report/latest']},
- {id:'candidates',name:'候选池排名',eps:['/research/candidates/latest']},
- {id:'agent',name:'Agent 投研',eps:['/agents/context','/agents/report/latest']},
- {id:'backtest',name:'Backtest / Shadow Replay',eps:['/backtest/shadow-replay/latest']},
- {id:'intent',name:'TradeIntent dry-run',eps:['/strategy/trade-intents/latest']},
- {id:'paper',name:'Paper Trading / Shadow Replay',eps:['/paper-trading/status','/paper-trading/orders/latest','/paper-trading/positions/latest','/paper-trading/pnl/latest']},
- {id:'monitoring',name:'Monitoring / Alerts',eps:['/monitoring/context','/monitoring/alerts/latest','/monitoring/circuit-breaker/latest']},
- {id:'approval',name:'Human Approval 人工确认',eps:['/approval/status','/approval/requests/latest']},
- {id:'account',name:'Account Readonly / 持仓只读',eps:['/account-readonly/status','/account-readonly/diagnostics','/account-readonly/asset','/account-readonly/positions']},
- {id:'safety',name:'Safety / Live Disabled 安全边界',eps:['/safety/status','/live/status']}
+const API = '/api/v1';
+
+const safetyKeys = [
+  'read_only',
+  'dry_run',
+  'live_disabled',
+  'no_order_submitted',
+  'requires_human_approval',
+  'account_masked',
+  'order_submit_enabled',
+  'order_cancel_enabled',
+  'real_order_submitted'
 ];
-async function get(p,query=''){const r=await fetch(API+p+query); if(!r.ok)throw new Error(`${p}: HTTP ${r.status}`); return r.json();}
-function badge(v){const s=String(v); const cls=/false|DISABLED|DATA_MISSING|EMPTY|BLOCKED/.test(s)?'warn':'ok'; return `<span class="badge ${cls}">${s}</span>`}
-function safetyBar(d={}){return safetyKeys.map(k=>`<span class="tag">${k}=${d[k]??(k.includes('enabled')||k.includes('submitted')?'false':'true')}</span>`).join('')}
-function flattenRows(obj,prefix=''){let rows=[]; if(obj&&typeof obj==='object'&&!Array.isArray(obj)){for(const [k,v] of Object.entries(obj)){if(v&&typeof v==='object') rows.push([prefix+k, Array.isArray(v)?`Array(${v.length})`:'Object']); else rows.push([prefix+k, v]);}} return rows.slice(0,18);}
-function primary(d){const rows=flattenRows(d); const empty=d.status==='DATA_MISSING'||d.status==='EMPTY'||JSON.stringify(d).includes('DATA_MISSING'); return `<div class="statusline">状态 ${badge(d.status||d.feature_status||'READY')} ${empty?badge('EMPTY/DATA_MISSING'):''}</div><table><tbody>${rows.map(([k,v])=>`<tr><th>${k}</th><td>${typeof v==='boolean'?badge(v):String(v)}</td></tr>`).join('')}</tbody></table>`}
-function dataTable(d){let arr=Object.values(d).find(v=>Array.isArray(v)); if(!arr) return '<p class="empty">EMPTY/DATA_MISSING：暂无列表数据，已保持只读安全状态。</p>'; if(!arr.length) return '<p class="empty">EMPTY：列表为空。</p>'; const cols=[...new Set(arr.flatMap(x=>Object.keys(typeof x==='object'?x:{})))].slice(0,8); return `<table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${arr.slice(0,12).map(r=>`<tr>${cols.map(c=>`<td>${JSON.stringify(r[c]??'')}</td>`).join('')}</tr>`).join('')}</tbody></table>`}
-function queryForm(m){return `<div class="query"><b>查询参数</b> ${(m.params||[]).map(([k,v])=>`<label>${k}<input id="q_${k}" value="${v}"></label>`).join('')} <button class="refresh" onclick="show('${m.id}')">刷新</button></div>`}
-async function show(id){const m=modules.find(x=>x.id===id); document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.id===id)); app.innerHTML=`<section class="card"><h2>${m.name}</h2>${safetyBar()}${queryForm(m)}<p>加载中...</p></section>`; let query=''; if(m.params) query='?'+m.params.map(([k])=>`${encodeURIComponent(k)}=${encodeURIComponent(document.getElementById('q_'+k)?.value||'')}`).join('&'); const results=[]; for(const ep of m.eps){try{results.push([ep,await get(ep,query)]);}catch(e){results.push([ep,{ok:false,status:'DATA_MISSING',error:e.message,read_only:true,dry_run:true,live_disabled:true,no_order_submitted:true}]);}}
- app.innerHTML=`<section class="card hero"><h2>${m.name}</h2>${safetyBar(results[0]?.[1])}<p>正式启动：<code>py scripts\\run_console_api.py --host 127.0.0.1 --port 8768</code></p>${queryForm(m)}</section><section class="grid">${results.map(([ep,d])=>`<article class="card"><h3>${ep}</h3>${primary(d)}${dataTable(d)}<details><summary>调试 JSON</summary><pre>${JSON.stringify(d,null,2)}</pre></details></article>`).join('')}</section>`;}
-nav.innerHTML=modules.map(m=>`<button data-id="${m.id}" onclick="show('${m.id}')">${m.name}</button>`).join('');
-get('/health').then(h=>api.textContent='API 在线：'+h.service).catch(e=>api.textContent='API 离线：'+e.message); show('overview');
+
+const modules = [
+  {
+    id: 'overview',
+    name: '总览 / 工作流状态',
+    lead: '把数据、研究、策略、风控、审批、影子交易和账户只读能力统一到一个本地控制台。',
+    eps: ['/console/bootstrap', '/workflow/status', '/workflow/feature-matrix']
+  },
+  {
+    id: 'market',
+    name: 'QMT / xtdata 行情状态',
+    lead: '查看只读行情连接、最近行情样本和数据源状态；不接交易、不查账户。',
+    eps: ['/market/xtdata-live/status', '/datahub/market/latest'],
+    params: [['symbol', '510300.SH'], ['period', '1d']]
+  },
+  {
+    id: 'datahub',
+    name: 'Data Hub 行情缓存',
+    lead: '查看本地缓存、标的池和最新行情产物，判断是否需要补齐缓存。',
+    eps: ['/datahub/status', '/datahub/symbols', '/datahub/cache/status', '/datahub/market/latest'],
+    params: [['symbol', '510300.SH'], ['period', '1d']]
+  },
+  {
+    id: 'research',
+    name: 'Research 因子研究',
+    lead: '展示因子上下文、候选池和研究评分，所有结果只用于人工复核。',
+    eps: ['/research/context', '/research/factors/latest', '/research/candidates/latest']
+  },
+  {
+    id: 'strategy',
+    name: 'Strategy 策略信号',
+    lead: '展示策略信号和 TradeIntent dry-run 结果；策略不能绕过 Risk Gate。',
+    eps: ['/strategy/context', '/strategy/signals/latest', '/strategy/trade-intents/latest']
+  },
+  {
+    id: 'risk',
+    name: 'Risk Gate 风控审查',
+    lead: '查看风控决策、拒绝原因和实盘阻断状态。',
+    eps: ['/risk/context', '/risk/decisions/latest', '/risk/report/latest']
+  },
+  {
+    id: 'backtest',
+    name: 'Backtest / Shadow Replay',
+    lead: '查看回放式回测和影子复盘摘要，不触达真实交易。',
+    eps: ['/backtest/shadow-replay/latest']
+  },
+  {
+    id: 'paper',
+    name: 'Paper Trading / Shadow Trading',
+    lead: '查看模拟订单、影子持仓和 PnL 摘要；只消费已批准的 dry-run 结果。',
+    eps: ['/paper-trading/status', '/paper-trading/orders/latest', '/paper-trading/positions/latest', '/paper-trading/pnl/latest']
+  },
+  {
+    id: 'approval',
+    name: 'Human Approval 人工确认',
+    lead: '查看待审批请求和审批状态；未通过审批不得进入 paper/live 链路。',
+    eps: ['/approval/status', '/approval/requests/latest']
+  },
+  {
+    id: 'account',
+    name: 'Account Readonly / 持仓只读',
+    lead: '只读查询资产和持仓，必须人工确认并强制禁止下单/撤单。',
+    eps: ['/account-readonly/status', '/account-readonly/diagnostics', '/account-readonly/asset', '/account-readonly/positions'],
+    params: [['enable_account_readonly', 'false'], ['manual_confirmed', 'false']]
+  },
+  {
+    id: 'monitoring',
+    name: 'Monitoring / Alerts',
+    lead: '查看监控、告警和熔断摘要；真实通知默认关闭。',
+    eps: ['/monitoring/context', '/monitoring/alerts/latest', '/monitoring/circuit-breaker/latest']
+  },
+  {
+    id: 'tasks',
+    name: '任务执行 / 验收入口',
+    lead: '列出后端白名单任务，可在只读 / dry-run 安全边界内触发任务并查看输出日志。',
+    eps: ['/tasks/catalog', '/tasks'],
+    taskPanel: true
+  },
+  {
+    id: 'safety',
+    name: 'Safety / Live Disabled',
+    lead: '集中查看安全边界，确认实盘、下单、撤单和自动批准全部关闭。',
+    eps: ['/safety/status', '/live/status']
+  },
+  {
+    id: 'portfolio',
+    name: 'Portfolio / 资金管理',
+    lead: '静态占位：后端资金管理、组合层和仓位预算尚未完成，前端先保留入口并明确标注不可交互。',
+    staticOnly: true,
+    pendingItems: ['组合资金预算', '多策略资金分配', '实盘前小资金灰度计划']
+  }
+];
+
+const $ = (id) => document.getElementById(id);
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function humanKey(key) {
+  const map = {
+    ok: '接口状态',
+    status: '业务状态',
+    feature_status: '功能状态',
+    mode: '运行模式',
+    source_path: '产物路径',
+    empty_reason: '空数据原因',
+    error: '错误信息',
+    warnings: '风险提示',
+    candidates: '候选标的',
+    signals: '策略信号',
+    decisions: '风控决策',
+    positions: '持仓列表',
+    orders: '订单列表',
+    tasks: '任务列表',
+    logs: '运行日志',
+    read_only: '只读',
+    dry_run: 'Dry-run',
+    live_disabled: '实盘关闭',
+    no_order_submitted: '未下单',
+    account_masked: '账户已脱敏'
+  };
+  return map[key] || key.replaceAll('_', ' ');
+}
+
+function valueClass(value) {
+  const text = String(value).toLowerCase();
+  if (value === true || ['success', 'ready', 'ok', 'pass'].includes(text)) return 'ok';
+  if (value === false || /missing|empty|failed|blocked|disabled|error|false/.test(text)) return 'warn';
+  return 'neutral';
+}
+
+function badge(value, label = '') {
+  return `<span class="badge ${valueClass(value)}">${escapeHtml(label || value)}</span>`;
+}
+
+function safetyBar(data = {}) {
+  return safetyKeys
+    .map((key) => {
+      const fallback = key.includes('enabled') || key.includes('submitted') ? false : true;
+      const value = data[key] ?? fallback;
+      return `<span class="tag ${valueClass(value)}">${escapeHtml(humanKey(key))}: ${escapeHtml(value)}</span>`;
+    })
+    .join('');
+}
+
+function queryForm(module) {
+  if (!module.params?.length) return '';
+  const controls = module.params
+    .map(([key, value]) => `<label>${escapeHtml(key)}<input id="q_${escapeHtml(key)}" value="${escapeHtml(value)}"></label>`)
+    .join('');
+  return `<div class="query"><strong>查询参数</strong>${controls}<button class="refresh" onclick="show('${module.id}')">刷新</button></div>`;
+}
+
+function endpointQuery(module) {
+  if (!module.params?.length) return '';
+  const query = module.params
+    .map(([key]) => `${encodeURIComponent(key)}=${encodeURIComponent($(`q_${key}`)?.value || '')}`)
+    .join('&');
+  return query ? `?${query}` : '';
+}
+
+async function apiGet(path, query = '') {
+  const response = await fetch(API + path + query);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+async function apiPost(path, body = {}) {
+  const response = await fetch(API + path, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+function isPending(data = {}) {
+  const text = `${data.status || ''} ${data.feature_status || ''} ${data.error || ''}`.toLowerCase();
+  return /data_missing|backend_missing|not implemented|not found|empty/.test(text);
+}
+
+function moduleState(results) {
+  if (!results.length) return {label: '静态占位', cls: 'warn', detail: '后端功能待开发，当前页面只展示规划说明。'};
+  if (results.some((item) => item.error)) return {label: '待接入', cls: 'warn', detail: '部分接口暂不可用，页面保留静态提示。'};
+  if (results.every((item) => isPending(item.data))) return {label: '产物待生成', cls: 'warn', detail: '后端接口已接入，但还没有运行产物。请先执行刷新或验收脚本。'};
+  return {label: '可交互', cls: 'ok', detail: '后端接口已接入，当前页面可直接刷新查看真实产物。'};
+}
+
+function firstArray(data) {
+  if (!data || typeof data !== 'object') return null;
+  for (const value of Object.values(data)) {
+    if (Array.isArray(value)) return value;
+    if (value && typeof value === 'object') {
+      const nested = firstArray(value);
+      if (nested) return nested;
+    }
+  }
+  return null;
+}
+
+function renderMetricCards(data = {}) {
+  const pairs = Object.entries(data)
+    .filter(([key, value]) => !Array.isArray(value) && (typeof value !== 'object' || value === null))
+    .filter(([key]) => !['ok', 'read_only', 'dry_run', 'live_disabled', 'no_order_submitted', 'requires_human_approval', 'account_masked', 'order_submit_enabled', 'order_cancel_enabled', 'real_order_submitted', 'allow_order_submit', 'allow_order_cancel', 'live_trading_enabled'].includes(key))
+    .slice(0, 8);
+
+  if (!pairs.length) return '<p class="empty">暂无摘要指标。</p>';
+
+  return `<div class="metrics">${pairs.map(([key, value]) => `
+    <div class="metric">
+      <span>${escapeHtml(humanKey(key))}</span>
+      <strong>${typeof value === 'boolean' ? badge(value) : escapeHtml(value)}</strong>
+    </div>`).join('')}</div>`;
+}
+
+function renderList(data = {}) {
+  const arr = firstArray(data);
+  if (!arr) return '<p class="empty">暂无列表数据；如页面显示产物待生成，请先运行刷新脚本。</p>';
+  if (!arr.length) return '<p class="empty">列表为空。</p>';
+
+  if (!arr.every((item) => item && typeof item === 'object' && !Array.isArray(item))) {
+    return `<ul class="plain-list">${arr.slice(0, 12).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
+  }
+
+  const cols = [...new Set(arr.flatMap((item) => Object.keys(item)))].slice(0, 6);
+  return `<table><thead><tr>${cols.map((col) => `<th>${escapeHtml(humanKey(col))}</th>`).join('')}</tr></thead>
+    <tbody>${arr.slice(0, 12).map((row) => `<tr>${cols.map((col) => `<td>${formatCell(row[col])}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
+function formatCell(value) {
+  if (typeof value === 'boolean') return badge(value);
+  if (Array.isArray(value)) return escapeHtml(value.join('、'));
+  if (value && typeof value === 'object') return escapeHtml(Object.entries(value).slice(0, 3).map(([k, v]) => `${humanKey(k)}=${v}`).join('；'));
+  return escapeHtml(value ?? '');
+}
+
+function renderDiagnostics(data = {}) {
+  const rows = [];
+  function walk(obj, prefix = '') {
+    if (!obj || typeof obj !== 'object') return;
+    for (const [key, value] of Object.entries(obj)) {
+      if (rows.length >= 18) return;
+      const name = prefix ? `${prefix} / ${humanKey(key)}` : humanKey(key);
+      if (Array.isArray(value)) rows.push([name, `列表 ${value.length} 条`]);
+      else if (value && typeof value === 'object') walk(value, name);
+      else rows.push([name, value]);
+    }
+  }
+  walk(data);
+  if (!rows.length) return '';
+  return `<details class="diagnostics"><summary>系统诊断明细（表格视图）</summary>
+    <table><tbody>${rows.map(([key, value]) => `<tr><th>${escapeHtml(key)}</th><td>${formatCell(value)}</td></tr>`).join('')}</tbody></table>
+  </details>`;
+}
+
+function renderEndpoint(endpoint, data) {
+  const pending = isPending(data);
+  return `<article class="card endpoint-card ${pending ? 'pending' : ''}">
+    <div class="endpoint-head">
+      <h3>${escapeHtml(endpoint)}</h3>
+      ${badge(data.status || data.feature_status || (pending ? '产物待生成' : 'READY'))}
+    </div>
+    ${pending ? `<p class="empty">${escapeHtml(data.empty_reason || data.error || '该模块后端接口已保留，等待产物生成或后端接入。')}</p>` : ''}
+    ${renderMetricCards(data)}
+    ${renderList(data)}
+    ${renderDiagnostics(data)}
+  </article>`;
+}
+
+function renderStatic(module) {
+  const items = module.pendingItems || [];
+  return `<section class="card hero pending">
+    <div class="module-title">
+      <div><h2>${escapeHtml(module.name)}</h2><p>${escapeHtml(module.lead)}</p></div>
+      ${badge('后端待开发', '后端待开发')}
+    </div>
+    <div class="todo-grid">${items.map((item) => `<div class="todo-item">待接入：${escapeHtml(item)}</div>`).join('')}</div>
+    <p class="hint">该页面当前只作为静态规划展示，不会伪造交互结果；后端功能完成后再接入 API。</p>
+  </section>`;
+}
+
+async function loadModule(module, query) {
+  const results = [];
+  for (const endpoint of module.eps || []) {
+    try {
+      results.push({endpoint, data: await apiGet(endpoint, query), error: null});
+    } catch (error) {
+      results.push({
+        endpoint,
+        data: {ok: false, status: 'BACKEND_MISSING', error: error.message, read_only: true, dry_run: true, live_disabled: true, no_order_submitted: true},
+        error
+      });
+    }
+  }
+  return results;
+}
+
+async function renderTaskPanel() {
+  try {
+    const catalog = await apiGet('/tasks/catalog');
+    const tasks = (catalog.tasks || []).slice(0, 24);
+    if (!tasks.length) return '<p class="empty">暂无可执行任务。</p>';
+    return `<section class="card">
+      <h3>白名单任务</h3>
+      <div class="task-grid">${tasks.map((task) => `
+        <button class="task-card" onclick="runTask('${escapeHtml(task.task_id)}')">
+          <strong>${escapeHtml(task.title_zh || task.task_id)}</strong>
+          <span>${escapeHtml(task.category || 'TASK')}</span>
+          <small>${escapeHtml(task.description_zh || '只读 / dry-run 任务')}</small>
+        </button>`).join('')}</div>
+      <div id="taskResult" class="task-result empty">点击任务后会在这里显示运行状态和日志摘要。</div>
+    </section>`;
+  } catch (error) {
+    return `<p class="empty">任务目录暂不可用：${escapeHtml(error.message)}</p>`;
+  }
+}
+
+async function runTask(taskId) {
+  const box = $('taskResult');
+  if (!box) return;
+  box.className = 'task-result';
+  box.innerHTML = '任务运行中...';
+  try {
+    const res = await apiPost('/tasks/run', {task_id: taskId, params: {limit: 5}});
+    const task = res.task || {};
+    box.innerHTML = `<h4>${escapeHtml(task.task_name || taskId)}</h4>
+      <p>${badge(task.status || 'SUCCESS')} ${badge('dry-run')} ${badge('未下单')}</p>
+      <ul class="plain-list">${(task.logs || []).slice(-6).map((line) => `<li>${escapeHtml(line)}</li>`).join('')}</ul>
+      ${renderMetricCards(task.output || {})}
+      ${renderList(task.output || {})}`;
+  } catch (error) {
+    box.className = 'task-result empty';
+    box.textContent = `任务失败：${error.message}`;
+  }
+}
+
+async function show(id) {
+  const module = modules.find((item) => item.id === id) || modules[0];
+  document.querySelectorAll('nav button').forEach((button) => button.classList.toggle('active', button.dataset.id === module.id));
+
+  if (module.staticOnly) {
+    $('app').innerHTML = renderStatic(module);
+    return;
+  }
+
+  $('app').innerHTML = `<section class="card hero"><h2>${escapeHtml(module.name)}</h2><p>${escapeHtml(module.lead)}</p>${safetyBar()}${queryForm(module)}<p>加载中...</p></section>`;
+
+  const query = endpointQuery(module);
+  const results = await loadModule(module, query);
+  const state = moduleState(results);
+  const taskPanel = module.taskPanel ? await renderTaskPanel() : '';
+
+  $('app').innerHTML = `<section class="card hero">
+    <div class="module-title">
+      <div><h2>${escapeHtml(module.name)}</h2><p>${escapeHtml(module.lead)}</p></div>
+      ${badge(state.cls === 'ok', state.label)}
+    </div>
+    <p class="hint">${escapeHtml(state.detail)}</p>
+    <p class="hint">启动命令：<strong>py scripts\\run_console_api.py --host 127.0.0.1 --port 8768</strong></p>
+    ${safetyBar(results[0]?.data)}
+    ${queryForm(module)}
+  </section>
+  ${taskPanel}
+  <section class="grid">${results.map((item) => renderEndpoint(item.endpoint, item.data)).join('')}</section>`;
+}
+
+function buildNav() {
+  $('nav').innerHTML = modules.map((module) => {
+    const flag = module.staticOnly ? '<span>待接入</span>' : '<span>API</span>';
+    return `<button data-id="${module.id}" onclick="show('${module.id}')"><b>${escapeHtml(module.name)}</b>${flag}</button>`;
+  }).join('');
+}
+
+buildNav();
+apiGet('/health')
+  .then((health) => $('api').textContent = `API 在线：${health.service || 'unified_local_console'}`)
+  .catch((error) => $('api').textContent = `API 离线：${error.message}`);
+show('overview');
