@@ -13,5 +13,19 @@
   function boardHtml(id){const rows=boards[id];if(!rows)return'';return `<section class="card workbench-card"><div class="endpoint-head"><div><h3>模块能力地图</h3><p class="hint">已完成能力展示真实产物；未完成能力明确标注，不伪造结果。</p></div>${badge('ok','工作台')}</div><div class="capability-grid">${rows.map(([t,s,d])=>`<div class="capability-item ${s}"><div class="capability-title">${escapeHtml(t)} ${badge(s==='pending'?'warn':'ok',labels[s])}</div><p>${escapeHtml(d)}</p></div>`).join('')}</div></section>`;}
   function heroHtml(module,state){return `<section class="card hero ${state.cls==='warn'?'pending':''}"><div class="module-title"><div><h2>${escapeHtml(module.name)}</h2><p>${escapeHtml(module.lead)}</p><p class="hint">当前页面直接读取业务产物；未完成能力会明确标注，不用阶段入口。</p></div>${badge(state.cls==='ok'?'ok':'warn',state.label)}</div><div class="module-safety">${safetyBar({})}</div>${queryForm(module)}</section>`;}
   show=async function(id){const module=modules.find(item=>item.id===id)||modules[0];document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.id===`nav_${module.id}`));const app=$('app');app.innerHTML='<section class="card">加载中...</section>';if(!module.eps?.length&&module.pendingItems){app.innerHTML=renderStatic(module);return;}const query=endpointQuery(module);const results=await loadModule(module,query);const state=moduleState(results);let html=heroHtml(module,state)+boardHtml(module.id);html+=module.taskPanel?await renderTaskPanel():`<section class="grid">${results.map(item=>renderEndpoint(item.endpoint,item.data)).join('')}</section>`;app.innerHTML=html;const firstPayload=results.find(item=>item.data&&!item.error)?.data||{};$('safety').innerHTML=safetyBar(firstPayload);};
+  if(typeof TASK_PARAM_PRESETS!=='undefined'){TASK_PARAM_PRESETS.order_preview_dry_run={max_single_order_amount:1000,min_lot:100,lot_size:100,limit:5};}
+  if(typeof TASK_PRIORITY!=='undefined'&&!TASK_PRIORITY.includes('order_preview_dry_run')){TASK_PRIORITY.splice(TASK_PRIORITY.indexOf('human_approval_review_dry_run')+1,0,'order_preview_dry_run');}
+  if(typeof renderUpdatedArtifacts!=='undefined'){
+    const oldRenderUpdatedArtifacts=renderUpdatedArtifacts;
+    renderUpdatedArtifacts=async function(taskId){
+      if(taskId==='order_preview_dry_run'){
+        const status=await apiGet('/portfolio/status');
+        const preview=await apiGet('/portfolio/order-preview/latest');
+        const budget=await apiGet('/portfolio/budget/latest');
+        return `<section class="task-artifact-preview"><h4>已写入 Portfolio 订单预览</h4>${renderMetricCards(status)}${renderRowsTable(preview.previews||[],'Order Preview')}${renderMetricCards(budget.budget||budget)}</section>`;
+      }
+      return oldRenderUpdatedArtifacts(taskId);
+    };
+  }
   buildNav();show('overview');
 })();
