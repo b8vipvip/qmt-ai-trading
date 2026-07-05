@@ -38,7 +38,8 @@ $KeepNames = @(
     'research', 'risk', 'strategies', 'signals',
     'shadow', 'shadow_replay', 'shadow_trading',
     'runs', 'backtest_results', 'data_tools', 'ai_tools',
-    'qmt_gateway', 'gjzqqmt'
+    'qmt_gateway', 'gjzqqmt',
+    'local_console_approval', 'local_console_order_preview'
 )
 
 $KeepFiles = @(
@@ -46,6 +47,22 @@ $KeepFiles = @(
     'README.md', 'config.json', 'config.example.json',
     'ai_providers.example.json', 'qmt量化文档.txt'
 )
+
+function Show-PostCleanupGitHint {
+    Write-Host ''
+    Write-Warn 'Post-cleanup Git note:'
+    Write-Host '  1) If validation passes and you want to keep the cleanup, commit only tracked deletions.'
+    Write-Host '  2) Do not commit artifacts\cleanup_archive\; it is a local safety backup.'
+    Write-Host '  3) Runtime account/report files can be restored before commit if they changed during validation.'
+    Write-Host ''
+    Write-Host 'Suggested check commands:'
+    Write-Host '  git status --short'
+    Write-Host '  git restore -- artifacts/reports/stage91/account_readonly'
+    Write-Host '  git add -u'
+    Write-Host '  git status --short'
+    Write-Host '  git commit -m "chore: remove obsolete stage artifacts from root workspace"'
+    Write-Host '  .\scripts\sync_all.ps1 -Mode sync'
+}
 
 function Is-LegacyStageDirectory($Name) {
     if ($KeepNames -contains $Name) { return $false }
@@ -77,6 +94,7 @@ $Candidates = @($DirCandidates + $FileCandidates | Sort-Object FullName -Unique)
 
 if (-not $Candidates.Count) {
     Write-Ok 'No cleanup candidates found.'
+    Show-PostCleanupGitHint
     exit 0
 }
 
@@ -92,6 +110,7 @@ if ($Mode -eq 'plan') {
     Write-Ok 'PLAN only. No file was changed.'
     Write-Host 'Next step after manual review:'
     Write-Host '  powershell -ExecutionPolicy Bypass -File .\scripts\cleanup_local_workspace.ps1 -Mode archive'
+    Show-PostCleanupGitHint
     exit 0
 }
 
@@ -119,6 +138,7 @@ if ($Mode -eq 'archive') {
     Write-Ok "Archive done: $ArchiveDir"
     Write-Ok "Manifest:     $manifestPath"
     Write-Warn 'Run the console again after archive. If everything is normal, you can later delete the archive folder manually.'
+    Show-PostCleanupGitHint
     exit 0
 }
 
@@ -134,4 +154,5 @@ if ($Mode -eq 'delete') {
     }
 
     Write-Ok 'Delete done.'
+    Show-PostCleanupGitHint
 }
