@@ -63,6 +63,10 @@ $mustContain = @(
   "renderWorkflowPanel",
   "runDryRunWorkflow",
   "workflow-snapshot-grid",
+  "task-history-panel",
+  "refreshTaskHistory",
+  "viewTaskLogs",
+  "任务历史 / 日志中心",
   "can_submit_order=false",
   "buildNav();show('overview')"
 )
@@ -108,13 +112,18 @@ if ($apiOk) {
     "/approval/requests/latest",
     "/portfolio/status",
     "/portfolio/order-preview/latest",
-    "/tasks/catalog"
+    "/tasks/catalog",
+    "/tasks/history"
   )
 
   foreach ($ep in $endpoints) {
     $res = Invoke-RestMethod "$ApiBase$ep" -TimeoutSec 10
     Assert-Ok ($null -ne $res) "API endpoint reachable: $ep"
   }
+
+  $history = Invoke-RestMethod "$ApiBase/tasks/history" -TimeoutSec 10
+  Assert-Ok ($history.status -eq "READY") "task history endpoint reports READY"
+  Assert-Ok ($null -ne $history.runs) "task history endpoint exposes runs array"
 
   $catalog = Invoke-RestMethod "$ApiBase/tasks/catalog" -TimeoutSec 10
   $taskIds = @($catalog.tasks | ForEach-Object { $_.task_id })
