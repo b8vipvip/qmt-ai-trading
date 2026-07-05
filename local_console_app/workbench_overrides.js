@@ -32,6 +32,7 @@
     backtest:{title:'回测操作',hint:'运行回放式回测和分析报告，不触达真实交易。',actions:[['shadow_replay_backtest','Shadow Replay 回测','回放式复盘'],['backtest_dashboard_dry_run','回测分析看板','生成对比看板'],['backtest_report','生成回测报告','输出摘要']]},
     portfolio:{title:'组合预览操作',hint:'读取账户只读、行情、TradeIntent 和 RiskDecision，只计算订单预览与资金占用。',actions:[['order_preview_dry_run','生成订单预览','只预览，不发单'],['account_readonly_dry_run','刷新账户只读','更新资金/持仓'],['risk_gate_dry_run','复查风控结果','更新 RiskDecision']]}
   };
+  window.__workbenchActionResults=window.__workbenchActionResults||{};
   function patch(id,name,lead){const m=modules.find(x=>x.id===id);if(m){if(name)m.name=name;if(lead)m.lead=lead;}}
   patch('overview','总览 / 日常操作台','一键运行 dry-run 链路，按模块启动任务，查看行情、研究、策略、风控、Paper、审批、账户只读和组合预览。');
   patch('datahub','Data Hub 数据源中心','统一管理行情、标的池、缓存和后续外部数据源；策略与 Agent 只能从 Data Hub 取数。');
@@ -42,25 +43,27 @@
   const overview=modules.find(x=>x.id==='overview');if(overview){overview.workflowPanel=true;}
   function boardHtml(id){const rows=boards[id];if(!rows)return'';return `<section class="card workbench-card"><div class="endpoint-head"><div><h3>模块能力地图</h3><p class="hint">已接入能力展示真实业务产物；未接入能力明确标注，不伪造结果。</p></div>${badge('ok','工作台')}</div><div class="capability-grid">${rows.map(([t,s,d])=>`<div class="capability-item ${s}"><div class="capability-title">${escapeHtml(t)} ${badge(s==='pending'?'warn':'ok',labels[s])}</div><p>${escapeHtml(d)}</p></div>`).join('')}</div></section>`;}
   function heroHtml(module,state){return `<section class="card hero ${state.cls==='warn'?'pending':''}"><div class="module-title"><div><h2>${escapeHtml(module.name)}</h2><p>${escapeHtml(module.lead)}</p><p class="hint">这是你的本地量化系统工作台：页面直接调用后端业务接口；按钮会触发白名单任务并刷新统一产物，不再把验收记录作为主内容。</p></div>${badge(state.cls==='ok'?'ok':'warn',state.label)}</div><div class="module-safety">${safetyBar({})}</div>${queryForm(module)}</section>`;}
-  function actionPanelHtml(id){const group=operationGroups[id];if(!group)return'';return `<section class="card operation-panel"><div class="endpoint-head"><div><h3>${escapeHtml(group.title)}</h3><p class="hint">${escapeHtml(group.hint)}</p></div>${badge('ok','操作入口')}</div><div class="operation-grid">${group.actions.map(([taskId,title,desc])=>`<button class="operation-action" onclick="runWorkbenchAction('${escapeHtml(taskId)}','${escapeHtml(id)}')"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(taskId)}</small><span>${escapeHtml(desc)}</span></button>`).join('')}</div><div id="operationResult_${escapeHtml(id)}" class="task-result empty">点击上方操作后，这里会显示任务运行结果、日志和更新后的业务产物。</div></section>`;}
+  function defaultOperationHtml(){return '点击上方操作后，这里会显示任务运行结果、日志和更新后的业务产物。';}
+  function operationBoxHtml(id){const saved=window.__workbenchActionResults[id];if(!saved)return `<div id="operationResult_${escapeHtml(id)}" class="task-result empty">${defaultOperationHtml()}</div>`;return `<div id="operationResult_${escapeHtml(id)}" class="${escapeHtml(saved.className||'task-result')}">${saved.html}</div>`;}
+  function actionPanelHtml(id){const group=operationGroups[id];if(!group)return'';return `<section class="card operation-panel"><div class="endpoint-head"><div><h3>${escapeHtml(group.title)}</h3><p class="hint">${escapeHtml(group.hint)}</p></div>${badge('ok','操作入口')}</div><div class="operation-grid">${group.actions.map(([taskId,title,desc])=>`<button class="operation-action" onclick="runWorkbenchAction('${escapeHtml(taskId)}','${escapeHtml(id)}')"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(taskId)}</small><span>${escapeHtml(desc)}</span></button>`).join('')}</div>${operationBoxHtml(id)}</section>`;}
+  function endpointGridHtml(results){return `<section class="grid">${results.map(item=>renderEndpoint(item.endpoint,item.data)).join('')}</section>`;}
+  function diagnosticsHtml(results){return `<details class="card technical-diagnostics"><summary>系统接口与诊断结果（默认折叠）</summary><p class="hint">这里保留接口连通性和原始产物视图，日常操作优先看上方操作中心和业务模块。</p>${endpointGridHtml(results)}</details>`;}
+  function setOperationResult(moduleId,className,html){window.__workbenchActionResults[moduleId]={className,html};const box=document.getElementById(`operationResult_${moduleId}`)||document.getElementById('taskResult');if(box){box.className=className;box.innerHTML=html;}}
   window.runWorkbenchAction=async function(taskId,moduleId){
-    const box=document.getElementById(`operationResult_${moduleId}`)||document.getElementById('taskResult');
-    if(!box)return;
-    const params=typeof workflowParams==='function'?workflowParams(taskId):{limit:5,dry_run:true,read_only:true,allow_order_submit:false,allow_order_cancel:false};
-    box.className='task-result';
-    box.innerHTML=`<h4>${escapeHtml(taskId)} 运行中...</h4><p class="hint">已强制 dry-run/read-only，禁止下单和撤单。</p>`;
+    const loading=`<h4>${escapeHtml(taskId)} 运行中...</h4><p class="hint">已强制 dry-run/read-only，禁止下单和撤单。</p>`;
+    setOperationResult(moduleId,'task-result',loading);
     try{
+      const params=typeof workflowParams==='function'?workflowParams(taskId):{limit:5,dry_run:true,read_only:true,allow_order_submit:false,allow_order_cancel:false};
       const res=await apiPost('/tasks/run',{task_id:taskId,params});
       const task=res.task||{};
       const hits=typeof workflowGuardFind==='function'?workflowGuardFind({response:res,output:task.output||{}}):[];
       const artifactPreview=typeof renderUpdatedArtifacts==='function'?await renderUpdatedArtifacts(taskId):'';
       const ok=(task.status||'SUCCESS')==='SUCCESS'&&!hits.length;
-      box.className=ok?'task-result':'task-result empty';
-      box.innerHTML=`<h4>${escapeHtml(task.task_name||taskId)}</h4><p>${badge(ok,'运行完成')} ${badge('dry-run')} ${badge('未下单')} ${hits.length?badge('warn','发现危险旗标'):badge('ok','安全旗标通过')}</p><p class="hint">运行参数：${escapeHtml(JSON.stringify(task.params||params))}</p><ul class="plain-list">${(task.logs||[]).slice(-8).map((line)=>`<li>${escapeHtml(line)}</li>`).join('')}</ul>${renderMetricCards(task.output||{})}${artifactPreview||renderList(task.output||{})}`;
-      setTimeout(()=>show(moduleId),600);
+      const html=`<h4>${escapeHtml(task.task_name||taskId)}</h4><p>${badge(ok,'运行完成')} ${badge('dry-run')} ${badge('未下单')} ${hits.length?badge('warn','发现危险旗标'):badge('ok','安全旗标通过')} ${badge('ok','产物已刷新')}</p><p class="hint">运行参数：${escapeHtml(JSON.stringify(task.params||params))}</p><ul class="plain-list">${(task.logs||[]).slice(-8).map((line)=>`<li>${escapeHtml(line)}</li>`).join('')}</ul>${renderMetricCards(task.output||{})}${artifactPreview||renderList(task.output||{})}`;
+      setOperationResult(moduleId,ok?'task-result':'task-result empty',html);
+      setTimeout(()=>show(moduleId),700);
     }catch(error){
-      box.className='task-result empty';
-      box.textContent=`任务失败：${error.message}`;
+      setOperationResult(moduleId,'task-result empty',`任务失败：${escapeHtml(error.message)}`);
     }
   };
   show=async function(id){
@@ -74,7 +77,9 @@
     const state=moduleState(results);
     let html=heroHtml(module,state)+actionPanelHtml(module.id)+boardHtml(module.id);
     if(module.workflowPanel&&typeof renderWorkflowPanel==='function') html+=await renderWorkflowPanel();
-    html+=module.taskPanel?await renderTaskPanel():`<section class="grid">${results.map(item=>renderEndpoint(item.endpoint,item.data)).join('')}</section>`;
+    if(module.taskPanel) html+=await renderTaskPanel();
+    else if(module.id==='overview') html+=diagnosticsHtml(results);
+    else html+=endpointGridHtml(results);
     app.innerHTML=html;
     const firstPayload=results.find(item=>item.data&&!item.error)?.data||{};
     $('safety').innerHTML=safetyBar(firstPayload);
