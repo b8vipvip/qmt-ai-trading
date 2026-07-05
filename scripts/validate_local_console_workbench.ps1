@@ -42,8 +42,11 @@ foreach ($file in $requiredFiles) {
 }
 
 $index = Get-Content "local_console_app\index.html" -Raw
+$app = Get-Content "local_console_app\app.js" -Raw
+$tasks = Get-Content "local_console_app\task_params.js" -Raw
 $override = Get-Content "local_console_app\workbench_overrides.js" -Raw
 $css = Get-Content "local_console_app\workbench.css" -Raw
+$frontendText = "$index`n$app`n$tasks`n$override`n$css"
 
 $mustContain = @(
   "workbench.css",
@@ -56,12 +59,29 @@ $mustContain = @(
   "capability-item",
   "order_preview_dry_run",
   "TASK_PARAM_PRESETS",
+  "DRYRUN_WORKFLOW",
+  "renderWorkflowPanel",
+  "runDryRunWorkflow",
+  "workflow-snapshot-grid",
+  "can_submit_order=false",
   "buildNav();show('overview')"
 )
 
 foreach ($text in $mustContain) {
-  $found = $index.Contains($text) -or $override.Contains($text) -or $css.Contains($text)
-  Assert-Ok $found "frontend contains token: $text"
+  Assert-Ok $frontendText.Contains($text) "frontend contains token: $text"
+}
+
+$dangerPatterns = @(
+  "allow_order_submit: true",
+  "allow_order_cancel: true",
+  "order_submit_enabled: true",
+  "order_cancel_enabled: true",
+  "real_order_submitted: true",
+  "live_trading_enabled: true"
+)
+
+foreach ($text in $dangerPatterns) {
+  Assert-Ok (-not $frontendText.Contains($text)) "frontend does not enable dangerous flag: $text"
 }
 
 $apiOk = $false
@@ -77,10 +97,17 @@ try {
 if ($apiOk) {
   $endpoints = @(
     "/console/bootstrap",
+    "/workflow/status",
+    "/workflow/feature-matrix",
     "/datahub/status",
+    "/datahub/market/latest",
     "/research/candidates/latest",
     "/strategy/signals/latest",
+    "/risk/decisions/latest",
+    "/paper-trading/orders/latest",
+    "/approval/requests/latest",
     "/portfolio/status",
+    "/portfolio/order-preview/latest",
     "/tasks/catalog"
   )
 
@@ -103,6 +130,11 @@ if ($apiOk) {
 
   foreach ($taskId in $requiredTasks) {
     Assert-Ok ($taskIds -contains $taskId) "workflow task is whitelisted: $taskId"
+  }
+
+  $portfolio = Invoke-RestMethod "$ApiBase/portfolio/status" -TimeoutSec 10
+  if ($null -ne $portfolio.can_submit_order) {
+    Assert-Ok ($portfolio.can_submit_order -eq $false) "portfolio can_submit_order remains false"
   }
 }
 
