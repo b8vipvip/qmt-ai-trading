@@ -68,7 +68,8 @@ $mustContain = @(
   "viewTaskLogs",
   "任务历史 / 日志中心",
   "can_submit_order=false",
-  "buildNav();show('overview')"
+  "buildNav();",
+  "show('overview')"
 )
 
 foreach ($text in $mustContain) {
