@@ -1,4 +1,4 @@
-from . import workflow,datahub,research,strategy,risk,agent,paper,approval,account_readonly,market,safety,monitoring,backtest,portfolio,workbench,workbench_more
+from . import workflow,datahub,research,strategy,risk,agent,paper,approval,account_readonly,market,safety,monitoring,backtest,portfolio,workbench,workbench_more,workbench_task_history
 ROUTES={
 '/api/v1/console/bootstrap': workflow.bootstrap, '/api/v1/workflow/status': workflow.status, '/api/v1/workflow/feature-matrix': workflow.feature_matrix,
 '/api/v1/datahub/status': datahub.status, '/api/v1/datahub/symbols': datahub.symbols, '/api/v1/datahub/cache/status': datahub.cache_status, '/api/v1/datahub/market/latest': datahub.market_latest,
@@ -13,13 +13,13 @@ ROUTES={
 '/api/v1/account-readonly/status': account_readonly.status, '/api/v1/account-readonly/diagnostics': account_readonly.diagnostics, '/api/v1/account-readonly/asset': account_readonly.asset, '/api/v1/account-readonly/positions': account_readonly.positions,
 '/api/v1/portfolio/status': portfolio.status, '/api/v1/portfolio/order-preview/latest': portfolio.preview, '/api/v1/portfolio/budget/latest': portfolio.budget,
 '/api/v1/safety/status': safety.status, '/api/v1/live/status': safety.live, '/api/v1/market/xtdata-live/status': market.xtdata_status,
-'/api/v1/frontend/dashboard/overview': workbench.dashboard_overview, '/api/v1/frontend/dashboard/strategies': workbench.dashboard_strategies, '/api/v1/frontend/dashboard/equity-curve': workbench.dashboard_equity_curve, '/api/v1/frontend/dashboard/events': workbench.dashboard_events,
-'/api/v1/frontend/data/sources': workbench.data_sources, '/api/v1/frontend/data/quality': workbench.data_quality, '/api/v1/frontend/data/tasks': workbench.data_tasks,
+'/api/v1/frontend/dashboard/overview': workbench.dashboard_overview, '/api/v1/frontend/dashboard/strategies': workbench.dashboard_strategies, '/api/v1/frontend/dashboard/equity-curve': workbench.dashboard_equity_curve, '/api/v1/frontend/dashboard/events': workbench_task_history.dashboard_events,
+'/api/v1/frontend/data/sources': workbench.data_sources, '/api/v1/frontend/data/quality': workbench.data_quality, '/api/v1/frontend/data/tasks': workbench_task_history.data_tasks,
 '/api/v1/frontend/factors/list': workbench.factor_list, '/api/v1/frontend/strategies/list': workbench.strategy_list,
 '/api/v1/frontend/deployment/stages': workbench.deployment_stages,
 '/api/v1/frontend/execution/holdings': workbench.holdings, '/api/v1/frontend/execution/orders': workbench.order_plan, '/api/v1/frontend/execution/trades': workbench.trades,
 '/api/v1/frontend/risk/overview': workbench_more.risk_overview, '/api/v1/frontend/risk/rules': workbench.risk_rules, '/api/v1/frontend/risk/events': workbench.risk_events,
-'/api/v1/frontend/system/api-status': workbench.api_status,
+'/api/v1/frontend/system/api-status': workbench_task_history.api_status,
 '/api/v1/frontend/backtest/tasks': workbench_more.backtest_tasks, '/api/v1/frontend/backtest/report': workbench_more.backtest_report,
 '/api/v1/frontend/monitoring/realtime': workbench_more.monitoring_realtime, '/api/v1/frontend/monitoring/attribution': workbench_more.monitoring_attribution, '/api/v1/frontend/monitoring/execution-quality': workbench_more.monitoring_execution_quality, '/api/v1/frontend/monitoring/daily-review': workbench_more.monitoring_daily_review,
 }
