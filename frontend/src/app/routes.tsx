@@ -10,9 +10,10 @@ import {
   SettingOutlined,
   StockOutlined,
 } from '@ant-design/icons';
-import { BacktestPage, DashboardPage, DataCenterPage, DeploymentPage, ExecutionPage, FactorsPage, MonitoringPage, RiskCenterPage, SettingsPage, StrategiesPage } from '../pages';
+import { BacktestPage, DashboardPage, DeploymentPage, ExecutionPage, FactorsPage, MonitoringPage, RiskCenterPage, StrategiesPage } from '../pages';
 import { FundamentalDataPage, NewsDataPage, DataQualityPage, DataTasksPage } from '../pages/DataSubPages';
 import { MarketDataPage } from '../pages/MarketDataPage';
+import { SystemApiPage, SystemAuditPage, SystemAuthPage, SystemConfigPage } from '../pages/SystemManagementPages';
 
 export interface AppRoute {
   path: string;
@@ -48,8 +49,8 @@ export const routes: AppRoute[] = [
   { path: '/monitoring', label: '监控复盘', icon: <RadarChartOutlined />, element: <MonitoringPage />, children: [
     { path: '/monitoring/realtime', label: '实时监控', element: <MonitoringPage /> }, { path: '/monitoring/attribution', label: '收益归因', element: <MonitoringPage /> }, { path: '/monitoring/execution-quality', label: '成交质量', element: <MonitoringPage /> }, { path: '/monitoring/decay', label: '策略失效检测', element: <MonitoringPage /> }, { path: '/monitoring/daily-review', label: '每日复盘', element: <MonitoringPage /> },
   ] },
-  { path: '/settings', label: '系统管理', icon: <SettingOutlined />, element: <SettingsPage />, children: [
-    { path: '/settings/config', label: '配置中心', element: <SettingsPage /> }, { path: '/settings/api', label: 'API 接口', element: <SettingsPage /> }, { path: '/settings/audit', label: '日志审计', element: <SettingsPage /> }, { path: '/settings/auth', label: '权限管理', element: <SettingsPage /> },
+  { path: '/settings', label: '系统管理', icon: <SettingOutlined />, element: <SystemConfigPage />, children: [
+    { path: '/settings/config', label: '配置中心', element: <SystemConfigPage /> }, { path: '/settings/api', label: 'API 接口', element: <SystemApiPage /> }, { path: '/settings/audit', label: '日志审计', element: <SystemAuditPage /> }, { path: '/settings/auth', label: '权限管理', element: <SystemAuthPage /> },
   ] },
 ];
 
