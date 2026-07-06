@@ -1,8 +1,9 @@
 import { equityCurve, factors } from '../mock/mockData';
 import { apiOrMock } from './apiClient';
+import { mapFactorRows } from './mappers';
 
 export function getFactorList() {
-  return apiOrMock('/factors/list', factors);
+  return apiOrMock('/factors/list', factors, (body) => mapFactorRows(body.data, factors));
 }
 
 export async function getFactorDetail(id: string) {
