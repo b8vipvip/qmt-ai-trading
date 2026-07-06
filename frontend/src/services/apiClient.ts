@@ -8,10 +8,8 @@ export interface ApiEnvelope<T> {
 
 const API_PREFIX = '/api/v1/frontend';
 
-function isUseful<T>(value: T, fallback: T): boolean {
-  if (Array.isArray(fallback)) return Array.isArray(value) && value.length > 0;
-  if (value && typeof value === 'object') return Object.keys(value as Record<string, unknown>).length > 0;
-  return value !== undefined && value !== null;
+function hasDataField(body: unknown): body is { data: unknown } {
+  return !!body && typeof body === 'object' && Object.prototype.hasOwnProperty.call(body, 'data');
 }
 
 export async function apiOrMock<T>(path: string, fallback: T, picker?: (body: ApiEnvelope<T> | any) => T): Promise<T> {
@@ -19,8 +17,9 @@ export async function apiOrMock<T>(path: string, fallback: T, picker?: (body: Ap
     const response = await fetch(`${API_PREFIX}${path}`);
     if (!response.ok) return fallback;
     const body = await response.json();
-    const picked = picker ? picker(body) : (body.data as T);
-    return isUseful(picked, fallback) ? picked : fallback;
+    if (body?.ok === false) return fallback;
+    const picked = picker ? picker(body) : (hasDataField(body) ? body.data as T : undefined);
+    return picked === undefined || picked === null ? fallback : picked;
   } catch {
     return fallback;
   }
