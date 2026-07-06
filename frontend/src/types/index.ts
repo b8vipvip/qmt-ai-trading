@@ -8,13 +8,14 @@ export interface MetricItem {
   change: string;
   status: StatusKind;
   trend: number[];
+  source?: string;
 }
 
 export interface StrategyStatus {
   id: string;
   name: string;
   type: string;
-  mode: TradeMode | '回测';
+  mode: TradeMode | '回测' | 'Paper';
   pool: string;
   rebalance: string;
   todayReturn: number;
@@ -25,6 +26,11 @@ export interface StrategyStatus {
   riskStatus: RiskLevel;
   status: 'RUNNING' | 'PAUSED' | 'STOPPED' | 'SIMULATING';
   sharpe?: number;
+  lastAction?: string;
+  signal?: string;
+  targetWeight?: number;
+  source?: string;
+  sourcePath?: string;
 }
 
 export interface EquityPoint {
@@ -40,6 +46,9 @@ export interface SystemEvent {
   level: StatusKind;
   module: string;
   message: string;
+  runId?: string;
+  taskId?: string;
+  sourcePath?: string;
 }
 
 export interface DataSourceStatus {
@@ -50,6 +59,9 @@ export interface DataSourceStatus {
   latency: string;
   missingRate: number;
   abnormalRate: number;
+  dataSource?: string;
+  qualityLevel?: string;
+  sourcePath?: string;
 }
 
 export interface DataQualityRow {
@@ -60,6 +72,7 @@ export interface DataQualityRow {
   abnormalValues: number;
   duplicateRows: number;
   passed: boolean;
+  sourcePath?: string;
 }
 
 export interface DataTaskRow {
@@ -70,6 +83,7 @@ export interface DataTaskRow {
   nextRun: string;
   status: string;
   cost: string;
+  sourcePath?: string;
 }
 
 export interface FactorRow {
@@ -84,6 +98,11 @@ export interface FactorRow {
   longShortReturn: number;
   turnover: number;
   status: '研究中' | '候选' | '已上线' | '已下线';
+  score?: number;
+  rank?: number;
+  reasons?: string;
+  riskFlags?: string;
+  sourcePath?: string;
 }
 
 export interface BacktestTask {
@@ -97,6 +116,7 @@ export interface BacktestTask {
   status: string;
   createdAt: string;
   cost: string;
+  sourcePath?: string;
 }
 
 export interface HoldingRow {
@@ -109,6 +129,8 @@ export interface HoldingRow {
   diffQty: number;
   diffAmount: number;
   riskStatus: RiskLevel;
+  accountIdMasked?: string;
+  sourcePath?: string;
 }
 
 export interface OrderRow {
@@ -118,14 +140,23 @@ export interface OrderRow {
   code: string;
   name: string;
   side: '买入' | '卖出';
+  rawSide?: string;
   quantity: number;
   price: number;
   type: string;
   amount: number;
   riskCheck: RiskLevel | 'PASS';
+  riskDecision?: string;
+  businessStatus?: string;
   status: string;
   createdAt: string;
   updatedAt?: string;
+  intentId?: string;
+  previewOnly?: boolean;
+  canSubmit?: boolean;
+  latestPrice?: number;
+  estimatedAmount?: number;
+  sourcePath?: string;
 }
 
 export interface TradeRow {
@@ -140,6 +171,7 @@ export interface TradeRow {
   commission: number;
   stampTax: number;
   time: string;
+  sourcePath?: string;
 }
 
 export interface RiskRule {
@@ -151,6 +183,8 @@ export interface RiskRule {
   action: '警告' | '拦截' | '降仓' | '停止交易' | '平仓';
   enabled: boolean;
   lastTriggered: string;
+  description?: string;
+  sourcePath?: string;
 }
 
 export interface RiskEvent {
@@ -164,4 +198,5 @@ export interface RiskEvent {
   action: string;
   result: string;
   operator: string;
+  sourcePath?: string;
 }
