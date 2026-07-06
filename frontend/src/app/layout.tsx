@@ -6,7 +6,7 @@ import { EventLogPanel, SystemStatusBar } from '../components/common';
 import { systemEvents } from '../mock/mockData';
 import { flatRoutes, getRouteByPath, routes } from './routes';
 
-const { Header, Sider, Content, Footer } = Layout;
+const { Header, Sider, Content } = Layout;
 
 function toMenuItems() {
   return routes.map((route) => ({
@@ -45,8 +45,7 @@ export function AppLayout() {
       </Sider>
       <Layout>
         <Header className="quant-header"><Button type="text" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed(!collapsed)} /><SystemStatusBar dark={dark} onToggleTheme={() => setDark(!dark)} /><Button icon={<BellOutlined />} onClick={() => setDrawerOpen(true)}>告警</Button></Header>
-        <Content className="quant-content"><div className="page-title"><div><h1>{activeRoute.label}</h1><p>专业量化交易工作台：当前阶段为前端 UI、Mock 数据与接口适配层，不触发真实交易动作。</p></div></div>{activeRoute.element}</Content>
-        <Footer className="event-footer"><details><summary>运行日志 / 系统事件流</summary><EventLogPanel events={systemEvents.slice(0, 8)} /></details></Footer>
+        <Content className="quant-content"><div className="page-title"><div><h1>{activeRoute.label}</h1><p>本地只读量化控制台：数据、配置和任务来自后端产物或本地安全接口；交易动作默认关闭。</p></div></div>{activeRoute.element}</Content>
       </Layout>
       <Drawer title="风险告警 / 通知中心" open={drawerOpen} onClose={() => setDrawerOpen(false)} width={420}><EventLogPanel events={systemEvents} /></Drawer>
     </Layout>
