@@ -1,9 +1,22 @@
 import { equityCurve, metrics, riskOverview, strategies, systemEvents } from '../mock/mockData';
+import { apiOrMock } from './apiClient';
 
-const wait = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
+export function getDashboardOverview() {
+  return apiOrMock('/dashboard/overview', { metrics, riskOverview });
+}
 
-export async function getDashboardOverview() { await wait(); return { metrics, riskOverview }; }
-export async function getStrategyStatusList() { await wait(); return strategies; }
-export async function getEquityCurve() { await wait(); return equityCurve; }
-export async function getRiskOverview() { await wait(); return riskOverview; }
-export async function getSystemEvents() { await wait(); return systemEvents; }
+export function getStrategyStatusList() {
+  return apiOrMock('/dashboard/strategies', strategies);
+}
+
+export function getEquityCurve() {
+  return apiOrMock('/dashboard/equity-curve', equityCurve);
+}
+
+export function getRiskOverview() {
+  return apiOrMock('/risk/overview', riskOverview);
+}
+
+export function getSystemEvents() {
+  return apiOrMock('/dashboard/events', systemEvents);
+}
