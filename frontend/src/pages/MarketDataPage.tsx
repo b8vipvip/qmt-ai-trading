@@ -2,7 +2,7 @@ import { Button, Card, Col, Descriptions, message, Row, Space, Table, Tag } from
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { EmptyState, SourcePathTag, StatusBadge } from '../components/common';
+import { EmptyState, SourcePathTag } from '../components/common';
 import { getDataQualityRows, getDataSources } from '../services/dataService';
 import { getMarketQuotes, getMarketSummary } from '../services/marketDataService';
 import type { MarketQuoteRow, MarketSummary } from '../services/marketDataService';
@@ -51,6 +51,11 @@ function money(value: number) {
   return n ? `¥${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '-';
 }
 
+function statusTag(value: string) {
+  const text = String(value || 'UNKNOWN');
+  return <Tag color={text === 'NORMAL' || text === 'READY' ? 'green' : text === 'PENDING' ? 'gold' : 'default'}>{text}</Tag>;
+}
+
 export function MarketDataPage() {
   const sources = useAsync(getDataSources, [] as DataSourceStatus[]);
   const quality = useAsync(getDataQualityRows, [] as DataQualityRow[]);
@@ -70,7 +75,7 @@ export function MarketDataPage() {
     { title: '收盘', dataIndex: 'close', width: 90, render: price },
     { title: '成交量', dataIndex: 'volume', width: 120, render: (v) => Number(v || 0).toLocaleString() },
     { title: '成交额', dataIndex: 'amount', width: 120, render: money },
-    { title: '状态', dataIndex: 'status', width: 100, render: (v) => <Tag color={v === 'NORMAL' ? 'green' : 'red'}>{v}</Tag> },
+    { title: '状态', dataIndex: 'status', width: 100, render: statusTag },
     { title: '来源', dataIndex: 'sourcePath', width: 120, render: (v) => <SourcePathTag value={v} /> },
   ];
 
@@ -91,7 +96,7 @@ export function MarketDataPage() {
     </Row>
 
     <Section title="数据源状态">
-      <Row gutter={[16, 16]}>{sources.map((s) => <Col xs={24} sm={12} lg={6} key={s.name}><Card className="source-card"><Space direction="vertical"><Space><b>{s.name}</b><StatusBadge status={s.status} /></Space><span>更新时间：{s.updatedAt || '-'}</span><span>今日记录：{Number(s.records || 0).toLocaleString()}</span><span>延迟：{s.latency}</span><span>质量：{s.qualityLevel || '-'}</span><span>缺失/异常：{s.missingRate}% / {s.abnormalRate}%</span><SourcePathTag value={s.sourcePath} /><TaskButton taskId={s.name.includes('QMT') ? 'xtdata_live_readonly_smoke' : 'market_snapshot_readonly'}>刷新</TaskButton></Space></Card></Col>)}</Row>
+      <Row gutter={[16, 16]}>{sources.map((s) => <Col xs={24} sm={12} lg={6} key={s.name}><Card className="source-card"><Space direction="vertical"><Space><b>{s.name}</b>{statusTag(String(s.status))}</Space><span>更新时间：{s.updatedAt || '-'}</span><span>今日记录：{Number(s.records || 0).toLocaleString()}</span><span>延迟：{s.latency}</span><span>质量：{s.qualityLevel || '-'}</span><span>缺失/异常：{s.missingRate}% / {s.abnormalRate}%</span><SourcePathTag value={s.sourcePath} /><TaskButton taskId={s.name.includes('QMT') ? 'xtdata_live_readonly_smoke' : 'market_snapshot_readonly'}>刷新</TaskButton></Space></Card></Col>)}</Row>
     </Section>
 
     <Section title="行情明细表" extra={<TaskButton taskId="xtdata_live_readonly_smoke">刷新行情</TaskButton>}>
