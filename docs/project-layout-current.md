@@ -10,8 +10,9 @@
 | 后端业务代码 | `qmt_ai_trading/` | 当前统一后端主包，行情、Data Hub、Research、Strategy、Risk、Paper、Approval、Account Readonly、Portfolio 等业务模块都应逐步收敛到这里。 |
 | 后端启动入口 | `scripts/run_console_api.py` | 启动统一本地 API 与静态前端。常用命令：`py scripts\run_console_api.py --host 127.0.0.1 --port 8768`。 |
 | 任务参数与白名单 | `local_console_app/task_params.js` + 后端任务注册 | 前端按钮只调用白名单任务，并强制 `dry_run/read_only/allow_order_submit=false/allow_order_cancel=false`。 |
-| 任务历史 / 日志中心 | `qmt_ai_trading/console_api/api_server.py` + `TaskStore` | `/api/v1/tasks/history` 展示当前 API 进程内任务历史、状态、日志入口和产物路径；重启 API 后历史会清空，后续可接 sqlite / duckdb 持久化。 |
+| 任务历史 / 日志中心 | `qmt_ai_trading/console_api/api_server.py` + `qmt_ai_trading/console_api/task_store.py` | `/api/v1/tasks/history` 展示最近任务历史、状态、日志入口和产物路径；当前已落地本地 JSON 持久化，重启 API 后仍可读取历史。 |
 | 当前控制台产物 | `artifacts/reports/console/` | 前端页面读取的统一产物目录。这里是运行结果，不是源码主线。 |
+| 本地任务历史文件 | `artifacts/reports/console/task_history/task_history.json` | 仅本地运行时文件，已加入 `.gitignore`，不要提交到 GitHub。 |
 | 文档与路线 | `docs/` | 项目路线、架构、当前目录说明和后续阶段计划。 |
 | 验证脚本 | `scripts/validate_local_console_workbench.ps1` | 校验前端、API、危险旗标、任务历史接口和关键接口。 |
 | 本地清理脚本 | `scripts/cleanup_local_workspace.ps1` | 先 `-Mode plan` 预览，再 `-Mode archive` 安全归档历史文件。 |
@@ -66,7 +67,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\validate_local_console_workbe
 
 1. **先整理本地目录**：用 `cleanup_local_workspace.ps1` 把历史阶段产物归档，避免继续在根目录混乱开发。
 2. **强化日常工作台**：让“刷新行情 → 研究 → 策略 → 风控 → Paper → 人工复核 → Portfolio 预览”成为主入口。
-3. **强化任务历史与日志中心**：当前已支持进程内历史，后续可改为 sqlite / duckdb 持久化，并增加失败原因、耗时统计和筛选。
+3. **强化任务历史与日志中心**：当前已支持本地 JSON 持久化；后续可改为 sqlite / duckdb，并增加失败原因、耗时统计、筛选和跨进程长期留存。
 4. **接入真实 Data Hub 外部源**：AkShare / Tushare / BaoStock、指数成分、ETF、行业、财务、新闻。
 5. **接入研究层模型**：Alpha158 / Alpha360 / Alpha101、LightGBM / Lasso / MLP。
 6. **Agent 投研结构化输出**：技术面、基本面、新闻情绪、风险、组合经理 Agent。
