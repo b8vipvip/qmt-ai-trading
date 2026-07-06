@@ -33,14 +33,16 @@ function metric(title: string, value: ReactNode) {
   return <Card className="metric-card"><b>{title}</b><div className="metric-value">{value}</div></Card>;
 }
 
+const summaryFallback = { artifactRoot: '', taskCount: 0, historyCount: 0, apiConfigCount: 0, enabledApiConfigCount: 0, latestRunAt: '', liveTradingEnabled: false, orderSubmitEnabled: false, orderCancelEnabled: false } as SystemSummary;
+
 export function SystemConfigPage() {
-  const summary = useAsync(getSystemSummary, { artifactRoot: '', taskCount: 0, historyCount: 0, latestRunAt: '', liveTradingEnabled: false, orderSubmitEnabled: false, orderCancelEnabled: false } as SystemSummary);
+  const summary = useAsync(getSystemSummary, summaryFallback);
   const rows = useAsync(getSystemConfigRows, [] as ConfigRow[]);
   return <div className="page-grid">
     <Section title="配置中心说明" extra={<Tag color="green">只读真实配置</Tag>}><Typography.Paragraph>这里展示本地控制台运行配置和安全状态，不放无意义任务按钮；API 凭据请到“API 接口”页面维护。</Typography.Paragraph></Section>
-    <Row gutter={[16,16]}><Col xs={12} md={6}>{metric('白名单任务', summary.taskCount)}</Col><Col xs={12} md={6}>{metric('任务历史', summary.historyCount)}</Col><Col xs={12} md={6}>{metric('发单开关', String(summary.orderSubmitEnabled))}</Col><Col xs={12} md={6}>{metric('实盘开关', String(summary.liveTradingEnabled))}</Col></Row>
+    <Row gutter={[16,16]}><Col xs={12} md={6}>{metric('白名单任务', summary.taskCount)}</Col><Col xs={12} md={6}>{metric('API配置', summary.apiConfigCount)}</Col><Col xs={12} md={6}>{metric('发单开关', String(summary.orderSubmitEnabled))}</Col><Col xs={12} md={6}>{metric('实盘开关', String(summary.liveTradingEnabled))}</Col></Row>
     <Section title="配置中心 / 只读真实配置"><Table rowKey="key" size="small" dataSource={rows} columns={[{title:'配置键',dataIndex:'key',width:180},{title:'配置项',dataIndex:'name',width:180},{title:'当前值',dataIndex:'value',render:(v,r)=><Typography.Text code={r.sensitive}> {String(v || '-')} </Typography.Text>},{title:'可编辑',dataIndex:'editable',width:90,render:(v)=><Tag color={v?'gold':'green'}>{String(v)}</Tag>},{title:'敏感',dataIndex:'sensitive',width:80,render:(v)=><Tag color={v?'red':'green'}>{String(v)}</Tag>},{title:'来源',dataIndex:'source',width:240}]} scroll={{ x: 1100, y: 480 }} locale={{ emptyText: <EmptyState text="未读取到系统配置。" /> }} /></Section>
-    <Section title="安全说明"><Descriptions bordered size="small" column={2} items={[{key:'1',label:'产物目录',children:summary.artifactRoot},{key:'2',label:'最新任务时间',children:summary.latestRunAt || '-'},{key:'3',label:'密钥展示策略',children:'不显示 .env/token/secret/key 明文；本地 API 配置文件已加入 .gitignore'},{key:'4',label:'交易安全',children:'orderSubmit/liveTrading 固定为 false'}]} /></Section>
+    <Section title="安全说明"><Descriptions bordered size="small" column={2} items={[{key:'1',label:'产物目录',children:summary.artifactRoot},{key:'2',label:'已启用 API 配置',children:String(summary.enabledApiConfigCount)},{key:'3',label:'密钥展示策略',children:'不显示 .env/token/secret/key 明文；本地 API 配置文件已加入 .gitignore'},{key:'4',label:'交易安全',children:'orderSubmit/liveTrading 固定为 false'}]} /></Section>
   </div>;
 }
 
