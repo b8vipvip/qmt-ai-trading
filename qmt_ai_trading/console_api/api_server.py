@@ -67,7 +67,10 @@ def _task_history(limit=50):
     return payload(
         status='READY',
         feature_status='TASK_HISTORY_READY',
-        history_mode='in_memory_current_api_process',
+        history_mode=getattr(STORE, 'history_mode', 'in_memory_current_api_process'),
+        history_path=getattr(STORE, 'history_path', None),
+        history_load_error=getattr(STORE, 'load_error', None),
+        history_persist_error=getattr(STORE, 'last_persist_error', None),
         run_count=len(runs),
         total_run_count=len(all_runs),
         success_count=success_count,
