@@ -125,6 +125,9 @@ if ($apiOk) {
   $history = Invoke-RestMethod "$ApiBase/tasks/history" -TimeoutSec 10
   Assert-Ok ($history.status -eq "READY") "task history endpoint reports READY"
   Assert-Ok ($null -ne $history.runs) "task history endpoint exposes runs array"
+  Assert-Ok ($history.history_mode -eq "persistent_json_file") "task history uses persistent json file mode"
+  Assert-Ok (($null -ne $history.history_path) -and ($history.history_path -like "*task_history.json")) "task history exposes persistent json path"
+  Assert-Ok ($null -eq $history.history_persist_error) "task history has no persist error"
 
   $catalog = Invoke-RestMethod "$ApiBase/tasks/catalog" -TimeoutSec 10
   $taskIds = @($catalog.tasks | ForEach-Object { $_.task_id })
