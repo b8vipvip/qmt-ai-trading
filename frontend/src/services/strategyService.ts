@@ -1,5 +1,20 @@
 import { holdings, orders, strategies } from '../mock/mockData';
-const wait = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
-export async function getStrategyList() { await wait(); return strategies; }
-export async function getStrategyDetail(id: string) { await wait(); return { strategy: strategies.find((item) => item.id === id) ?? strategies[0], holdings: holdings.slice(0, 12), rebalanceOrders: orders.slice(0, 8) }; }
-export async function getRebalancePlan() { await wait(); return { holdings: holdings.slice(0, 16), orders: orders.slice(0, 10), riskPassed: false, notice: '调仓计划只进入风控闸门，不直接下单。' }; }
+import { apiOrMock } from './apiClient';
+
+export function getStrategyList() {
+  return apiOrMock('/strategies/list', strategies);
+}
+
+export async function getStrategyDetail(id: string) {
+  const list = await getStrategyList();
+  return {
+    strategy: list.find((item) => item.id === id) ?? list[0] ?? strategies[0],
+    holdings: holdings.slice(0, 12),
+    rebalanceOrders: orders.slice(0, 8),
+  };
+}
+
+export async function getRebalancePlan() {
+  const backendOrders = await apiOrMock('/execution/orders', orders.slice(0, 10));
+  return { holdings: holdings.slice(0, 16), orders: backendOrders, riskPassed: false, notice: '调仓计划只进入风控闸门，不直接下单。' };
+}
