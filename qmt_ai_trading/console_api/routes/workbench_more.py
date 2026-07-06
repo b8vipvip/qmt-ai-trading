@@ -9,9 +9,9 @@ def risk_overview():
     return payload(status='READY', source='backend_adapter', data=overview.get('riskOverview', {}))
 
 
-def backtest_tasks():
+def _latest_backtest_task():
     replay = read_json('backtest', 'shadow_replay_latest.json', {})
-    task = {
+    return {
         'id': 'shadow-replay-latest',
         'name': 'Shadow Replay latest',
         'strategy': 'console_shadow_replay',
@@ -23,11 +23,17 @@ def backtest_tasks():
         'createdAt': replay.get('created_at', '') if isinstance(replay, dict) else '',
         'cost': '',
     }
+
+
+def backtest_tasks():
+    task = _latest_backtest_task()
     return payload(status='READY', source='backtest_artifacts', data=[task] if task['status'] != 'DATA_MISSING' else [])
 
 
 def backtest_report():
-    return payload(status='READY', source='synthetic_until_backtest_report_connected', data={'curve': workbench._curve(), 'metrics': {}})
+    task = _latest_backtest_task()
+    data = {'task': task, 'curve': workbench._curve(), 'metrics': {'annualReturn': 0, 'maxDrawdown': 0, 'sharpe': 0, 'calmar': 0, 'winRate': 0, 'profitLossRatio': 0, 'turnover': 0, 'trades': 0, 'excessReturn': 0}, 'positions': [], 'trades': []}
+    return payload(status='READY', source='synthetic_until_backtest_report_connected', data=data)
 
 
 def monitoring_realtime():
