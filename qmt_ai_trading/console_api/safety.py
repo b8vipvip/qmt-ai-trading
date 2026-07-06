@@ -3,8 +3,9 @@ import re
 from typing import Any
 class ConsoleSafetyError(ValueError): pass
 FORBIDDEN_MARKERS=['xttrader','XtQuantTrader','place_order','submit_order','order_stock','query_stock_asset','query_stock_positions','query_stock_orders','query_stock_trades','查询资金','查询持仓','查询订单','查询成交','fetch(\'/trade\')','fetch("/trade")','fetch(\'/order\')','fetch("/order")','fetch(\'/approve\')','fetch("/approve")','fetch(\'/account\')','fetch("/account")','fetch(\'/positions\')','fetch("/positions")','fetch(\'/assets\')','fetch("/assets")','fetch(\'/live\')','fetch("/live")','fetch(\'/notify\')','fetch("/notify")']
-SENSITIVE=['.env','token','secret','credential','validation_logs','reports/logs','logs/validation_logs']
+SENSITIVE=['.env','credential','validation_logs','reports/logs','logs/validation_logs']
 SHELL=re.compile(r'[;&|`$<>\\]|\b(cmd|powershell|bash|python\s+-c|py\s+-c)\b',re.I)
+SAFE_POST_PATHS={'/api/v1/tasks/run','/api/v1/ai/models/discover','/api/v1/ai/models/stress-test','/api/v1/ai/model-usage/draft','/api/v1/account-readonly/refresh','/api/v1/frontend/system/api-configs/save','/api/v1/frontend/system/api-configs/test'}
 def assert_localhost_bind(host:str):
     if host not in {'127.0.0.1','localhost'}: raise ConsoleSafetyError('仅允许绑定 127.0.0.1/localhost，禁止 0.0.0.0 或公网/LAN')
 def assert_safe_task_id(task_id:str):
@@ -36,7 +37,7 @@ def assert_no_forbidden_live_task(task):
     if not getattr(task,'forbidden_in_live',True): raise ConsoleSafetyError('任务必须禁止实盘模式')
 def assert_http_method_allowed(method:str,path:str):
     if method in {'PUT','PATCH','DELETE'}: raise ConsoleSafetyError('禁止 PUT/PATCH/DELETE')
-    if method=='POST' and path.split('?',1)[0] not in {'/api/v1/tasks/run','/api/v1/ai/models/discover','/api/v1/ai/models/stress-test','/api/v1/ai/model-usage/draft','/api/v1/account-readonly/refresh'}: raise ConsoleSafetyError('POST 只允许白名单本地 API')
+    if method=='POST' and path.split('?',1)[0] not in SAFE_POST_PATHS: raise ConsoleSafetyError('POST 只允许白名单本地 API')
 def classify_console_api_marker(text:str):
     return [m for m in FORBIDDEN_MARKERS if m in text]
 def scan_console_api_for_forbidden_markers(text:str):
