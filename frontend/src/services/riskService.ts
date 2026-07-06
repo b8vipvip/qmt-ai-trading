@@ -1,6 +1,18 @@
 import { riskEvents, riskOverview, riskRules } from '../mock/mockData';
-const wait = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
-export async function getRiskOverview() { await wait(); return riskOverview; }
-export async function getRiskRules() { await wait(); return riskRules; }
-export async function getRiskEvents() { await wait(); return riskEvents; }
-export async function executeDangerActionMock(action: string) { await wait(240); return { ok: true, action, dryRun: true, message: '危险操作只完成 UI 保护验证，未连接实盘接口。' }; }
+import { apiOrMock, postMockAction } from './apiClient';
+
+export function getRiskOverview() {
+  return apiOrMock('/risk/overview', riskOverview);
+}
+
+export function getRiskRules() {
+  return apiOrMock('/risk/rules', riskRules);
+}
+
+export function getRiskEvents() {
+  return apiOrMock('/risk/events', riskEvents);
+}
+
+export function executeDangerActionMock(action: string) {
+  return postMockAction('/actions/risk', { action });
+}
