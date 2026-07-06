@@ -9,6 +9,23 @@ def risk_overview():
     return payload(status='READY', source='backend_adapter', data=overview.get('riskOverview', {}))
 
 
+def order_plan():
+    rows = []
+    for row in workbench.order_plan().get('data', []):
+        raw_side = row.get('side')
+        risk_text = str(row.get('riskDecision') or row.get('riskCheck') or '')
+        rows.append({
+            **row,
+            'side': '卖出' if str(raw_side).upper() == 'SELL' else '买入',
+            'rawSide': raw_side,
+            'riskCheck': 'PASS' if 'PASS' in risk_text.upper() else 'LOW',
+            'riskDecision': risk_text,
+            'businessStatus': row.get('status') or '',
+            'previewOnly': True,
+        })
+    return payload(status='READY', source='portfolio_preview', data=rows)
+
+
 def _latest_backtest_task():
     replay = read_json('backtest', 'shadow_replay_latest.json', {})
     return {
