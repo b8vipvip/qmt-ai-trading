@@ -3,7 +3,7 @@ import re
 from typing import Any
 class ConsoleSafetyError(ValueError): pass
 FORBIDDEN_MARKERS=['xttrader','XtQuantTrader','place_order','submit_order','order_stock','query_stock_asset','query_stock_positions','query_stock_orders','query_stock_trades','查询资金','查询持仓','查询订单','查询成交','fetch(\'/trade\')','fetch("/trade")','fetch(\'/order\')','fetch("/order")','fetch(\'/approve\')','fetch("/approve")','fetch(\'/account\')','fetch("/account")','fetch(\'/positions\')','fetch("/positions")','fetch(\'/assets\')','fetch("/assets")','fetch(\'/live\')','fetch("/live")','fetch(\'/notify\')','fetch("/notify")']
-SENSITIVE=['.env','credential','validation_logs','reports/logs','logs/validation_logs']
+SENSITIVE=['.env','token','secret','credential','validation_logs','reports/logs','logs/validation_logs']
 SHELL=re.compile(r'[;&|`$<>\\]|\b(cmd|powershell|bash|python\s+-c|py\s+-c)\b',re.I)
 SAFE_POST_PATHS={'/api/v1/tasks/run','/api/v1/ai/models/discover','/api/v1/ai/models/stress-test','/api/v1/ai/model-usage/draft','/api/v1/account-readonly/refresh','/api/v1/frontend/system/api-configs/save','/api/v1/frontend/system/api-configs/test'}
 def assert_localhost_bind(host:str):
