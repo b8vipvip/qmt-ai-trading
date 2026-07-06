@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import Any
 from .common import CONSOLE, payload, read_json
 from . import workbench_task_history
@@ -68,7 +69,7 @@ def quality_overview():
 def task_catalog():
     try:
         from qmt_ai_trading.console_api.task_registry import list_tasks
-        tasks = [t.to_dict() for t in list_tasks()]
+        tasks = [asdict(t) for t in list_tasks()]
     except Exception:
         tasks = []
     return payload(status='READY', source='task_registry', data=tasks)
