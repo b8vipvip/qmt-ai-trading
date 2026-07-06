@@ -1,21 +1,17 @@
 import {
-  AlertOutlined,
-  ApiOutlined,
-  AreaChartOutlined,
   BarChartOutlined,
   BuildOutlined,
-  CloudServerOutlined,
   DashboardOutlined,
   DatabaseOutlined,
   DeploymentUnitOutlined,
   ExperimentOutlined,
-  FundProjectionScreenOutlined,
   RadarChartOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
   StockOutlined,
 } from '@ant-design/icons';
 import { BacktestPage, DashboardPage, DataCenterPage, DeploymentPage, ExecutionPage, FactorsPage, MonitoringPage, RiskCenterPage, SettingsPage, StrategiesPage } from '../pages';
+import { MarketDataPage } from '../pages/MarketDataPage';
 
 export interface AppRoute {
   path: string;
@@ -27,8 +23,8 @@ export interface AppRoute {
 
 export const routes: AppRoute[] = [
   { path: '/dashboard', label: '总览仪表盘', icon: <DashboardOutlined />, element: <DashboardPage /> },
-  { path: '/data', label: '数据中心', icon: <DatabaseOutlined />, element: <DataCenterPage />, children: [
-    { path: '/data/market', label: '行情数据', element: <DataCenterPage /> }, { path: '/data/fundamental', label: '基本面数据', element: <DataCenterPage /> }, { path: '/data/news', label: '公告新闻', element: <DataCenterPage /> }, { path: '/data/quality', label: '数据质量', element: <DataCenterPage /> }, { path: '/data/tasks', label: '数据任务', element: <DataCenterPage /> },
+  { path: '/data', label: '数据中心', icon: <DatabaseOutlined />, element: <MarketDataPage />, children: [
+    { path: '/data/market', label: '行情数据', element: <MarketDataPage /> }, { path: '/data/fundamental', label: '基本面数据', element: <DataCenterPage /> }, { path: '/data/news', label: '公告新闻', element: <DataCenterPage /> }, { path: '/data/quality', label: '数据质量', element: <DataCenterPage /> }, { path: '/data/tasks', label: '数据任务', element: <DataCenterPage /> },
   ] },
   { path: '/factors', label: '因子研究', icon: <ExperimentOutlined />, element: <FactorsPage />, children: [
     { path: '/factors/library', label: '因子库', element: <FactorsPage /> }, { path: '/factors/calc', label: '因子计算', element: <FactorsPage /> }, { path: '/factors/ic', label: 'IC 分析', element: <FactorsPage /> }, { path: '/factors/layer', label: '分层收益', element: <FactorsPage /> }, { path: '/factors/combo', label: '因子组合', element: <FactorsPage /> },
