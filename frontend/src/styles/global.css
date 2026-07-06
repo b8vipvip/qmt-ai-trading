@@ -32,18 +32,19 @@ body { margin: 0; background: var(--bg); font-family: Inter, -apple-system, Blin
 .page-grid { display: grid; gap: 16px; }
 .section-card, .metric-card, .source-card, .risk-gauge, .stage-card, .risk-kpi { border: 1px solid var(--border) !important; background: linear-gradient(180deg, rgba(15,23,42,.88), rgba(10,18,32,.78)) !important; box-shadow: 0 12px 32px rgba(0,0,0,.18); }
 .light .section-card, .light .metric-card, .light .source-card, .light .risk-gauge, .light .stage-card, .light .risk-kpi { background: #fff !important; }
-.metric-card { height: 156px; overflow: hidden; }
+.metric-card { height: 164px; overflow: hidden; }
 .metric-head, .metric-foot { display: flex; align-items: center; justify-content: space-between; color: var(--muted); }
 .metric-value { margin: 18px 0 10px; font-size: 30px; font-weight: 800; color: var(--text); }
 .light .metric-value, .light .page-title h1 { color: #152033; }
 .sparkline { width: 98px; height: 30px; color: var(--cyan); opacity: .9; }
 .up { color: #ff6b81; font-weight: 700; }
 .down { color: #2ed889; font-weight: 700; }
+.muted { color: var(--muted); }
 .chart { width: 100%; height: 420px; }
 .chart.small { height: 280px; }
 .event-log-panel { display: grid; gap: 8px; max-height: 360px; overflow: auto; }
-.event-line { display: grid; grid-template-columns: 90px 88px 1fr; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: rgba(15, 23, 42, .42); }
-.event-line p { margin: 0; color: var(--text); }
+.event-line { display: grid; grid-template-columns: 110px 100px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: rgba(15, 23, 42, .42); }
+.event-line p { margin: 0; color: var(--text); min-width: 0; }
 .event-line span:first-child { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 .risk-gauge { height: 112px; }
 .risk-kpi b { display: block; margin-top: 10px; font-size: 22px; }
@@ -54,6 +55,8 @@ body { margin: 0; background: var(--bg); font-family: Inter, -apple-system, Blin
 .event-footer details { border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; background: rgba(15,23,42,.68); }
 .event-footer summary { cursor: pointer; color: var(--muted); }
 .ant-table { border-radius: 12px; overflow: hidden; }
+.ant-table-cell .ant-tag { margin-inline-end: 0; }
+.ant-empty-description { color: var(--muted) !important; }
 .ant-menu { background: transparent !important; }
 .ant-layout-sider-collapsed .brand span { display: none; }
 @media (max-width: 1366px) {
