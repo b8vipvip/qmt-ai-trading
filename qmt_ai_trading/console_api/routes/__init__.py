@@ -1,4 +1,4 @@
-from . import workflow,datahub,research,strategy,risk,agent,paper,approval,account_readonly,market,safety,monitoring,backtest,portfolio,workbench,workbench_more,workbench_task_history,workbench_market
+from . import workflow,datahub,research,strategy,risk,agent,paper,approval,account_readonly,market,safety,monitoring,backtest,portfolio,workbench,workbench_more,workbench_task_history,workbench_market,workbench_data_pages
 ROUTES={
 '/api/v1/console/bootstrap': workflow.bootstrap, '/api/v1/workflow/status': workflow.status, '/api/v1/workflow/feature-matrix': workflow.feature_matrix,
 '/api/v1/datahub/status': datahub.status, '/api/v1/datahub/symbols': datahub.symbols, '/api/v1/datahub/cache/status': datahub.cache_status, '/api/v1/datahub/market/latest': datahub.market_latest,
@@ -14,7 +14,7 @@ ROUTES={
 '/api/v1/portfolio/status': portfolio.status, '/api/v1/portfolio/order-preview/latest': portfolio.preview, '/api/v1/portfolio/budget/latest': portfolio.budget,
 '/api/v1/safety/status': safety.status, '/api/v1/live/status': safety.live, '/api/v1/market/xtdata-live/status': market.xtdata_status,
 '/api/v1/frontend/dashboard/overview': workbench.dashboard_overview, '/api/v1/frontend/dashboard/strategies': workbench.dashboard_strategies, '/api/v1/frontend/dashboard/equity-curve': workbench.dashboard_equity_curve, '/api/v1/frontend/dashboard/events': workbench_task_history.dashboard_events,
-'/api/v1/frontend/data/sources': workbench.data_sources, '/api/v1/frontend/data/quality': workbench.data_quality, '/api/v1/frontend/data/tasks': workbench_task_history.data_tasks, '/api/v1/frontend/data/market-quotes': workbench_market.market_quotes, '/api/v1/frontend/data/market-summary': workbench_market.market_summary,
+'/api/v1/frontend/data/sources': workbench.data_sources, '/api/v1/frontend/data/quality': workbench.data_quality, '/api/v1/frontend/data/tasks': workbench_task_history.data_tasks, '/api/v1/frontend/data/market-quotes': workbench_market.market_quotes, '/api/v1/frontend/data/market-summary': workbench_market.market_summary, '/api/v1/frontend/data/fundamental-sources': workbench_data_pages.fundamental_sources, '/api/v1/frontend/data/fundamental-records': workbench_data_pages.fundamental_records, '/api/v1/frontend/data/news-items': workbench_data_pages.news_items, '/api/v1/frontend/data/quality-overview': workbench_data_pages.quality_overview, '/api/v1/frontend/data/task-catalog': workbench_data_pages.task_catalog,
 '/api/v1/frontend/factors/list': workbench.factor_list, '/api/v1/frontend/strategies/list': workbench.strategy_list,
 '/api/v1/frontend/deployment/stages': workbench.deployment_stages,
 '/api/v1/frontend/execution/holdings': workbench.holdings, '/api/v1/frontend/execution/orders': workbench.order_plan, '/api/v1/frontend/execution/trades': workbench.trades,
