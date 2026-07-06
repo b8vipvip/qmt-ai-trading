@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 from .common import CONSOLE, payload, read_json
+from . import workbench_api_config
 
 
 def _artifact_path(module: str, name: str) -> str:
@@ -83,6 +83,7 @@ def api_status():
         {'name': 'Task Runner', 'endpoint': '/api/v1/tasks/run', 'status': 'READY', 'method': 'POST', 'source': 'qmt_ai_trading/console_api/task_runner.py'},
         {'name': 'Task Catalog', 'endpoint': '/api/v1/tasks/catalog', 'status': 'READY', 'method': 'GET', 'source': 'qmt_ai_trading/console_api/task_registry.py'},
         {'name': 'Task History', 'endpoint': '/api/v1/tasks/history', 'status': 'READY', 'method': 'GET', 'source': _artifact_path('task_history', 'task_history.json')},
+        {'name': 'External API Configs', 'endpoint': '/api/v1/frontend/system/api-configs', 'status': 'READY', 'method': 'GET/POST', 'source': 'qmt_ai_trading/console_api/routes/workbench_api_config.py'},
         {'name': 'Frontend Adapter Routes', 'endpoint': '/api/v1/frontend/*', 'status': 'READY', 'method': 'GET', 'source': 'qmt_ai_trading/console_api/routes/workbench_*.py'},
     ]
     return payload(status='READY', source='registered_routes', route_count=route_count, routes=routes, data=rows)
@@ -91,49 +92,19 @@ def api_status():
 def audit_logs():
     rows = []
     for run in _task_history()[:200]:
-        rows.append({
-            'time': run.get('finished_at') or run.get('started_at') or '',
-            'user': 'local_operator',
-            'module': run.get('category') or '',
-            'operation': run.get('task_name') or run.get('task_id') or '',
-            'paramsSummary': json.dumps(run.get('params') or {}, ensure_ascii=False)[:260],
-            'ip': '127.0.0.1',
-            'result': run.get('status') or '',
-            'runId': run.get('run_id'),
-            'sourcePath': _artifact_path('task_history', 'task_history.json'),
-        })
+        rows.append({'time': run.get('finished_at') or run.get('started_at') or '', 'user': 'local_operator', 'module': run.get('category') or '', 'operation': run.get('task_name') or run.get('task_id') or '', 'paramsSummary': json.dumps(run.get('params') or {}, ensure_ascii=False)[:260], 'ip': '127.0.0.1', 'result': run.get('status') or '', 'runId': run.get('run_id'), 'sourcePath': _artifact_path('task_history', 'task_history.json')})
     return payload(status='READY', source='task_history_audit', data=rows)
 
 
 def permission_matrix():
     rows = []
     for task in _task_catalog():
-        rows.append({
-            'id': task.get('task_id'),
-            'name': task.get('title_zh'),
-            'category': task.get('category'),
-            'safeMode': bool(task.get('safe_mode')),
-            'dryRunOnly': bool(task.get('dry_run_only')),
-            'requiresHumanApproval': bool(task.get('requires_human_approval')),
-            'forbiddenInLive': bool(task.get('forbidden_in_live')),
-            'commandAdapter': task.get('command_adapter'),
-            'outputArtifacts': task.get('output_artifacts') or [],
-            'canRunFromFrontend': bool(task.get('safe_mode')) and bool(task.get('dry_run_only')),
-            'sourcePath': 'qmt_ai_trading/console_api/task_registry.py',
-        })
+        rows.append({'id': task.get('task_id'), 'name': task.get('title_zh'), 'category': task.get('category'), 'safeMode': bool(task.get('safe_mode')), 'dryRunOnly': bool(task.get('dry_run_only')), 'requiresHumanApproval': bool(task.get('requires_human_approval')), 'forbiddenInLive': bool(task.get('forbidden_in_live')), 'commandAdapter': task.get('command_adapter'), 'outputArtifacts': task.get('output_artifacts') or [], 'canRunFromFrontend': bool(task.get('safe_mode')) and bool(task.get('dry_run_only')), 'sourcePath': 'qmt_ai_trading/console_api/task_registry.py'})
     return payload(status='READY', source='task_registry_permissions', data=rows)
 
 
 def system_summary():
     history = _task_history()
     catalog = _task_catalog()
-    return payload(status='READY', source='system_summary', data={
-        'artifactRoot': CONSOLE.as_posix(),
-        'taskCount': len(catalog),
-        'historyCount': len(history),
-        'latestRunAt': (history[0].get('finished_at') if history else ''),
-        'liveTradingEnabled': False,
-        'orderSubmitEnabled': False,
-        'orderCancelEnabled': False,
-        'sourcePath': _artifact_path('task_history', 'task_history.json'),
-    })
+    api_configs = workbench_api_config._load()
+    return payload(status='READY', source='system_summary', data={'artifactRoot': CONSOLE.as_posix(), 'taskCount': len(catalog), 'historyCount': len(history), 'apiConfigCount': len(api_configs), 'enabledApiConfigCount': sum(1 for x in api_configs if x.get('enabled')), 'latestRunAt': (history[0].get('finished_at') if history else ''), 'liveTradingEnabled': False, 'orderSubmitEnabled': False, 'orderCancelEnabled': False, 'sourcePath': _artifact_path('task_history', 'task_history.json')})
