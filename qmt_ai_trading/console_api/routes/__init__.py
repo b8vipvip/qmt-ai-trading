@@ -1,4 +1,4 @@
-from . import workflow,datahub,research,strategy,risk,agent,paper,approval,account_readonly,market,safety,monitoring,backtest,portfolio,workbench
+from . import workflow,datahub,research,strategy,risk,agent,paper,approval,account_readonly,market,safety,monitoring,backtest,portfolio,workbench,workbench_more
 ROUTES={
 '/api/v1/console/bootstrap': workflow.bootstrap, '/api/v1/workflow/status': workflow.status, '/api/v1/workflow/feature-matrix': workflow.feature_matrix,
 '/api/v1/datahub/status': datahub.status, '/api/v1/datahub/symbols': datahub.symbols, '/api/v1/datahub/cache/status': datahub.cache_status, '/api/v1/datahub/market/latest': datahub.market_latest,
@@ -20,4 +20,6 @@ ROUTES={
 '/api/v1/frontend/execution/holdings': workbench.holdings, '/api/v1/frontend/execution/orders': workbench.order_plan, '/api/v1/frontend/execution/trades': workbench.trades,
 '/api/v1/frontend/risk/overview': workbench.risk_overview, '/api/v1/frontend/risk/rules': workbench.risk_rules, '/api/v1/frontend/risk/events': workbench.risk_events,
 '/api/v1/frontend/system/api-status': workbench.api_status,
+'/api/v1/frontend/backtest/tasks': workbench_more.backtest_tasks, '/api/v1/frontend/backtest/report': workbench_more.backtest_report,
+'/api/v1/frontend/monitoring/realtime': workbench_more.monitoring_realtime, '/api/v1/frontend/monitoring/attribution': workbench_more.monitoring_attribution, '/api/v1/frontend/monitoring/execution-quality': workbench_more.monitoring_execution_quality, '/api/v1/frontend/monitoring/daily-review': workbench_more.monitoring_daily_review,
 }
