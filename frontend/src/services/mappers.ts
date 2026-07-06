@@ -26,7 +26,11 @@ function str(value: unknown, fallback = ''): string {
   return String(value);
 }
 
-function arr<T = any>(value: unknown): T[] {
+function arrayOrNull<T = any>(value: unknown): T[] | null {
+  return Array.isArray(value) ? value as T[] : null;
+}
+
+function arrayValue<T = any>(value: unknown): T[] {
   return Array.isArray(value) ? value as T[] : [];
 }
 
@@ -58,14 +62,15 @@ export function riskCheckName(value: unknown): OrderRow['riskCheck'] {
 }
 
 export function mapMetrics(data: any, fallback: MetricItem[] = []): MetricItem[] {
-  const rows = arr<any>(data?.metrics ?? data);
-  if (!rows.length) return fallback;
+  const input = data?.metrics ?? data;
+  const rows = arrayOrNull<any>(input);
+  if (!rows) return fallback;
   return rows.map((m) => ({
     title: str(m.title ?? m.name),
     value: m.value ?? '',
     change: str(m.change ?? m.delta ?? ''),
     status: statusKind(m.status),
-    trend: arr<number>(m.trend).map((x) => num(x)),
+    trend: arrayValue<number>(m.trend).map((x) => num(x)),
     source: m.source,
   }));
 }
@@ -101,8 +106,8 @@ export function mapDashboardOverview(data: any, fallback: any) {
 }
 
 export function mapStrategyStatusList(data: any, fallback: StrategyStatus[] = []): StrategyStatus[] {
-  const rows = arr<any>(data);
-  if (!rows.length) return fallback;
+  const rows = arrayOrNull<any>(data);
+  if (!rows) return fallback;
   return rows.map((row, i) => {
     const rawStatus = str(row.status).toUpperCase();
     return {
@@ -130,8 +135,8 @@ export function mapStrategyStatusList(data: any, fallback: StrategyStatus[] = []
 }
 
 export function mapEquityCurve(data: any, fallback: EquityPoint[] = []): EquityPoint[] {
-  const rows = arr<any>(data);
-  if (!rows.length) return fallback;
+  const rows = arrayOrNull<any>(data);
+  if (!rows) return fallback;
   return rows.map((row) => ({
     date: str(row.date ?? row.time),
     equity: num(row.equity ?? row.nav ?? row.total_value),
@@ -141,8 +146,8 @@ export function mapEquityCurve(data: any, fallback: EquityPoint[] = []): EquityP
 }
 
 export function mapSystemEvents(data: any, fallback: SystemEvent[] = []): SystemEvent[] {
-  const rows = arr<any>(data);
-  if (!rows.length) return fallback;
+  const rows = arrayOrNull<any>(data);
+  if (!rows) return fallback;
   return rows.map((row, i) => ({
     id: str(row.id ?? row.run_id ?? `event-${i + 1}`),
     time: str(row.time ?? row.finished_at ?? row.started_at),
@@ -156,8 +161,8 @@ export function mapSystemEvents(data: any, fallback: SystemEvent[] = []): System
 }
 
 export function mapDataSources(data: any, fallback: DataSourceStatus[] = []): DataSourceStatus[] {
-  const rows = arr<any>(data);
-  if (!rows.length) return fallback;
+  const rows = arrayOrNull<any>(data);
+  if (!rows) return fallback;
   return rows.map((row) => ({
     name: str(row.name ?? row.dataset ?? row.source),
     status: statusKind(row.status),
@@ -173,8 +178,8 @@ export function mapDataSources(data: any, fallback: DataSourceStatus[] = []): Da
 }
 
 export function mapDataQualityRows(data: any, fallback: DataQualityRow[] = []): DataQualityRow[] {
-  const rows = arr<any>(data);
-  if (!rows.length) return fallback;
+  const rows = arrayOrNull<any>(data);
+  if (!rows) return fallback;
   return rows.map((row) => ({
     dataset: str(row.dataset ?? row.name),
     tradeDate: str(row.tradeDate ?? row.trade_date ?? row.date),
@@ -188,8 +193,8 @@ export function mapDataQualityRows(data: any, fallback: DataQualityRow[] = []): 
 }
 
 export function mapDataTasks(data: any, fallback: DataTaskRow[] = []): DataTaskRow[] {
-  const rows = arr<any>(data);
-  if (!rows.length) return fallback;
+  const rows = arrayOrNull<any>(data);
+  if (!rows) return fallback;
   return rows.map((row) => ({
     name: str(row.name ?? row.task_name ?? row.task_id),
     type: str(row.type ?? row.category),
@@ -203,8 +208,8 @@ export function mapDataTasks(data: any, fallback: DataTaskRow[] = []): DataTaskR
 }
 
 export function mapFactorRows(data: any, fallback: FactorRow[] = []): FactorRow[] {
-  const rows = arr<any>(data);
-  if (!rows.length) return fallback;
+  const rows = arrayOrNull<any>(data);
+  if (!rows) return fallback;
   return rows.map((row, i) => ({
     id: str(row.id ?? row.factor_id ?? row.symbol ?? `factor-${i + 1}`),
     name: str(row.name ?? row.factor_name ?? row.symbol ?? '因子评分'),
@@ -226,8 +231,8 @@ export function mapFactorRows(data: any, fallback: FactorRow[] = []): FactorRow[
 }
 
 export function mapHoldingRows(data: any, fallback: HoldingRow[] = []): HoldingRow[] {
-  const rows = arr<any>(data);
-  if (!rows.length) return fallback;
+  const rows = arrayOrNull<any>(data);
+  if (!rows) return fallback;
   return rows.map((row, i) => ({
     code: str(row.code ?? row.symbol ?? `POS-${i + 1}`),
     name: str(row.name ?? row.symbol ?? row.code ?? ''),
@@ -244,8 +249,8 @@ export function mapHoldingRows(data: any, fallback: HoldingRow[] = []): HoldingR
 }
 
 export function mapOrderRows(data: any, fallback: OrderRow[] = []): OrderRow[] {
-  const rows = arr<any>(data);
-  if (!rows.length) return fallback;
+  const rows = arrayOrNull<any>(data);
+  if (!rows) return fallback;
   return rows.map((row) => {
     const riskDecision = row.riskDecision ?? row.riskCheck ?? row.risk_decision ?? row.risk_check ?? '';
     const price = num(row.price ?? row.latestPrice ?? row.latest_price);
@@ -279,8 +284,8 @@ export function mapOrderRows(data: any, fallback: OrderRow[] = []): OrderRow[] {
 }
 
 export function mapRiskRules(data: any, fallback: RiskRule[] = []): RiskRule[] {
-  const rows = arr<any>(data);
-  if (!rows.length) return fallback;
+  const rows = arrayOrNull<any>(data);
+  if (!rows) return fallback;
   return rows.map((row) => ({
     id: str(row.id ?? row.rule_id ?? row.name),
     name: str(row.name ?? row.rule_name),
@@ -296,8 +301,8 @@ export function mapRiskRules(data: any, fallback: RiskRule[] = []): RiskRule[] {
 }
 
 export function mapRiskEvents(data: any, fallback: RiskEvent[] = []): RiskEvent[] {
-  const rows = arr<any>(data);
-  if (!rows.length) return fallback;
+  const rows = arrayOrNull<any>(data);
+  if (!rows) return fallback;
   return rows.map((row, i) => ({
     id: str(row.id ?? row.intent_id ?? row.event_id ?? `risk-${i + 1}`),
     time: str(row.time ?? row.created_at),
@@ -314,8 +319,8 @@ export function mapRiskEvents(data: any, fallback: RiskEvent[] = []): RiskEvent[
 }
 
 export function mapBacktestTasks(data: any, fallback: BacktestTask[] = []): BacktestTask[] {
-  const rows = arr<any>(data);
-  if (!rows.length) return fallback;
+  const rows = arrayOrNull<any>(data);
+  if (!rows) return fallback;
   return rows.map((row, i) => ({
     id: str(row.id ?? row.task_id ?? `backtest-${i + 1}`),
     name: str(row.name ?? row.task_name ?? 'Backtest Task'),
