@@ -85,14 +85,14 @@ $reactServiceFiles = @(
   "frontend\src\services\strategyService.ts",
   "frontend\src\services\marketDataService.ts",
   "frontend\src\services\dataPagesService.ts",
+  "frontend\src\services\systemManagementService.ts",
   "frontend\src\pages\MarketDataPage.tsx",
-  "frontend\src\pages\DataSubPages.tsx"
+  "frontend\src\pages\DataSubPages.tsx",
+  "frontend\src\pages\SystemManagementPages.tsx"
 )
 
 foreach ($file in $reactServiceFiles) {
-  if (Test-Path $file) {
-    Assert-Ok $true "react service file exists: $file"
-  }
+  Assert-Ok (Test-Path $file) "react service/page file exists: $file"
 }
 
 if (Test-Path "frontend\src\services\mappers.ts") {
@@ -168,6 +168,10 @@ if ($apiOk) {
     "/frontend/execution/orders",
     "/frontend/risk/rules",
     "/frontend/system/api-status",
+    "/frontend/system/config",
+    "/frontend/system/audit-logs",
+    "/frontend/system/permissions",
+    "/frontend/system/summary",
     "/frontend/data/market-summary",
     "/frontend/data/market-quotes",
     "/frontend/data/fundamental-sources",
@@ -181,6 +185,10 @@ if ($apiOk) {
     $res = Invoke-RestMethod "$ApiBase$ep" -TimeoutSec 10
     Assert-Ok (($res.ok -eq $true) -and ($null -ne $res.data)) "frontend adapter endpoint exposes data: $ep"
   }
+
+  $systemSummary = Invoke-RestMethod "$ApiBase/frontend/system/summary" -TimeoutSec 10
+  Assert-Ok ($systemSummary.data.liveTradingEnabled -eq $false) "system summary keeps liveTradingEnabled false"
+  Assert-Ok ($systemSummary.data.orderSubmitEnabled -eq $false) "system summary keeps orderSubmitEnabled false"
 
   $catalog = Invoke-RestMethod "$ApiBase/tasks/catalog" -TimeoutSec 10
   $taskIds = @($catalog.tasks | ForEach-Object { $_.task_id })
