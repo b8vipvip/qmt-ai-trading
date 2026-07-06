@@ -18,7 +18,7 @@ ROUTES={
 '/api/v1/frontend/factors/list': workbench.factor_list, '/api/v1/frontend/strategies/list': workbench.strategy_list,
 '/api/v1/frontend/deployment/stages': workbench.deployment_stages,
 '/api/v1/frontend/execution/holdings': workbench.holdings, '/api/v1/frontend/execution/orders': workbench.order_plan, '/api/v1/frontend/execution/trades': workbench.trades,
-'/api/v1/frontend/risk/overview': workbench.risk_overview, '/api/v1/frontend/risk/rules': workbench.risk_rules, '/api/v1/frontend/risk/events': workbench.risk_events,
+'/api/v1/frontend/risk/overview': workbench_more.risk_overview, '/api/v1/frontend/risk/rules': workbench.risk_rules, '/api/v1/frontend/risk/events': workbench.risk_events,
 '/api/v1/frontend/system/api-status': workbench.api_status,
 '/api/v1/frontend/backtest/tasks': workbench_more.backtest_tasks, '/api/v1/frontend/backtest/report': workbench_more.backtest_report,
 '/api/v1/frontend/monitoring/realtime': workbench_more.monitoring_realtime, '/api/v1/frontend/monitoring/attribution': workbench_more.monitoring_attribution, '/api/v1/frontend/monitoring/execution-quality': workbench_more.monitoring_execution_quality, '/api/v1/frontend/monitoring/daily-review': workbench_more.monitoring_daily_review,
