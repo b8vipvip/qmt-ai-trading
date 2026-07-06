@@ -38,8 +38,7 @@ $KeepNames = @(
     'research', 'risk', 'strategies', 'signals',
     'shadow', 'shadow_replay', 'shadow_trading',
     'runs', 'backtest_results', 'data_tools', 'ai_tools',
-    'qmt_gateway', 'gjzqqmt',
-    'local_console_approval', 'local_console_order_preview'
+    'qmt_gateway', 'gjzqqmt'
 )
 
 $KeepFiles = @(
@@ -51,17 +50,13 @@ $KeepFiles = @(
 function Show-PostCleanupGitHint {
     Write-Host ''
     Write-Warn 'Post-cleanup Git note:'
-    Write-Host '  1) If validation passes and you want to keep the cleanup, commit only tracked deletions.'
-    Write-Host '  2) Do not commit artifacts\cleanup_archive\; it is a local safety backup.'
-    Write-Host '  3) Runtime account/report files can be restored before commit if they changed during validation.'
+    Write-Host '  1) Cleanup archive is local backup and ignored by Git.'
+    Write-Host '  2) Runtime account/report files should not be committed.'
+    Write-Host '  3) If status is clean after pull, no commit is needed locally.'
     Write-Host ''
     Write-Host 'Suggested check commands:'
     Write-Host '  git status --short'
-    Write-Host '  git restore -- artifacts/reports/stage91/account_readonly'
-    Write-Host '  git add -u'
-    Write-Host '  git status --short'
-    Write-Host '  git commit -m "chore: remove obsolete stage artifacts from root workspace"'
-    Write-Host '  .\scripts\sync_all.ps1 -Mode sync'
+    Write-Host '  powershell -ExecutionPolicy Bypass -File .\scripts\validate_local_console_workbench.ps1 -RequireApi'
 }
 
 function Is-LegacyStageDirectory($Name) {
@@ -69,6 +64,14 @@ function Is-LegacyStageDirectory($Name) {
     if ($Name -eq 'local_console_app') { return $false }
     if ($Name -match '(^|_)stage\d+($|_)') { return $true }
     if ($Name -match '^stage\d+_') { return $true }
+    if ($Name -match '^local_console_.*_stage\d+$') { return $true }
+    if ($Name -match '^local_runtime_.*_stage\d+$') { return $true }
+    return $false
+}
+
+function Is-LocalRuntimeDirectory($Name) {
+    if ($Name -eq 'qmt_data_quality_reports') { return $true }
+    if ($Name -eq 'validation_logs') { return $true }
     return $false
 }
 
@@ -81,13 +84,16 @@ function Is-LegacyRootFile($Name) {
     return $false
 }
 
-$DirCandidates = @(Get-ChildItem -LiteralPath $RepoRoot -Directory | Where-Object { Is-LegacyStageDirectory $_.Name })
+$DirCandidates = @(Get-ChildItem -LiteralPath $RepoRoot -Directory | Where-Object { (Is-LegacyStageDirectory $_.Name) -or (Is-LocalRuntimeDirectory $_.Name) })
 $FileCandidates = @(Get-ChildItem -LiteralPath $RepoRoot -File | Where-Object { Is-LegacyRootFile $_.Name })
 
 if ($IncludeCaches) {
-    $cacheNames = @('.pytest_cache', 'validation_logs')
+    $cacheNames = @('.pytest_cache')
     $extraCaches = @(Get-ChildItem -LiteralPath $RepoRoot -Directory | Where-Object { $cacheNames -contains $_.Name })
     $DirCandidates += $extraCaches
+
+    $nestedPyCaches = @(Get-ChildItem -LiteralPath $RepoRoot -Directory -Recurse -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq '__pycache__' })
+    $DirCandidates += $nestedPyCaches
 }
 
 $Candidates = @($DirCandidates + $FileCandidates | Sort-Object FullName -Unique)
@@ -109,7 +115,7 @@ Write-Host ''
 if ($Mode -eq 'plan') {
     Write-Ok 'PLAN only. No file was changed.'
     Write-Host 'Next step after manual review:'
-    Write-Host '  powershell -ExecutionPolicy Bypass -File .\scripts\cleanup_local_workspace.ps1 -Mode archive'
+    Write-Host '  powershell -ExecutionPolicy Bypass -File .\scripts\cleanup_local_workspace.ps1 -Mode archive -IncludeCaches'
     Show-PostCleanupGitHint
     exit 0
 }
