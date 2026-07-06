@@ -76,6 +76,36 @@ foreach ($text in $mustContain) {
   Assert-Ok $frontendText.Contains($text) "frontend contains token: $text"
 }
 
+$reactServiceFiles = @(
+  "frontend\src\services\apiClient.ts",
+  "frontend\src\services\mappers.ts",
+  "frontend\src\services\dashboardService.ts",
+  "frontend\src\services\executionService.ts",
+  "frontend\src\services\riskService.ts",
+  "frontend\src\services\strategyService.ts"
+)
+
+foreach ($file in $reactServiceFiles) {
+  if (Test-Path $file) {
+    Assert-Ok $true "react service file exists: $file"
+  }
+}
+
+if (Test-Path "frontend\src\services\mappers.ts") {
+  $mapperText = Get-Content "frontend\src\services\mappers.ts" -Raw
+  $mapperTokens = @(
+    "mapDashboardOverview",
+    "mapStrategyStatusList",
+    "mapOrderRows",
+    "mapRiskRules",
+    "mapRiskEvents",
+    "arrayOrNull"
+  )
+  foreach ($text in $mapperTokens) {
+    Assert-Ok $mapperText.Contains($text) "frontend mapper contains token: $text"
+  }
+}
+
 $dangerPatterns = @(
   "allow_order_submit: true",
   "allow_order_cancel: true",
@@ -128,6 +158,18 @@ if ($apiOk) {
   Assert-Ok ($history.history_mode -eq "persistent_json_file") "task history uses persistent json file mode"
   Assert-Ok (($null -ne $history.history_path) -and ($history.history_path -like "*task_history.json")) "task history exposes persistent json path"
   Assert-Ok ($null -eq $history.history_persist_error) "task history has no persist error"
+
+  $frontendEndpoints = @(
+    "/frontend/dashboard/overview",
+    "/frontend/execution/orders",
+    "/frontend/risk/rules",
+    "/frontend/system/api-status"
+  )
+
+  foreach ($ep in $frontendEndpoints) {
+    $res = Invoke-RestMethod "$ApiBase$ep" -TimeoutSec 10
+    Assert-Ok (($res.ok -eq $true) -and ($null -ne $res.data)) "frontend adapter endpoint exposes data: $ep"
+  }
 
   $catalog = Invoke-RestMethod "$ApiBase/tasks/catalog" -TimeoutSec 10
   $taskIds = @($catalog.tasks | ForEach-Object { $_.task_id })
