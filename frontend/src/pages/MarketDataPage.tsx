@@ -6,6 +6,8 @@ import { EmptyState, SourcePathTag } from '../components/common';
 import { getDataQualityRows, getDataSources } from '../services/dataService';
 import { getMarketQuotes, getMarketSummary } from '../services/marketDataService';
 import type { MarketQuoteRow, MarketSummary } from '../services/marketDataService';
+import { getApiConfigs, testApiConfig } from '../services/systemManagementService';
+import type { ApiConfigRow } from '../services/systemManagementService';
 import { runConsoleTask } from '../services/taskService';
 import type { DataQualityRow, DataSourceStatus } from '../types';
 
@@ -16,7 +18,8 @@ function useAsync<T>(loader: () => Promise<T>, fallback: T): T {
     const load = () => loader().then((v) => { if (mounted) setData(v); }).catch(() => { if (mounted) setData(fallback); });
     load();
     window.addEventListener('qmt-task-finished', load);
-    return () => { mounted = false; window.removeEventListener('qmt-task-finished', load); };
+    window.addEventListener('qmt-api-config-saved', load);
+    return () => { mounted = false; window.removeEventListener('qmt-task-finished', load); window.removeEventListener('qmt-api-config-saved', load); };
   }, []);
   return data;
 }
@@ -42,6 +45,23 @@ function TaskButton({ taskId, params, children, type }: { taskId: string; params
   return <Button size="small" type={type} loading={running} onClick={run}>{children}</Button>;
 }
 
+function ApiTestButton({ id }: { id: string }) {
+  const [loading, setLoading] = useState(false);
+  const run = async () => {
+    try {
+      setLoading(true);
+      const res = await testApiConfig(id);
+      if (res.status === 'READY') message.success(res.message);
+      else message.warning(res.message);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : String(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+  return <Button size="small" loading={loading} onClick={run}>测试连接</Button>;
+}
+
 function price(value: number) {
   return Number(value || 0).toFixed(3);
 }
@@ -61,6 +81,7 @@ export function MarketDataPage() {
   const quality = useAsync(getDataQualityRows, [] as DataQualityRow[]);
   const quotes = useAsync(getMarketQuotes, [] as MarketQuoteRow[]);
   const summary = useAsync(getMarketSummary, { quoteCount: 0, symbolCount: 0, upCount: 0, downCount: 0, flatCount: 0, latestTime: '' } as MarketSummary);
+  const apiConfigs = useAsync(getApiConfigs, [] as ApiConfigRow[]).filter((x) => x.enabled && (x.purpose === 'market' || x.purpose === 'all'));
 
   const columns: ColumnsType<MarketQuoteRow> = [
     { title: '代码', dataIndex: 'symbol', fixed: 'left', width: 130 },
@@ -80,6 +101,10 @@ export function MarketDataPage() {
   ];
 
   return <div className="page-grid">
+    <Section title="行情真实 API 配置" extra={<Tag color="green">系统管理 → API 接口维护</Tag>}>
+      <Table rowKey="id" size="small" dataSource={apiConfigs} columns={[{title:'名称',dataIndex:'name'},{title:'Provider',dataIndex:'provider',render:(v)=><Tag color="blue">{v}</Tag>},{title:'用途',dataIndex:'purpose'},{title:'Token',dataIndex:'tokenMasked',render:(v,r)=><Tag color={r.hasToken?'green':'default'}>{r.hasToken ? v : '未配置'}</Tag>},{title:'来源',dataIndex:'sourcePath',render:(v)=><SourcePathTag value={v}/>},{title:'操作',render:(_,row)=><ApiTestButton id={row.id}/>}]} scroll={{ x: 1000 }} pagination={false} locale={{ emptyText: <EmptyState text="暂无行情 API 配置；请到 系统管理 → API 接口 新增 AkShare / QMT xtdata / Tushare。" /> }} />
+    </Section>
+
     <Section title="行情数据任务" extra={<Tag color="green">只读 / dry-run / 不触发交易</Tag>}>
       <Space wrap>
         <TaskButton taskId="xtdata_live_readonly_smoke" type="primary">真实 xtdata 只读 smoke</TaskButton>
@@ -100,7 +125,7 @@ export function MarketDataPage() {
     </Section>
 
     <Section title="行情明细表" extra={<TaskButton taskId="xtdata_live_readonly_smoke">刷新行情</TaskButton>}>
-      <Table rowKey="id" size="small" dataSource={quotes} columns={columns} scroll={{ x: 1500, y: 420 }} locale={{ emptyText: <EmptyState text="暂无行情明细；点击上方真实 xtdata 只读 smoke 或只读行情快照生成 market_latest 产物。" /> }} />
+      <Table rowKey="id" size="small" dataSource={quotes} columns={columns} scroll={{ x: 1500, y: 420 }} locale={{ emptyText: <EmptyState text="暂无行情明细；点击上方真实 xtdata 只读 smoke 或配置真实行情 API 后执行采集任务。" /> }} />
     </Section>
 
     <Section title="行情数据质量">
@@ -108,7 +133,7 @@ export function MarketDataPage() {
     </Section>
 
     <Section title="接口说明">
-      <Descriptions bordered size="small" column={2} items={[{ key: '1', label: '行情明细接口', children: '/api/v1/frontend/data/market-quotes' }, { key: '2', label: '行情摘要接口', children: '/api/v1/frontend/data/market-summary' }, { key: '3', label: '原始后端接口', children: '/api/v1/datahub/market/latest' }, { key: '4', label: '产物文件', children: 'artifacts/reports/console/datahub/market_latest.json' }]} />
+      <Descriptions bordered size="small" column={2} items={[{ key: '1', label: '行情明细接口', children: '/api/v1/frontend/data/market-quotes' }, { key: '2', label: '行情摘要接口', children: '/api/v1/frontend/data/market-summary' }, { key: '3', label: 'API 配置接口', children: '/api/v1/frontend/system/api-configs' }, { key: '4', label: '产物文件', children: 'artifacts/reports/console/datahub/market_latest.json' }]} />
     </Section>
   </div>;
 }
