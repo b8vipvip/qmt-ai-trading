@@ -4,11 +4,16 @@ from .common import payload, read_json
 from . import workbench
 
 
+def risk_overview():
+    overview = workbench.dashboard_overview().get('data', {})
+    return payload(status='READY', source='backend_adapter', data=overview.get('riskOverview', {}))
+
+
 def backtest_tasks():
     replay = read_json('backtest', 'shadow_replay_latest.json', {})
     task = {
         'id': 'shadow-replay-latest',
-        'name': 'Shadow Replay 最新回放',
+        'name': 'Shadow Replay latest',
         'strategy': 'console_shadow_replay',
         'universe': 'backend_artifacts',
         'range': replay.get('range', '') if isinstance(replay, dict) else '',
@@ -39,4 +44,4 @@ def monitoring_execution_quality():
 
 def monitoring_daily_review():
     events = workbench.dashboard_events().get('data', [])
-    return payload(status='READY', source='task_history', data={'events': events, 'trades': [], 'summary': '已接入当前 API 进程任务历史；收益归因、成交质量等待后端模块接入。'})
+    return payload(status='READY', source='task_history', data={'events': events, 'trades': [], 'summary': 'Task history is connected. Attribution and execution quality will be connected later.'})
