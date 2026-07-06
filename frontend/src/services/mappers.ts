@@ -71,7 +71,7 @@ export function mapMetrics(data: any, fallback: MetricItem[] = []): MetricItem[]
     change: str(m.change ?? m.delta ?? ''),
     status: statusKind(m.status),
     trend: arrayValue<number>(m.trend).map((x) => num(x)),
-    source: m.source,
+    source: m.sourcePath ?? m.source,
   }));
 }
 
