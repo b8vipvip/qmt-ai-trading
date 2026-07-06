@@ -172,6 +172,7 @@ if ($apiOk) {
     "/frontend/system/audit-logs",
     "/frontend/system/permissions",
     "/frontend/system/summary",
+    "/frontend/system/api-configs",
     "/frontend/data/market-summary",
     "/frontend/data/market-quotes",
     "/frontend/data/fundamental-sources",
