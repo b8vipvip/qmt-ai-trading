@@ -1,5 +1,5 @@
 import { ExclamationCircleOutlined, MoonOutlined, SunOutlined } from '@ant-design/icons';
-import { Button, Card, Input, Modal, Progress, Space, Tag, Typography } from 'antd';
+import { Button, Card, Empty, Input, Modal, Progress, Space, Tag, Tooltip, Typography } from 'antd';
 import { useMemo, useState } from 'react';
 import type { MetricItem, RiskLevel, StatusKind, SystemEvent } from '../../types';
 
@@ -7,24 +7,34 @@ const statusColor: Record<StatusKind, string> = { normal: 'success', warning: 'w
 const riskColor: Record<RiskLevel, string> = { LOW: 'green', MEDIUM: 'gold', HIGH: 'orange', CRITICAL: 'red' };
 
 export function StatusBadge({ status, text }: { status: StatusKind; text?: string }) {
-  return <Tag color={statusColor[status]}>{text ?? status.toUpperCase()}</Tag>;
+  return <Tag color={statusColor[status] ?? 'default'}>{text ?? String(status).toUpperCase()}</Tag>;
 }
 
 export function RiskLevelBadge({ level }: { level: RiskLevel }) {
-  return <Tag color={riskColor[level]}>{level}</Tag>;
+  return <Tag color={riskColor[level] ?? 'default'}>{level}</Tag>;
+}
+
+export function SourcePathTag({ value }: { value?: string }) {
+  if (!value) return <span className="muted">-</span>;
+  return <Tooltip title={value}><Tag color="purple">artifact</Tag></Tooltip>;
+}
+
+export function EmptyState({ text = '暂无后端产物。请先运行对应任务，或等待真实接口接入。' }: { text?: string }) {
+  return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={text} />;
 }
 
 export function MiniSparkline({ data }: { data: number[] }) {
+  const safe = data.length ? data : [0, 0];
   const points = useMemo(() => {
-    const max = Math.max(...data);
-    const min = Math.min(...data);
-    return data.map((v, i) => `${(i / Math.max(1, data.length - 1)) * 100},${28 - ((v - min) / Math.max(1, max - min)) * 24}`).join(' ');
-  }, [data]);
+    const max = Math.max(...safe);
+    const min = Math.min(...safe);
+    return safe.map((v, i) => `${(i / Math.max(1, safe.length - 1)) * 100},${28 - ((v - min) / Math.max(1, max - min)) * 24}`).join(' ');
+  }, [safe]);
   return <svg className="sparkline" viewBox="0 0 100 32" preserveAspectRatio="none"><polyline points={points} fill="none" stroke="currentColor" strokeWidth="3" /></svg>;
 }
 
 export function MetricCard({ item }: { item: MetricItem }) {
-  return <Card className={`metric-card ${item.status}`}><div className="metric-head"><span>{item.title}</span><StatusBadge status={item.status} /></div><div className="metric-value">{item.value}</div><div className="metric-foot"><span>{item.change}</span><MiniSparkline data={item.trend} /></div></Card>;
+  return <Card className={`metric-card ${item.status}`}><div className="metric-head"><span>{item.title}</span><StatusBadge status={item.status} /></div><div className="metric-value">{item.value}</div><div className="metric-foot"><span>{item.change}</span><MiniSparkline data={item.trend} /></div>{item.source && <SourcePathTag value={item.source} />}</Card>;
 }
 
 export function SystemStatusBar({ dark, onToggleTheme }: { dark: boolean; onToggleTheme: () => void }) {
@@ -39,7 +49,8 @@ export function ConfirmDangerActionModal({ open, title, confirmText, onCancel, o
 }
 
 export function EventLogPanel({ events }: { events: SystemEvent[] }) {
-  return <div className="event-log-panel">{events.map((e) => <div className="event-line" key={e.id}><span>{e.time}</span><StatusBadge status={e.level} text={e.module} /><p>{e.message}</p></div>)}</div>;
+  if (!events.length) return <EmptyState text="暂无系统事件；执行任务后会在这里显示 task_history 产物。" />;
+  return <div className="event-log-panel">{events.map((e) => <div className="event-line" key={e.id}><span>{e.time}</span><StatusBadge status={e.level} text={e.module} /><p>{e.message}</p>{e.sourcePath && <SourcePathTag value={e.sourcePath} />}</div>)}</div>;
 }
 
 export function RiskGauge({ title, value }: { title: string; value: number }) {
