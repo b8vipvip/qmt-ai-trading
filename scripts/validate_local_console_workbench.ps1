@@ -82,7 +82,11 @@ $reactServiceFiles = @(
   "frontend\src\services\dashboardService.ts",
   "frontend\src\services\executionService.ts",
   "frontend\src\services\riskService.ts",
-  "frontend\src\services\strategyService.ts"
+  "frontend\src\services\strategyService.ts",
+  "frontend\src\services\marketDataService.ts",
+  "frontend\src\services\dataPagesService.ts",
+  "frontend\src\pages\MarketDataPage.tsx",
+  "frontend\src\pages\DataSubPages.tsx"
 )
 
 foreach ($file in $reactServiceFiles) {
@@ -163,7 +167,14 @@ if ($apiOk) {
     "/frontend/dashboard/overview",
     "/frontend/execution/orders",
     "/frontend/risk/rules",
-    "/frontend/system/api-status"
+    "/frontend/system/api-status",
+    "/frontend/data/market-summary",
+    "/frontend/data/market-quotes",
+    "/frontend/data/fundamental-sources",
+    "/frontend/data/fundamental-records",
+    "/frontend/data/news-items",
+    "/frontend/data/quality-overview",
+    "/frontend/data/task-catalog"
   )
 
   foreach ($ep in $frontendEndpoints) {
