@@ -16,6 +16,13 @@ backtest_results/
 artifacts/cleanup_archive/
 artifacts/reports/console/task_history/
 
+# local console stage/runtime residues
+local_console_app_stage*/
+local_console_xtdata_live_stage*/
+local_runtime_account_stage*/
+qmt_data_quality_reports/
+validation_logs/
+
 # QMT installer / client files
 gjzqqmt.rar
 gjzqqmt/
@@ -60,6 +67,8 @@ shadow_replay_batch/
 research/
 !qmt_ai_trading/research/
 !qmt_ai_trading/research/**
+qmt_ai_trading/research/**/__pycache__/
+qmt_ai_trading/research/**/*.pyc
 # qmt-ai-trading sensitive files
 .env.*
 !.env.example
