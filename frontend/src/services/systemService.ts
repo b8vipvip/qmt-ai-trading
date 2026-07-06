@@ -1,12 +1,13 @@
 import { systemEvents } from '../mock/mockData';
 import { apiOrMock } from './apiClient';
+import { mapSystemEvents } from './mappers';
 
 export function getSystemStatus() {
   return Promise.resolve({ tradeDate: '2026-07-05', marketStatus: '非交易日', quote: 'normal', broker: 'offline', database: 'normal', risk: 'warning', mode: '研究' });
 }
 
 export function getSystemEvents() {
-  return apiOrMock('/dashboard/events', systemEvents);
+  return apiOrMock('/dashboard/events', systemEvents, (body) => mapSystemEvents(body.data, systemEvents));
 }
 
 export function getApiStatus() {
