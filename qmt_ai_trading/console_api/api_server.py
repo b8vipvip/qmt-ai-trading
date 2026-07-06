@@ -8,7 +8,7 @@ from .task_registry import list_tasks
 from .task_store import TaskStore
 from .task_runner import run_task
 from .serializers import task_to_dict, run_to_dict
-from .routes import ROUTES
+from .routes import ROUTES, POST_ROUTES
 from .routes.common import payload
 from qmt_ai_trading.common.json_safe import json_safe
 
@@ -146,6 +146,8 @@ def make_handler(static_dir=None):
             if p == '/api/v1/tasks/run':
                 run = run_task(body.get('task_id', ''), {k: _coerce(v) for k, v in body.get('params', {}).items()}, STORE)
                 return _json(self, 200, payload(task=run_to_dict(run)))
+            if p in POST_ROUTES:
+                return _json(self, 200, POST_ROUTES[p](body))
             return _json(self, 404, payload(ok=False, status='DATA_MISSING', error='not found'))
 
         def _static(self, p):
