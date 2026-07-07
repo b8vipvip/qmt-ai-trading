@@ -2,7 +2,6 @@ import { apiOrMock } from './apiClient';
 
 export type QmtTestKind = 'all' | 'qmtClientPath' | 'xtdataPath' | 'xtquantPythonPath' | 'loginApi';
 export interface ConfigRow { key: string; name: string; value: string; source: string; editable: boolean; sensitive: boolean }
-export interface ApiRow { name: string; endpoint: string; status: string; method: string; source: string }
 export interface AuditRow { time: string; user: string; module: string; operation: string; paramsSummary: string; ip: string; result: string; runId?: string; sourcePath?: string }
 export interface PermissionRow { id: string; name: string; category: string; safeMode: boolean; dryRunOnly: boolean; requiresHumanApproval: boolean; forbiddenInLive: boolean; commandAdapter: string; outputArtifacts: string[]; canRunFromFrontend: boolean; sourcePath?: string }
 export interface SystemSummary { artifactRoot: string; taskCount: number; historyCount: number; apiConfigCount: number; enabledApiConfigCount: number; latestRunAt: string; runMode: string; qmtPathConfigured?: boolean; liveTradingEnabled: boolean; orderSubmitEnabled: boolean; orderCancelEnabled: boolean; sourcePath?: string }
@@ -14,8 +13,8 @@ export interface SystemSettings {
   paths: { marketCacheDir: string; factorArtifactDir: string; backtestReportDir: string; taskHistoryDir: string };
   safety: { allowRealOrder: boolean; allowCancelOrder: boolean; allowAccountQuery: boolean; enableHumanApproval: boolean };
 }
-export interface ApiConfigRow { id: string; name: string; provider: string; baseUrl: string; account: string; modelName: string; enabled: boolean; note: string; updatedAt: string; purposes: string[]; hasToken: boolean; tokenMasked: string; sourcePath?: string }
-export interface ApiConfigTestResult { id: string; provider: string; purposes: string[]; enabled: boolean; checkedAt: string; status: string; message: string; sourcePath?: string }
+export interface ApiConfigRow { id: string; name: string; provider: string; baseUrl: string; account: string; modelName: string; enabled: boolean; note: string; updatedAt: string; purposes: string[]; priority: number; hasToken: boolean; tokenMasked: string; sourcePath?: string }
+export interface ApiConfigTestResult { id: string; provider: string; purposes: string[]; priority: number; enabled: boolean; checkedAt: string; status: string; message: string; sourcePath?: string }
 export interface QmtPathCheck { kind: string; label: string; path: string; status: string; message: string; executable?: string }
 export interface QmtTestResult { kind: string; checks: QmtPathCheck[]; checkedAt: string; status: string; message: string; sourcePath?: string }
 export interface QmtPathCandidate { path: string; kind: string; label: string; exists: boolean; clientName: string; executable?: string }
@@ -32,7 +31,6 @@ export const settingsFallback: SystemSettings = {
 
 export function getSystemConfigRows() { return apiOrMock('/system/config', [] as ConfigRow[]); }
 export function getSystemSettings() { return apiOrMock('/system/settings', settingsFallback); }
-export function getSystemApiRows() { return apiOrMock('/system/api-status', [] as ApiRow[]); }
 export function getSystemAuditRows() { return apiOrMock('/system/audit-logs', [] as AuditRow[]); }
 export function getSystemPermissionRows() { return apiOrMock('/system/permissions', [] as PermissionRow[]); }
 export function getSystemSummary() { return apiOrMock('/system/summary', { artifactRoot: '', taskCount: 0, historyCount: 0, apiConfigCount: 0, enabledApiConfigCount: 0, latestRunAt: '', runMode: 'research', qmtPathConfigured: false, liveTradingEnabled: false, orderSubmitEnabled: false, orderCancelEnabled: false } as SystemSummary); }
@@ -43,6 +41,13 @@ export async function saveSystemSettings(settings: SystemSettings) {
   const data = await response.json();
   if (!response.ok || data.ok === false) throw new Error(data.error || '保存系统配置失败');
   return data.data as SystemSettings;
+}
+
+export async function openLocalPath(path: string) {
+  const response = await fetch('/api/v1/frontend/system/path/open', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path }) });
+  const data = await response.json();
+  if (!response.ok || data.ok === false) throw new Error(data.error || '打开目录失败');
+  return data.data as { path: string; opened: boolean; created: boolean };
 }
 
 export async function scanQmtPaths(target: 'all' | 'qmtClientPath' | 'xtdataPath' | 'xtquantPythonPath' = 'all') {
@@ -66,8 +71,8 @@ export async function saveApiConfig(config: Partial<ApiConfigRow> & { token?: st
   return data.data as ApiConfigRow;
 }
 
-export async function saveApiConfigPurposes(id: string, purposes: string[]) {
-  const response = await fetch('/api/v1/frontend/system/api-configs/purposes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, purposes }) });
+export async function saveApiConfigPurposes(id: string, purposes: string[], priority?: number) {
+  const response = await fetch('/api/v1/frontend/system/api-configs/purposes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, purposes, priority }) });
   const data = await response.json();
   if (!response.ok || data.ok === false) throw new Error(data.error || '保存 API 用途失败');
   return data.data as ApiConfigRow;
