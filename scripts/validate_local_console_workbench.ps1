@@ -169,6 +169,7 @@ if ($apiOk) {
     "/frontend/risk/rules",
     "/frontend/system/api-status",
     "/frontend/system/config",
+    "/frontend/system/settings",
     "/frontend/system/audit-logs",
     "/frontend/system/permissions",
     "/frontend/system/summary",
@@ -186,6 +187,11 @@ if ($apiOk) {
     $res = Invoke-RestMethod "$ApiBase$ep" -TimeoutSec 10
     Assert-Ok (($res.ok -eq $true) -and ($null -ne $res.data)) "frontend adapter endpoint exposes data: $ep"
   }
+
+  $systemSettings = Invoke-RestMethod "$ApiBase/frontend/system/settings" -TimeoutSec 10
+  Assert-Ok ($null -ne $systemSettings.data.runtime.mode) "system settings expose runtime mode"
+  Assert-Ok ($systemSettings.data.safety.allowRealOrder -eq $false) "system settings keep allowRealOrder false"
+  Assert-Ok ($systemSettings.data.safety.allowCancelOrder -eq $false) "system settings keep allowCancelOrder false"
 
   $systemSummary = Invoke-RestMethod "$ApiBase/frontend/system/summary" -TimeoutSec 10
   Assert-Ok ($systemSummary.data.liveTradingEnabled -eq $false) "system summary keeps liveTradingEnabled false"
