@@ -15,7 +15,12 @@ SETTINGS_FILE = CONSOLE / 'system' / 'system_settings.private.json'
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     'runtime': {'mode': 'research'},
-    'qmt': {'xtdataPath': '', 'xtquantPythonPath': '', 'clientName': 'QMT'},
+    'qmt': {
+        'qmtClientPath': '',
+        'xtdataPath': '',
+        'xtquantPythonPath': '',
+        'clientName': 'QMT',
+    },
     'trading': {
         'defaultStockPool': '沪深300', 'commissionRate': 0.00025, 'slippageBps': 3, 'rebalancePeriod': 'daily',
         'backtestInitialCash': 1000000, 'backtestStartDate': '2021-01-01', 'backtestEndDate': '', 'stampTaxRate': 0.001,
@@ -67,7 +72,14 @@ def _merge(default: dict[str, Any], data: dict[str, Any]) -> dict[str, Any]:
 
 def _settings() -> dict[str, Any]:
     data = _read_json_file(SETTINGS_FILE.as_posix(), {})
-    return _merge(DEFAULT_SETTINGS, data if isinstance(data, dict) else {})
+    merged = _merge(DEFAULT_SETTINGS, data if isinstance(data, dict) else {})
+    qmt = merged.setdefault('qmt', {})
+    if not qmt.get('qmtClientPath') and qmt.get('xtdataPath') and ('qmt' in str(qmt.get('xtdataPath')).lower() or '证券' in str(qmt.get('xtdataPath'))):
+        qmt['qmtClientPath'] = qmt.get('xtdataPath')
+        qmt['xtdataPath'] = ''
+    if not qmt.get('clientName'):
+        qmt['clientName'] = _detect_client_name(qmt.get('qmtClientPath') or qmt.get('xtdataPath') or '')
+    return merged
 
 
 def _num(value: Any, default: float, min_value: float, max_value: float) -> float:
@@ -81,6 +93,19 @@ def _num(value: Any, default: float, min_value: float, max_value: float) -> floa
 def _clean_text(value: Any, default: str = '', max_len: int = 500) -> str:
     text = str(value if value is not None else default).strip()
     return text[:max_len]
+
+
+def _detect_client_name(path: str) -> str:
+    text = str(path).lower()
+    if '国金' in str(path) or 'gjzq' in text:
+        return '国金证券 QMT'
+    if 'qmt' in text:
+        return 'QMT'
+    if 'xtquant' in text:
+        return 'xtquant'
+    if 'xtdata' in text:
+        return 'xtdata'
+    return 'QMT'
 
 
 def _sanitize_settings(raw: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
@@ -100,12 +125,15 @@ def _sanitize_settings(raw: dict[str, Any]) -> tuple[dict[str, Any] | None, str 
         return None, '当前本地控制台安全策略禁止开启真实撤单'
     if not bool(safety.get('enableHumanApproval', True)):
         return None, '当前阶段必须启用人工审批闸门'
+    qmt_client_path = _clean_text(qmt.get('qmtClientPath'), '', 500)
+    xtdata_path = _clean_text(qmt.get('xtdataPath'), '', 500)
     sanitized = {
         'runtime': {'mode': runtime_mode},
         'qmt': {
-            'xtdataPath': _clean_text(qmt.get('xtdataPath'), '', 500),
+            'qmtClientPath': qmt_client_path,
+            'xtdataPath': xtdata_path,
             'xtquantPythonPath': _clean_text(qmt.get('xtquantPythonPath'), '', 500),
-            'clientName': _clean_text(qmt.get('clientName'), 'QMT', 120),
+            'clientName': _detect_client_name(qmt_client_path or xtdata_path or qmt.get('clientName', 'QMT')),
         },
         'trading': {
             'defaultStockPool': _clean_text(trading.get('defaultStockPool'), '沪深300', 120),
@@ -168,29 +196,27 @@ def _task_catalog() -> list[dict[str, Any]]:
         return []
 
 
-def _detect_client_name(path: str) -> str:
-    text = path.lower()
-    if '国金' in path or 'gjzq' in text:
-        return '国金证券 QMT'
-    if 'qmt' in text:
-        return 'QMT'
-    if 'xtquant' in text:
-        return 'xtquant'
-    return 'QMT'
+def _candidate(path: Path, kind: str, label: str = '') -> dict[str, Any]:
+    return {'path': str(path), 'kind': kind, 'label': label or kind, 'exists': path.exists(), 'clientName': _detect_client_name(str(path))}
 
 
-def _candidate(path: Path, kind: str) -> dict[str, Any]:
-    return {'path': str(path), 'kind': kind, 'exists': path.exists(), 'clientName': _detect_client_name(str(path))}
+def _add_candidate(candidates: list[dict[str, Any]], seen: set[str], path: Path, kind: str, label: str = '') -> None:
+    key = f'{kind}:{str(path).lower()}'
+    if key in seen:
+        return
+    seen.add(key)
+    if path.exists() or any(x in str(path).lower() for x in ['qmt', 'xtquant', 'xtdata']) or '国金' in str(path):
+        candidates.append(_candidate(path, kind, label))
 
 
-def _scan_qmt_candidates() -> list[dict[str, Any]]:
+def _scan_qmt_candidates(target: str = 'all') -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
     seen: set[str] = set()
-    raw_roots = []
-    for env_name in ('QMT_PATH', 'XTQUANT_PATH', 'PATH'):
+    raw_roots: list[str] = []
+    for env_name in ('QMT_PATH', 'XTQUANT_PATH', 'XTDATA_PATH', 'PATH'):
         value = os.environ.get(env_name, '')
         if env_name == 'PATH':
-            raw_roots.extend([x for x in value.split(os.pathsep) if 'qmt' in x.lower() or 'xtquant' in x.lower()])
+            raw_roots.extend([x for x in value.split(os.pathsep) if any(k in x.lower() for k in ['qmt', 'xtquant', 'xtdata'])])
         elif value:
             raw_roots.append(value)
     for drive in ['C:', 'D:', 'E:', 'F:']:
@@ -200,22 +226,25 @@ def _scan_qmt_candidates() -> list[dict[str, Any]]:
         ])
     for raw in raw_roots:
         p = Path(raw)
-        checks = [p, p / 'bin.x64', p / 'bin']
-        for item in checks:
-            key = str(item).lower()
-            if key in seen:
-                continue
-            seen.add(key)
-            if item.exists() or ('qmt' in key or 'xtquant' in key or '国金' in str(item)):
-                candidates.append(_candidate(item, 'qmt_path'))
-    for base in [Path(sys.prefix), Path.cwd(), Path.home()]:
-        for rel in ['Lib/site-packages/xtquant', 'Lib/site-packages/xtquant/xtdata.py', 'site-packages/xtquant']:
-            p = base / rel
-            key = str(p).lower()
-            if key not in seen and p.exists():
-                seen.add(key)
-                candidates.append(_candidate(p.parent if p.is_file() else p, 'xtquant_python_path'))
-    return candidates[:80]
+        if target in {'all', 'qmtClientPath'}:
+            for item in [p, p / 'bin.x64', p / 'bin']:
+                _add_candidate(candidates, seen, item, 'qmtClientPath', 'QMT客户端目录')
+        if target in {'all', 'xtdataPath'}:
+            for item in [p / 'userdata_mini' / 'datadir', p / 'userdata' / 'datadir', p / 'xtdata', p / 'data']:
+                _add_candidate(candidates, seen, item, 'xtdataPath', 'xtdata数据目录')
+    if target in {'all', 'xtquantPythonPath'}:
+        bases = [Path(sys.prefix), Path.cwd(), Path.home()]
+        for extra in sys.path:
+            try:
+                bases.append(Path(extra))
+            except Exception:
+                pass
+        for base in bases:
+            for rel in ['Lib/site-packages/xtquant', 'site-packages/xtquant', 'xtquant']:
+                p = base / rel
+                if (p / 'xtdata.py').exists() or p.exists():
+                    _add_candidate(candidates, seen, p, 'xtquantPythonPath', 'xtquant Python目录')
+    return candidates[:120]
 
 
 def settings():
@@ -233,28 +262,48 @@ def save_settings(body: dict[str, Any]):
 
 
 def scan_qmt_paths(body: dict[str, Any] | None = None):
+    body = body or {}
+    target = _clean_text(body.get('target'), 'all', 40)
+    if target not in {'all', 'qmtClientPath', 'xtdataPath', 'xtquantPythonPath'}:
+        target = 'all'
     settings_data = _settings()
-    candidates = _scan_qmt_candidates()
-    return payload(status='READY', source='qmt_path_scanner', data={'current': settings_data.get('qmt', {}), 'candidates': candidates, 'count': len(candidates), 'note': '浏览器不能直接读取本机绝对目录，因此使用后端本机扫描候选路径；仍可手动修正。'})
+    candidates = _scan_qmt_candidates(target)
+    return payload(status='READY', source='qmt_path_scanner', data={'target': target, 'current': settings_data.get('qmt', {}), 'candidates': candidates, 'count': len(candidates), 'note': 'Web 浏览器不能直接读取本机绝对目录，使用后端扫描候选路径；也可以手动修正。'})
+
+
+def _test_path(kind: str, path: str) -> tuple[str, str]:
+    if not path:
+        return 'FAILED', '未配置路径'
+    return ('READY', '路径存在') if Path(path).exists() else ('FAILED', '路径不存在')
 
 
 def test_qmt_settings(body: dict[str, Any] | None = None):
+    body = body or {}
+    kind = _clean_text(body.get('kind'), 'all', 40)
     settings_data = _settings()
     qmt = settings_data.get('qmt', {})
-    xtdata_path = _clean_text(qmt.get('xtdataPath'), '', 500)
     python_path = _clean_text(qmt.get('xtquantPythonPath'), '', 500)
     if python_path and python_path not in sys.path and Path(python_path).exists():
         sys.path.insert(0, python_path)
-    path_status = 'NOT_CONFIGURED'
-    if xtdata_path:
-        path_status = 'EXISTS' if Path(xtdata_path).exists() else 'MISSING'
-    result = {'xtdataPath': xtdata_path, 'xtquantPythonPath': python_path, 'pathStatus': path_status, 'checkedAt': workbench_api_config._now(), 'sourcePath': SETTINGS_FILE.as_posix()}
+    checks: list[dict[str, Any]] = []
+    for key, label in [('qmtClientPath', 'QMT客户端目录'), ('xtdataPath', 'xtdata数据目录'), ('xtquantPythonPath', 'xtquant Python目录')]:
+        if kind not in {'all', key}:
+            continue
+        path = _clean_text(qmt.get(key), '', 500)
+        status, message = _test_path(key, path)
+        checks.append({'kind': key, 'label': label, 'path': path, 'status': status, 'message': message})
+    import_status = 'FAILED'
+    import_message = ''
     try:
         from xtquant import xtdata  # type: ignore
-        result.update({'status': 'READY', 'message': 'xtquant.xtdata 可导入；QMT 路径已保存。'})
+        import_status, import_message = 'READY', 'xtquant.xtdata 可导入'
     except Exception as exc:
-        result.update({'status': 'FAILED', 'message': f'xtquant.xtdata 不可导入：{exc}'})
-    return payload(status=result['status'], source='qmt_xtdata_system_settings_test', data=result)
+        import_message = f'xtquant.xtdata 不可导入：{exc}'
+    if kind in {'all', 'xtquantPythonPath'}:
+        checks.append({'kind': 'xtdataImport', 'label': 'xtquant.xtdata导入', 'path': python_path, 'status': import_status, 'message': import_message})
+    final_status = 'READY' if checks and all(x['status'] == 'READY' for x in checks) else 'FAILED'
+    result = {'kind': kind, 'checks': checks, 'checkedAt': workbench_api_config._now(), 'status': final_status, 'message': '；'.join([f"{x['label']}:{x['message']}" for x in checks]), 'sourcePath': SETTINGS_FILE.as_posix()}
+    return payload(status=final_status, source='qmt_xtdata_system_settings_test', data=result)
 
 
 def config_center():
@@ -287,7 +336,7 @@ def api_status():
         {'name': 'Task History', 'endpoint': '/api/v1/tasks/history', 'status': 'READY', 'method': 'GET', 'source': _artifact_path('task_history', 'task_history.json')},
         {'name': 'External API Configs', 'endpoint': '/api/v1/frontend/system/api-configs', 'status': 'READY', 'method': 'GET/POST', 'source': 'qmt_ai_trading/console_api/routes/workbench_api_config.py'},
         {'name': 'System Settings', 'endpoint': '/api/v1/frontend/system/settings', 'status': 'READY', 'method': 'GET/POST', 'source': SETTINGS_FILE.as_posix()},
-        {'name': 'QMT xtdata Path Scan/Test', 'endpoint': '/api/v1/frontend/system/qmt/scan + /qmt/test', 'status': 'READY', 'method': 'POST', 'source': SETTINGS_FILE.as_posix()},
+        {'name': 'QMT Path Scan/Test', 'endpoint': '/api/v1/frontend/system/qmt/scan + /qmt/test', 'status': 'READY', 'method': 'POST', 'source': SETTINGS_FILE.as_posix()},
         {'name': 'Frontend Adapter Routes', 'endpoint': '/api/v1/frontend/*', 'status': 'READY', 'method': 'GET', 'source': 'qmt_ai_trading/console_api/routes/workbench_*.py'},
     ]
     return payload(status='READY', source='registered_routes', route_count=route_count, routes=routes, data=rows)
@@ -312,4 +361,5 @@ def system_summary():
     catalog = _task_catalog()
     api_configs = [x for x in workbench_api_config._load() if x.get('provider') != 'qmt_xtdata']
     settings_data = _settings()
-    return payload(status='READY', source='system_summary', data={'artifactRoot': CONSOLE.as_posix(), 'taskCount': len(catalog), 'historyCount': len(history), 'apiConfigCount': len(api_configs), 'enabledApiConfigCount': sum(1 for x in api_configs if x.get('enabled')), 'latestRunAt': (history[0].get('finished_at') if history else ''), 'runMode': settings_data['runtime']['mode'], 'qmtPathConfigured': bool(settings_data.get('qmt', {}).get('xtdataPath')), 'liveTradingEnabled': False, 'orderSubmitEnabled': False, 'orderCancelEnabled': False, 'sourcePath': SETTINGS_FILE.as_posix()})
+    qmt = settings_data.get('qmt', {})
+    return payload(status='READY', source='system_summary', data={'artifactRoot': CONSOLE.as_posix(), 'taskCount': len(catalog), 'historyCount': len(history), 'apiConfigCount': len(api_configs), 'enabledApiConfigCount': sum(1 for x in api_configs if x.get('enabled')), 'latestRunAt': (history[0].get('finished_at') if history else ''), 'runMode': settings_data['runtime']['mode'], 'qmtPathConfigured': bool(qmt.get('qmtClientPath') or qmt.get('xtdataPath') or qmt.get('xtquantPythonPath')), 'liveTradingEnabled': False, 'orderSubmitEnabled': False, 'orderCancelEnabled': False, 'sourcePath': SETTINGS_FILE.as_posix()})
