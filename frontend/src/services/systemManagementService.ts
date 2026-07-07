@@ -1,5 +1,6 @@
 import { apiOrMock } from './apiClient';
 
+export type QmtTestKind = 'all' | 'qmtClientPath' | 'xtdataPath' | 'xtquantPythonPath' | 'loginApi';
 export interface ConfigRow { key: string; name: string; value: string; source: string; editable: boolean; sensitive: boolean }
 export interface ApiRow { name: string; endpoint: string; status: string; method: string; source: string }
 export interface AuditRow { time: string; user: string; module: string; operation: string; paramsSummary: string; ip: string; result: string; runId?: string; sourcePath?: string }
@@ -15,9 +16,9 @@ export interface SystemSettings {
 }
 export interface ApiConfigRow { id: string; name: string; provider: string; baseUrl: string; account: string; modelName: string; enabled: boolean; note: string; updatedAt: string; purposes: string[]; hasToken: boolean; tokenMasked: string; sourcePath?: string }
 export interface ApiConfigTestResult { id: string; provider: string; purposes: string[]; enabled: boolean; checkedAt: string; status: string; message: string; sourcePath?: string }
-export interface QmtPathCheck { kind: string; label: string; path: string; status: string; message: string }
+export interface QmtPathCheck { kind: string; label: string; path: string; status: string; message: string; executable?: string }
 export interface QmtTestResult { kind: string; checks: QmtPathCheck[]; checkedAt: string; status: string; message: string; sourcePath?: string }
-export interface QmtPathCandidate { path: string; kind: string; label: string; exists: boolean; clientName: string }
+export interface QmtPathCandidate { path: string; kind: string; label: string; exists: boolean; clientName: string; executable?: string }
 export interface QmtScanResult { target: string; current: SystemSettings['qmt']; candidates: QmtPathCandidate[]; count: number; note: string }
 
 export const settingsFallback: SystemSettings = {
@@ -51,7 +52,7 @@ export async function scanQmtPaths(target: 'all' | 'qmtClientPath' | 'xtdataPath
   return data.data as QmtScanResult;
 }
 
-export async function testQmtSettings(kind: 'all' | 'qmtClientPath' | 'xtdataPath' | 'xtquantPythonPath' = 'all') {
+export async function testQmtSettings(kind: QmtTestKind = 'all') {
   const response = await fetch('/api/v1/frontend/system/qmt/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind }) });
   const data = await response.json();
   if (!response.ok || data.ok === false) throw new Error(data.error || '测试 QMT / xtdata 配置失败');
