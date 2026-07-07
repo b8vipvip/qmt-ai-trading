@@ -1,13 +1,11 @@
 import { Alert, Button, Card, Col, message, Row, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { EmptyState } from '../components/common';
 import { getDataQualityRows, getDataSources } from '../services/dataService';
 import { getMarketQuotes, getMarketSummary, runMarketAIAnalysis } from '../services/marketDataService';
 import type { MarketAIAnalysis, MarketQuoteRow, MarketSummary } from '../services/marketDataService';
-import { getApiConfigs } from '../services/systemManagementService';
-import type { ApiConfigRow } from '../services/systemManagementService';
 import { runConsoleTask } from '../services/taskService';
 import type { DataQualityRow, DataSourceStatus } from '../types';
 
@@ -59,18 +57,21 @@ function statusTag(value: string) {
   return <Tag color={text === 'NORMAL' || text === 'READY' ? 'green' : text === 'PENDING' ? 'gold' : 'default'}>{text}</Tag>;
 }
 
-function pickAIModel(configs: ApiConfigRow[]) {
-  const candidates = configs.filter((x) => x.enabled && ((x.purposes || []).includes('ai') || (x.purposes || []).includes('research') || (x.purposes || []).includes('all')));
-  if (!candidates.length) return null;
-  return [...candidates].sort((a, b) => Number(a.priority || 1) - Number(b.priority || 1))[0];
+function dataModeTag(summary: MarketSummary) {
+  if (summary.realMarketData) return <Tag color="green">真实 xtdata</Tag>;
+  if (summary.sandboxFallback || summary.dataMode === 'SANDBOX_FALLBACK') return <Tag color="gold">沙盒样例</Tag>;
+  return <Tag>未知</Tag>;
 }
 
-function AnalysisReport({ report }: { report?: MarketAIAnalysis }) {
+function AnalysisReport({ report, error }: { report?: MarketAIAnalysis; error?: string }) {
+  if (error) {
+    return <Alert type="error" showIcon message="AI 行情分析失败" description={error} />;
+  }
   if (!report) {
-    return <EmptyState text="尚未生成 AI 行情分析；点击右上角“AI 分析行情”后会在这里输出报告。" />;
+    return <EmptyState text="尚未生成 AI 行情分析；点击“行情数据任务”里的“AI 分析行情”后会在这里输出报告。" />;
   }
   return <Space direction="vertical" style={{ width: '100%' }} size={12}>
-    <Alert type="success" showIcon message={`AI 分析完成：${report.modelName || report.apiName || 'AI模型'}`} description={`生成时间：${report.generatedAt || '-'}`} />
+    <Alert type="success" showIcon message="AI 行情分析完成" description={`模型：${report.modelName || report.apiName || '-'}；生成时间：${report.generatedAt || '-'}`} />
     <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8, margin: 0 }}>{report.report}</Typography.Paragraph>
   </Space>;
 }
@@ -79,20 +80,22 @@ export function MarketDataPage() {
   const sources = useAsync(getDataSources, [] as DataSourceStatus[]);
   const quality = useAsync(getDataQualityRows, [] as DataQualityRow[]);
   const quotes = useAsync(getMarketQuotes, [] as MarketQuoteRow[]);
-  const summary = useAsync(getMarketSummary, { quoteCount: 0, symbolCount: 0, upCount: 0, downCount: 0, flatCount: 0, latestTime: '' } as MarketSummary);
-  const apiConfigs = useAsync(getApiConfigs, [] as ApiConfigRow[]);
-  const aiModel = useMemo(() => pickAIModel(apiConfigs), [apiConfigs]);
+  const summary = useAsync(getMarketSummary, { quoteCount: 0, symbolCount: 0, upCount: 0, downCount: 0, flatCount: 0, latestTime: '', realMarketData: false, sandboxFallback: true, dataMode: 'UNKNOWN' } as MarketSummary);
   const [analysis, setAnalysis] = useState<MarketAIAnalysis | undefined>();
+  const [analysisError, setAnalysisError] = useState<string>('');
   const [analyzing, setAnalyzing] = useState(false);
 
   const analyze = async () => {
     try {
       setAnalyzing(true);
+      setAnalysisError('');
       const res = await runMarketAIAnalysis();
       setAnalysis(res);
-      message.success(`AI 行情分析完成：${res.modelName || res.apiName || 'AI模型'}`);
+      message.success('AI 行情分析完成');
     } catch (error) {
-      message.error(error instanceof Error ? error.message : String(error));
+      const text = error instanceof Error ? error.message : String(error);
+      setAnalysisError(text);
+      message.error(text);
     } finally {
       setAnalyzing(false);
     }
@@ -115,7 +118,7 @@ export function MarketDataPage() {
   ];
 
   return <div className="page-grid">
-    <Section title="行情数据用途" extra={<Space><Tag color="blue">AI模型：{aiModel?.modelName || aiModel?.name || '未配置'}</Tag><Button size="small" type="primary" loading={analyzing} onClick={analyze}>AI 分析行情</Button></Space>}>
+    <Section title="行情数据用途">
       <Typography.Paragraph>
         行情数据是量化系统的“价格与成交事实层”，用于生成 K 线、计算收益率和波动率、更新因子、触发策略信号、估算成交成本、校验停牌/涨跌停/流动性，并为回测、仿真、影子实盘和风控提供统一输入。
       </Typography.Paragraph>
@@ -133,17 +136,18 @@ export function MarketDataPage() {
         <TaskButton taskId="qmt_data_diagnostics_readonly">QMT 行情只读诊断</TaskButton>
         <TaskButton taskId="market_snapshot_readonly">只读行情快照</TaskButton>
         <TaskButton taskId="data_cache_check">本地缓存质量检查</TaskButton>
+        <Button size="small" type="primary" loading={analyzing} onClick={analyze}>AI 分析行情</Button>
       </Space>
     </Section>
 
     <Row gutter={[16, 16]}>
       <Col xs={24} md={8}><Card className="metric-card"><b>行情记录数</b><div className="metric-value">{summary.quoteCount}</div><span>当前快照记录数量</span></Card></Col>
       <Col xs={24} md={8}><Card className="metric-card"><b>统一标的数</b><div className="metric-value">{summary.symbolCount}</div><span>上涨 {summary.upCount} / 下跌 {summary.downCount} / 平盘 {summary.flatCount}</span></Card></Col>
-      <Col xs={24} md={8}><Card className="metric-card"><b>最新时间</b><div className="metric-value" style={{ fontSize: 18 }}>{summary.latestTime || '-'}</div><span>用于判断行情是否滞后</span></Card></Col>
+      <Col xs={24} md={8}><Card className="metric-card"><b>最新时间</b><div className="metric-value" style={{ fontSize: 18 }}>{summary.latestTime || '-'}</div><Space wrap>{dataModeTag(summary)}<span>{summary.sandboxFallback ? '当前为沙盒样例时间，不是真实市场时间' : '用于判断行情是否滞后'}</span></Space></Card></Col>
     </Row>
 
     <Section title="AI 行情分析报告">
-      <AnalysisReport report={analysis} />
+      <AnalysisReport report={analysis} error={analysisError} />
     </Section>
 
     <Section title="数据源状态">
