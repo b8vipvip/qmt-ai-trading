@@ -28,7 +28,6 @@ POST_ROUTES={
 '/api/v1/frontend/system/api-configs/test': workbench_api_config.test_config,
 '/api/v1/frontend/system/api-configs/purposes': workbench_api_config.set_purposes,
 '/api/v1/frontend/system/settings/save': workbench_system.save_settings,
-'/api/v1/frontend/system/path/open': workbench_system.open_local_path,
 '/api/v1/frontend/system/qmt/test': workbench_system.test_qmt_settings,
 '/api/v1/frontend/system/qmt/scan': workbench_system.scan_qmt_paths,
 }
