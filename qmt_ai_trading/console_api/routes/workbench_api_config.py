@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import json
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any
 
 from .common import CONSOLE, payload
 
 CONFIG_DIR = CONSOLE / 'system'
 CONFIG_FILE = CONFIG_DIR / 'api_configs.private.json'
-PROVIDERS = {'akshare', 'tushare', 'baostock', 'qmt_xtdata', 'openai_compatible', 'custom_http'}
+PROVIDERS = {'akshare', 'tushare', 'baostock', 'openai_compatible', 'custom_http'}
 PURPOSES = {'market', 'fundamental', 'news', 'research', 'ai', 'all'}
+PURPOSE_ORDER = ['market', 'fundamental', 'news', 'research', 'ai', 'all']
 
 
 def _now() -> str:
@@ -30,7 +31,7 @@ def _normalize_purposes(row: dict[str, Any]) -> list[str]:
     else:
         old = str(row.get('purpose') or '').strip()
         values = [old] if old in PURPOSES else []
-    return sorted(set(values), key=lambda x: ['market', 'fundamental', 'news', 'research', 'ai', 'all'].index(x))
+    return sorted(set(values), key=lambda x: PURPOSE_ORDER.index(x))
 
 
 def _load() -> list[dict[str, Any]]:
@@ -63,7 +64,7 @@ def _mask(value: Any) -> str:
 
 
 def _public(row: dict[str, Any]) -> dict[str, Any]:
-    out = {k: v for k, v in row.items() if k not in {'token', 'secret', 'password'}}
+    out = {k: v for k, v in row.items() if k not in {'token', 'secret', 'password', 'xtdataPath'}}
     out['purposes'] = _normalize_purposes(row)
     out['hasToken'] = bool(row.get('token'))
     out['tokenMasked'] = _mask(row.get('token'))
@@ -72,14 +73,15 @@ def _public(row: dict[str, Any]) -> dict[str, Any]:
 
 
 def list_configs():
-    return payload(status='READY', source='local_api_config_store', data=[_public(x) for x in _load()])
+    rows = [x for x in _load() if x.get('provider') != 'qmt_xtdata']
+    return payload(status='READY', source='local_api_config_store', data=[_public(x) for x in rows])
 
 
 def save_config(body: dict[str, Any]):
     data = body.get('config') if isinstance(body.get('config'), dict) else body
     provider = _clean_text(data.get('provider'))
     if provider not in PROVIDERS:
-        return payload(ok=False, status='FAILED', error='provider 不在白名单：akshare/tushare/baostock/qmt_xtdata/openai_compatible/custom_http')
+        return payload(ok=False, status='FAILED', error='provider 不在白名单：akshare/tushare/baostock/openai_compatible/custom_http')
     rows = _load()
     config_id = _clean_text(data.get('id')) or f'{provider}-{len(rows) + 1}'
     existing = next((x for x in rows if x.get('id') == config_id), None)
@@ -90,7 +92,6 @@ def save_config(body: dict[str, Any]):
         'provider': provider,
         'baseUrl': _clean_text(data.get('baseUrl'), 300),
         'account': _clean_text(data.get('account'), 160),
-        'xtdataPath': _clean_text(data.get('xtdataPath'), 500),
         'modelName': _clean_text(data.get('modelName'), 160),
         'enabled': bool(data.get('enabled', True)),
         'note': _clean_text(data.get('note'), 500),
@@ -117,29 +118,68 @@ def set_purposes(body: dict[str, Any]):
     if len(clean) != len(purposes):
         return payload(ok=False, status='FAILED', error='用途不在白名单：market/fundamental/news/research/ai/all')
     rows = _load()
-    row = next((x for x in rows if x.get('id') == config_id), None)
+    row = next((x for x in rows if x.get('id') == config_id and x.get('provider') != 'qmt_xtdata'), None)
     if not row:
         return payload(ok=False, status='FAILED', error='API 配置不存在')
-    row['purposes'] = sorted(set(clean), key=lambda x: ['market', 'fundamental', 'news', 'research', 'ai', 'all'].index(x))
+    row['purposes'] = sorted(set(clean), key=lambda x: PURPOSE_ORDER.index(x))
     row['updatedAt'] = _now()
     _save(rows)
     return payload(status='SAVED', source='local_api_config_store', data=_public(row))
 
 
-def _http_probe(base_url: str, token: str = '', models_endpoint: bool = False) -> tuple[str, str]:
-    url = base_url.rstrip('/')
-    if models_endpoint:
-        url = url + '/models'
-    req = urllib.request.Request(url, method='GET')
+def _http_error_message(exc: urllib.error.HTTPError, url: str) -> str:
+    try:
+        body = exc.read(300).decode('utf-8', errors='replace')
+    except Exception:
+        body = ''
+    detail = f'HTTP {exc.code}: {url}'
+    if body:
+        detail += f'；响应：{body[:220]}'
+    return detail
+
+
+def _request_json(url: str, token: str = '', method: str = 'GET', body: dict[str, Any] | None = None) -> tuple[str, str]:
+    data = None
+    if body is not None:
+        data = json.dumps(body, ensure_ascii=False).encode('utf-8')
+    req = urllib.request.Request(url, method=method, data=data)
+    req.add_header('Content-Type', 'application/json')
     if token:
         req.add_header('Authorization', f'Bearer {token}')
-    with urllib.request.urlopen(req, timeout=8) as resp:  # nosec - user-configured local data/API endpoint probe
-        return 'READY' if 200 <= resp.status < 400 else 'FAILED', f'HTTP {resp.status}: {url}'
+    try:
+        with urllib.request.urlopen(req, timeout=12) as resp:  # nosec - user-configured local API probe
+            raw = resp.read(240).decode('utf-8', errors='replace')
+            msg = f'HTTP {resp.status}: {url}'
+            if raw:
+                msg += f'；响应：{raw[:180]}'
+            return ('READY' if 200 <= resp.status < 400 else 'FAILED'), msg
+    except urllib.error.HTTPError as exc:
+        return 'FAILED', _http_error_message(exc, url)
+    except Exception as exc:
+        return 'FAILED', str(exc)
+
+
+def _test_openai_compatible(row: dict[str, Any]) -> tuple[str, str]:
+    base_url = _clean_text(row.get('baseUrl'), 300).rstrip('/')
+    token = _clean_text(row.get('token'), 1000)
+    model = _clean_text(row.get('modelName'), 160)
+    if not base_url or not token:
+        return 'FAILED', 'AI 接口必须配置 Base URL 和 Token'
+    status, msg = _request_json(base_url + '/models', token=token, method='GET')
+    if status == 'READY':
+        return status, 'AI 接口 /models 测试通过：' + msg
+    if model:
+        body = {'model': model, 'messages': [{'role': 'user', 'content': 'ping'}], 'max_tokens': 1, 'stream': False}
+        chat_status, chat_msg = _request_json(base_url + '/chat/completions', token=token, method='POST', body=body)
+        if chat_status == 'READY':
+            return chat_status, 'AI 接口 chat/completions 测试通过；/models 不可用但不影响调用。' + chat_msg
+        return 'FAILED', f'/models 测试失败：{msg}；chat/completions 测试失败：{chat_msg}'
+    return 'FAILED', msg + '；部分中转站会禁用 /models，请填写默认模型后再测试 chat/completions。'
 
 
 def test_config(body: dict[str, Any]):
     config_id = _clean_text(body.get('id'))
-    row = next((x for x in _load() if x.get('id') == config_id), None)
+    row = next((x for x in _load() if x.get('id') == config_id and x.get('provider') != 'qmt_xtdata'), None)
     if not row:
         return payload(ok=False, status='FAILED', error='API 配置不存在')
     provider = row.get('provider')
@@ -157,27 +197,14 @@ def test_config(body: dict[str, Any]):
                 result.update({'status': 'FAILED', 'message': 'Tushare 包可导入，但未配置 token'})
             else:
                 result.update({'status': 'READY', 'message': f'Tushare 包可导入且 token 已保存：{getattr(tushare, "__version__", "unknown")}'})
-        elif provider == 'qmt_xtdata':
-            xt_path = row.get('xtdataPath') or ''
-            path_msg = ''
-            if xt_path:
-                path_msg = '；路径存在' if Path(xt_path).exists() else '；路径不存在，请检查 QMT/xtdata 路径'
-            try:
-                from xtquant import xtdata  # type: ignore
-                result.update({'status': 'READY', 'message': 'xtquant.xtdata 可导入' + path_msg})
-            except Exception as exc:
-                result.update({'status': 'FAILED', 'message': f'xtquant.xtdata 不可导入：{exc}{path_msg}'})
         elif provider == 'openai_compatible':
-            if not row.get('baseUrl') or not row.get('token'):
-                result.update({'status': 'FAILED', 'message': 'AI 接口必须配置 Base URL 和 Token'})
-            else:
-                status, msg = _http_probe(row.get('baseUrl'), row.get('token'), models_endpoint=True)
-                result.update({'status': status, 'message': msg})
+            status, msg = _test_openai_compatible(row)
+            result.update({'status': status, 'message': msg})
         elif provider == 'custom_http':
             if not row.get('baseUrl'):
                 result.update({'status': 'FAILED', 'message': 'custom_http 必须配置 baseUrl'})
             else:
-                status, msg = _http_probe(row.get('baseUrl'), row.get('token'), models_endpoint=False)
+                status, msg = _request_json(str(row.get('baseUrl')).rstrip('/'), token=row.get('token') or '', method='GET')
                 result.update({'status': status, 'message': msg})
         else:
             result.update({'status': 'FAILED', 'message': '未知 provider'})
