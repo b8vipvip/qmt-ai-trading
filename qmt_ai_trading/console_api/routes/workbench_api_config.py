@@ -16,6 +16,12 @@ PURPOSES = {'market', 'fundamental', 'news', 'research', 'ai', 'all'}
 PURPOSE_ORDER = ['market', 'fundamental', 'news', 'research', 'ai', 'all']
 
 
+OPENAI_COMPAT_HEADERS = {
+    'Accept': 'application/json',
+    'User-Agent': 'qmt-ai-trading-local-console/1.0 OpenAI-Compatible-Probe',
+}
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -174,21 +180,25 @@ def select_config_for_purpose(purpose: str) -> dict[str, Any] | None:
 
 def _http_error_message(exc: urllib.error.HTTPError, url: str) -> str:
     try:
-        body = exc.read(300).decode('utf-8', errors='replace')
+        body = exc.read(500).decode('utf-8', errors='replace')
     except Exception:
         body = ''
     detail = f'HTTP {exc.code}: {url}'
     if body:
-        detail += f'；响应：{body[:220]}'
+        detail += f'；响应：{body[:260]}'
+    if exc.code == 403 and ('1010' in body or 'error code: 1010' in body.lower()):
+        detail += '；诊断：上游接口返回 Cloudflare/Error 1010，通常是中转站防火墙、IP、User-Agent 或接口权限限制，并不是前端页面错误。'
     return detail
 
 
-def _request_json(url: str, token: str = '', method: str = 'GET', body: dict[str, Any] | None = None) -> tuple[str, str]:
+def _request_json(url: str, token: str = '', method: str = 'GET', body: dict[str, Any] | None = None, extra_headers: dict[str, str] | None = None) -> tuple[str, str]:
     data = None
     if body is not None:
         data = json.dumps(body, ensure_ascii=False).encode('utf-8')
     req = urllib.request.Request(url, method=method, data=data)
     req.add_header('Content-Type', 'application/json')
+    for key, value in (extra_headers or {}).items():
+        req.add_header(key, value)
     if token:
         req.add_header('Authorization', f'Bearer {token}')
     try:
@@ -210,14 +220,16 @@ def _test_openai_compatible(row: dict[str, Any]) -> tuple[str, str]:
     model = _clean_text(row.get('modelName'), 160)
     if not base_url or not token:
         return 'FAILED', 'AI 接口必须配置 Base URL 和 Token'
-    status, msg = _request_json(base_url + '/models', token=token, method='GET')
+    status, msg = _request_json(base_url + '/models', token=token, method='GET', extra_headers=OPENAI_COMPAT_HEADERS)
     if status == 'READY':
         return status, 'AI 接口 /models 测试通过：' + msg
     if model:
         body = {'model': model, 'messages': [{'role': 'user', 'content': 'ping'}], 'max_tokens': 1, 'stream': False}
-        chat_status, chat_msg = _request_json(base_url + '/chat/completions', token=token, method='POST', body=body)
+        chat_status, chat_msg = _request_json(base_url + '/chat/completions', token=token, method='POST', body=body, extra_headers=OPENAI_COMPAT_HEADERS)
         if chat_status == 'READY':
             return chat_status, 'AI 接口 chat/completions 测试通过；/models 不可用但不影响调用。' + chat_msg
+        if '1010' in (msg + chat_msg):
+            return 'FAILED', f'上游 AI 接口被防火墙拒绝（Cloudflare/Error 1010）。请检查该中转站是否限制当前本机出口 IP、是否要求代理、是否禁止 Python/服务端请求，或更换 Base URL/节点。/models：{msg}；chat/completions：{chat_msg}'
         return 'FAILED', f'/models 测试失败：{msg}；chat/completions 测试失败：{chat_msg}'
     return 'FAILED', msg + '；部分中转站会禁用 /models，请填写默认模型后再测试 chat/completions。'
 
