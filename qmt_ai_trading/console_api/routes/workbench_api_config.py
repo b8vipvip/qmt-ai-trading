@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import random
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -24,6 +25,14 @@ def _clean_text(value: Any, max_len: int = 500) -> str:
     return text[:max_len]
 
 
+def _normalize_priority(value: Any) -> int:
+    try:
+        n = int(value)
+    except Exception:
+        n = 1
+    return max(1, min(20, n))
+
+
 def _normalize_purposes(row: dict[str, Any]) -> list[str]:
     raw = row.get('purposes')
     if isinstance(raw, list):
@@ -34,6 +43,20 @@ def _normalize_purposes(row: dict[str, Any]) -> list[str]:
     return sorted(set(values), key=lambda x: PURPOSE_ORDER.index(x))
 
 
+def _default_purposes(provider: str) -> list[str]:
+    if provider == 'openai_compatible':
+        return sorted(set(['ai'] + random.choice([[], ['research']])), key=lambda x: PURPOSE_ORDER.index(x))
+    return []
+
+
+def _display_name(name: str, model: str, config_id: str) -> str:
+    base = _clean_text(name or config_id, 120)
+    model = _clean_text(model, 80)
+    if model and model.lower() not in base.lower():
+        return _clean_text(f'{base} · {model}', 160)
+    return base
+
+
 def _load() -> list[dict[str, Any]]:
     try:
         if CONFIG_FILE.exists():
@@ -42,6 +65,7 @@ def _load() -> list[dict[str, Any]]:
                 rows = [x for x in data['configs'] if isinstance(x, dict)]
                 for row in rows:
                     row['purposes'] = _normalize_purposes(row)
+                    row['priority'] = _normalize_priority(row.get('priority', 1))
                     row.pop('purpose', None)
                 return rows
     except Exception:
@@ -66,6 +90,7 @@ def _mask(value: Any) -> str:
 def _public(row: dict[str, Any]) -> dict[str, Any]:
     out = {k: v for k, v in row.items() if k not in {'token', 'secret', 'password', 'xtdataPath'}}
     out['purposes'] = _normalize_purposes(row)
+    out['priority'] = _normalize_priority(row.get('priority', 1))
     out['hasToken'] = bool(row.get('token'))
     out['tokenMasked'] = _mask(row.get('token'))
     out['sourcePath'] = CONFIG_FILE.as_posix()
@@ -86,16 +111,22 @@ def save_config(body: dict[str, Any]):
     config_id = _clean_text(data.get('id')) or f'{provider}-{len(rows) + 1}'
     existing = next((x for x in rows if x.get('id') == config_id), None)
     token = data.get('token')
+    model_name = _clean_text(data.get('modelName'), 160)
+    input_purposes = _normalize_purposes(data)
+    purposes = _normalize_purposes(existing) if existing and not input_purposes else input_purposes
+    if not purposes:
+        purposes = _default_purposes(provider)
     row = {
         'id': config_id,
-        'name': _clean_text(data.get('name') or config_id, 120),
+        'name': _display_name(_clean_text(data.get('name') or config_id, 120), model_name, config_id),
         'provider': provider,
         'baseUrl': _clean_text(data.get('baseUrl'), 300),
         'account': _clean_text(data.get('account'), 160),
-        'modelName': _clean_text(data.get('modelName'), 160),
+        'modelName': model_name,
         'enabled': bool(data.get('enabled', True)),
         'note': _clean_text(data.get('note'), 500),
-        'purposes': _normalize_purposes(existing or data),
+        'purposes': purposes,
+        'priority': _normalize_priority(data.get('priority', (existing or {}).get('priority', 1))),
         'createdAt': (existing or {}).get('createdAt') or _now(),
         'updatedAt': _now(),
     }
@@ -122,9 +153,23 @@ def set_purposes(body: dict[str, Any]):
     if not row:
         return payload(ok=False, status='FAILED', error='API 配置不存在')
     row['purposes'] = sorted(set(clean), key=lambda x: PURPOSE_ORDER.index(x))
+    if 'priority' in body:
+        row['priority'] = _normalize_priority(body.get('priority'))
+    else:
+        row['priority'] = _normalize_priority(row.get('priority', 1))
     row['updatedAt'] = _now()
     _save(rows)
     return payload(status='SAVED', source='local_api_config_store', data=_public(row))
+
+
+def select_config_for_purpose(purpose: str) -> dict[str, Any] | None:
+    purpose = _clean_text(purpose, 40)
+    candidates = [x for x in _load() if x.get('enabled') and (purpose in _normalize_purposes(x) or 'all' in _normalize_purposes(x))]
+    if not candidates:
+        return None
+    best_priority = min(_normalize_priority(x.get('priority', 1)) for x in candidates)
+    best = [x for x in candidates if _normalize_priority(x.get('priority', 1)) == best_priority]
+    return random.choice(best)
 
 
 def _http_error_message(exc: urllib.error.HTTPError, url: str) -> str:
@@ -183,7 +228,7 @@ def test_config(body: dict[str, Any]):
     if not row:
         return payload(ok=False, status='FAILED', error='API 配置不存在')
     provider = row.get('provider')
-    result = {'id': config_id, 'provider': provider, 'purposes': _normalize_purposes(row), 'enabled': row.get('enabled'), 'checkedAt': _now(), 'sourcePath': CONFIG_FILE.as_posix()}
+    result = {'id': config_id, 'provider': provider, 'purposes': _normalize_purposes(row), 'priority': _normalize_priority(row.get('priority', 1)), 'enabled': row.get('enabled'), 'checkedAt': _now(), 'sourcePath': CONFIG_FILE.as_posix()}
     try:
         if provider == 'akshare':
             import akshare  # type: ignore
