@@ -2,7 +2,7 @@ import { Button, Card, Col, Descriptions, Form, Input, InputNumber, Modal, Row, 
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { EmptyState, SourcePathTag } from '../components/common';
-import { getApiConfigs, getSystemApiRows, getSystemAuditRows, getSystemPermissionRows, getSystemSettings, getSystemSummary, saveApiConfig, saveApiConfigPurposes, saveSystemSettings, settingsFallback, testApiConfig } from '../services/systemManagementService';
+import { getApiConfigs, getSystemApiRows, getSystemAuditRows, getSystemPermissionRows, getSystemSettings, getSystemSummary, saveApiConfig, saveApiConfigPurposes, saveSystemSettings, settingsFallback, testApiConfig, testQmtSettings } from '../services/systemManagementService';
 import type { ApiConfigRow, ApiRow, AuditRow, PermissionRow, SystemSettings, SystemSummary } from '../services/systemManagementService';
 
 function useAsync<T>(loader: () => Promise<T>, fallback: T): T {
@@ -43,11 +43,13 @@ const purposeOptions = [
 ];
 
 export function SystemConfigPage() {
-  const summary = useAsync(getSystemSummary, { artifactRoot: '', taskCount: 0, historyCount: 0, apiConfigCount: 0, enabledApiConfigCount: 0, latestRunAt: '', runMode: 'research', liveTradingEnabled: false, orderSubmitEnabled: false, orderCancelEnabled: false } as SystemSummary);
+  const summary = useAsync(getSystemSummary, { artifactRoot: '', taskCount: 0, historyCount: 0, apiConfigCount: 0, enabledApiConfigCount: 0, latestRunAt: '', runMode: 'research', qmtPathConfigured: false, liveTradingEnabled: false, orderSubmitEnabled: false, orderCancelEnabled: false } as SystemSummary);
   const settings = useAsync(getSystemSettings, settingsFallback);
   const configs = useAsync(getApiConfigs, [] as ApiConfigRow[]);
+  const apiConfigs = configs.filter((x) => x.provider !== 'qmt_xtdata');
   const [form] = Form.useForm<SystemSettings>();
   const [saving, setSaving] = useState(false);
+  const [qmtTesting, setQmtTesting] = useState(false);
 
   useEffect(() => { form.setFieldsValue(settings); }, [settings, form]);
 
@@ -74,11 +76,30 @@ export function SystemConfigPage() {
     }
   };
 
+  const testQmt = async () => {
+    try {
+      setQmtTesting(true);
+      await saveSystemSettings(form.getFieldsValue(true) as SystemSettings);
+      const res = await testQmtSettings();
+      if (res.status === 'READY') message.success(res.message);
+      else message.warning(`${res.message}；路径状态：${res.pathStatus}`);
+      window.dispatchEvent(new Event('qmt-settings-saved'));
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : String(error));
+    } finally {
+      setQmtTesting(false);
+    }
+  };
+
   return <div className="page-grid">
-    <Row gutter={[16,16]}><Col xs={12} md={6}>{metric('运行模式', summary.runMode)}</Col><Col xs={12} md={6}>{metric('API配置', summary.apiConfigCount)}</Col><Col xs={12} md={6}>{metric('发单开关', String(summary.orderSubmitEnabled))}</Col><Col xs={12} md={6}>{metric('实盘开关', String(summary.liveTradingEnabled))}</Col></Row>
+    <Row gutter={[16,16]}><Col xs={12} md={6}>{metric('运行模式', summary.runMode)}</Col><Col xs={12} md={6}>{metric('API配置', summary.apiConfigCount)}</Col><Col xs={12} md={6}>{metric('QMT路径', summary.qmtPathConfigured ? '已配置' : '未配置')}</Col><Col xs={12} md={6}>{metric('实盘开关', String(summary.liveTradingEnabled))}</Col></Row>
     <Form form={form} layout="vertical">
       <Section title="系统运行模式" extra={<Button type="primary" loading={saving} onClick={save}>保存配置</Button>}>
         <Row gutter={16}><Col xs={24} md={8}><Form.Item name={['runtime','mode']} label="运行模式"><Select options={[{value:'research',label:'研究'}, {value:'simulation',label:'仿真'}, {value:'shadow_live',label:'影子实盘'}, {value:'small_capital_live',label:'小资金实盘'}, {value:'full_live',label:'正式实盘'}]} /></Form.Item></Col><Col xs={24} md={16}><Typography.Text type="secondary">运行模式是系统级参数，不会自动触发下单。真实下单和撤单仍由后端安全闸门锁定。</Typography.Text></Col></Row>
+      </Section>
+      <Section title="QMT / xtdata 本地路径" extra={<Button loading={qmtTesting} onClick={testQmt}>保存并测试 QMT 连接</Button>}>
+        <Row gutter={16}><Col xs={24} md={8}><Form.Item name={['qmt','clientName']} label="客户端名称"><Input placeholder="例如 QMT / 国金QMT" /></Form.Item></Col><Col xs={24} md={8}><Form.Item name={['qmt','xtdataPath']} label="QMT / xtdata 路径"><Input placeholder="例如 D:\\国金证券QMT交易端\\bin.x64" /></Form.Item></Col><Col xs={24} md={8}><Form.Item name={['qmt','xtquantPythonPath']} label="xtquant Python 路径"><Input placeholder="可选：xtquant 所在目录" /></Form.Item></Col></Row>
+        <Typography.Text type="secondary">这里专门配置本地 QMT / xtdata，不再和 AI API、Tushare、AkShare 等外部 API 混在一起。</Typography.Text>
       </Section>
       <Section title="默认交易参数">
         <Row gutter={16}><Col xs={24} md={6}><Form.Item name={['trading','defaultStockPool']} label="默认股票池"><Input /></Form.Item></Col><Col xs={24} md={6}><Form.Item name={['trading','commissionRate']} label="默认手续费"><InputNumber style={{width:'100%'}} min={0} max={0.02} step={0.00001} /></Form.Item></Col><Col xs={24} md={6}><Form.Item name={['trading','slippageBps']} label="默认滑点 bps"><InputNumber style={{width:'100%'}} min={0} max={500} /></Form.Item></Col><Col xs={24} md={6}><Form.Item name={['trading','rebalancePeriod']} label="默认调仓周期"><Select options={[{value:'daily',label:'每日'}, {value:'weekly',label:'每周'}, {value:'monthly',label:'每月'}, {value:'manual',label:'手动'}]} /></Form.Item></Col></Row>
@@ -97,7 +118,7 @@ export function SystemConfigPage() {
       </Section>
     </Form>
     <Section title="API 用途配置" extra={<Tag color="blue">API 接口页只维护接口信息，这里决定用途</Tag>}>
-      <Table rowKey="id" size="small" dataSource={configs} columns={[{title:'API名称',dataIndex:'name',width:180},{title:'Provider',dataIndex:'provider',width:140,render:(v)=><Tag color="blue">{v}</Tag>},{title:'启用',dataIndex:'enabled',width:90,render:(v)=><Tag color={v?'green':'default'}>{String(v)}</Tag>},{title:'用途',dataIndex:'purposes',render:(v:string[],row)=><Select mode="multiple" allowClear style={{minWidth:360}} value={v || []} options={purposeOptions} onChange={(values)=>savePurposes(row.id, values)} />},{title:'来源',dataIndex:'sourcePath',width:120,render:(v)=><SourcePathTag value={v}/>}]} scroll={{ x: 1000 }} locale={{ emptyText: <EmptyState text="暂无 API 配置；请先到 API 接口页面新增接口。" /> }} />
+      <Table rowKey="id" size="small" dataSource={apiConfigs} columns={[{title:'API名称',dataIndex:'name',width:180},{title:'Provider',dataIndex:'provider',width:140,render:(v)=><Tag color="blue">{v}</Tag>},{title:'启用',dataIndex:'enabled',width:90,render:(v)=><Tag color={v?'green':'default'}>{String(v)}</Tag>},{title:'用途',dataIndex:'purposes',render:(v:string[],row)=><Select mode="multiple" allowClear style={{minWidth:360}} value={v || []} options={purposeOptions} onChange={(values)=>savePurposes(row.id, values)} />},{title:'来源',dataIndex:'sourcePath',width:120,render:(v)=><SourcePathTag value={v}/>}]} scroll={{ x: 1000 }} locale={{ emptyText: <EmptyState text="暂无 API 配置；请先到 API 接口页面新增接口。" /> }} />
     </Section>
   </div>;
 }
@@ -105,6 +126,7 @@ export function SystemConfigPage() {
 export function SystemApiPage() {
   const rows = useAsync(getSystemApiRows, [] as ApiRow[]);
   const configs = useAsync(getApiConfigs, [] as ApiConfigRow[]);
+  const apiConfigs = configs.filter((x) => x.provider !== 'qmt_xtdata');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ApiConfigRow | null>(null);
   const [form] = Form.useForm();
@@ -128,17 +150,16 @@ export function SystemApiPage() {
   };
 
   return <div className="page-grid">
-    <Section title="外部 API / 服务接口配置" extra={<Button type="primary" onClick={() => openForm()}>新增 API</Button>}>
-      <Table rowKey="id" size="small" dataSource={configs} columns={[{title:'名称',dataIndex:'name',width:180},{title:'Provider',dataIndex:'provider',width:150,render:(v)=><Tag color="blue">{v}</Tag>},{title:'Base URL',dataIndex:'baseUrl',width:240},{title:'QMT/xtdata路径',dataIndex:'xtdataPath',width:220},{title:'默认模型',dataIndex:'modelName',width:160},{title:'账号',dataIndex:'account',width:120},{title:'Token',dataIndex:'tokenMasked',width:120,render:(v,r)=><Tag color={r.hasToken?'green':'default'}>{r.hasToken ? v : '未配置'}</Tag>},{title:'用途',dataIndex:'purposes',width:180,render:(v:string[])=>(v || []).length ? (v || []).map((x)=><Tag key={x}>{x}</Tag>) : <Tag>未分配</Tag>},{title:'启用',dataIndex:'enabled',width:90,render:(v)=><Tag color={v?'green':'default'}>{String(v)}</Tag>},{title:'更新时间',dataIndex:'updatedAt',width:180},{title:'来源',dataIndex:'sourcePath',width:120,render:(v)=><SourcePathTag value={v}/>},{title:'操作',width:180,render:(_,row)=><Space><Button size="small" onClick={()=>openForm(row)}>编辑</Button><Button size="small" onClick={()=>test(row.id)}>测试</Button></Space>}]} scroll={{ x: 1900, y: 430 }} locale={{ emptyText: <EmptyState text="暂无 API；点击“新增 API”配置 AI 接口、QMT xtdata、AkShare、Tushare、BaoStock 或自定义 HTTP。" /> }} />
+    <Section title="外部 API / AI 服务接口配置" extra={<Button type="primary" onClick={() => openForm()}>新增 API</Button>}>
+      <Table rowKey="id" size="small" dataSource={apiConfigs} columns={[{title:'名称',dataIndex:'name',width:180},{title:'Provider',dataIndex:'provider',width:150,render:(v)=><Tag color="blue">{v}</Tag>},{title:'Base URL',dataIndex:'baseUrl',width:260},{title:'默认模型',dataIndex:'modelName',width:160},{title:'账号',dataIndex:'account',width:120},{title:'Token',dataIndex:'tokenMasked',width:120,render:(v,r)=><Tag color={r.hasToken?'green':'default'}>{r.hasToken ? v : '未配置'}</Tag>},{title:'用途',dataIndex:'purposes',width:180,render:(v:string[])=>(v || []).length ? (v || []).map((x)=><Tag key={x}>{x}</Tag>) : <Tag>未分配</Tag>},{title:'启用',dataIndex:'enabled',width:90,render:(v)=><Tag color={v?'green':'default'}>{String(v)}</Tag>},{title:'更新时间',dataIndex:'updatedAt',width:180},{title:'来源',dataIndex:'sourcePath',width:120,render:(v)=><SourcePathTag value={v}/>},{title:'操作',width:180,render:(_,row)=><Space><Button size="small" onClick={()=>openForm(row)}>编辑</Button><Button size="small" onClick={()=>test(row.id)}>测试</Button></Space>}]} scroll={{ x: 1750, y: 430 }} locale={{ emptyText: <EmptyState text="暂无 API；点击“新增 API”配置 AI 接口、AkShare、Tushare、BaoStock 或自定义 HTTP。QMT/xtdata 路径请到配置中心单独配置。" /> }} />
     </Section>
     <Section title="本地控制台 API 状态"><Table rowKey={(r)=>`${r.name}-${r.endpoint}`} size="small" dataSource={rows} columns={[{title:'接口',dataIndex:'name',width:220},{title:'Endpoint',dataIndex:'endpoint'},{title:'Method',dataIndex:'method',width:110},{title:'状态',dataIndex:'status',width:100,render:statusTag},{title:'来源',dataIndex:'source',width:300}]} scroll={{ x: 1200, y: 360 }} locale={{ emptyText: <EmptyState text="未读取到 API 路由状态。" /> }} /></Section>
     <Modal open={open} onCancel={()=>setOpen(false)} onOk={submit} title={editing ? '编辑 API 配置' : '新增 API 配置'} destroyOnClose>
       <Form form={form} layout="vertical">
         <Form.Item name="id" label="配置ID"><Input placeholder="留空则自动生成" disabled={!!editing} /></Form.Item>
-        <Form.Item name="name" label="显示名称" rules={[{ required: true, message: '请输入显示名称' }]}><Input placeholder="例如：OpenAI 兼容接口 / QMT xtdata / Tushare Pro" /></Form.Item>
-        <Form.Item name="provider" label="Provider" rules={[{ required: true }]}><Select options={[{value:'openai_compatible',label:'AI接口（OpenAI兼容）'}, {value:'qmt_xtdata',label:'QMT xtdata'}, {value:'akshare',label:'AkShare'}, {value:'tushare',label:'Tushare'}, {value:'baostock',label:'BaoStock'}, {value:'custom_http',label:'自定义 HTTP'}]} /></Form.Item>
-        <Form.Item name="baseUrl" label="Base URL"><Input placeholder="AI接口/自定义HTTP填写，例如 https://api.openai.com/v1；AkShare/QMT可留空" /></Form.Item>
-        <Form.Item name="xtdataPath" label="QMT / xtdata 路径"><Input placeholder="例如 D:\\国金证券QMT交易端\\bin.x64 或 xtquant 所在目录" /></Form.Item>
+        <Form.Item name="name" label="显示名称" rules={[{ required: true, message: '请输入显示名称' }]}><Input placeholder="例如：OpenAI 兼容接口 / Tushare Pro / AkShare" /></Form.Item>
+        <Form.Item name="provider" label="Provider" rules={[{ required: true }]}><Select options={[{value:'openai_compatible',label:'AI接口（OpenAI兼容）'}, {value:'akshare',label:'AkShare'}, {value:'tushare',label:'Tushare'}, {value:'baostock',label:'BaoStock'}, {value:'custom_http',label:'自定义 HTTP'}]} /></Form.Item>
+        <Form.Item name="baseUrl" label="Base URL"><Input placeholder="AI接口/自定义HTTP填写，例如 https://api.openai.com/v1；AkShare 可留空" /></Form.Item>
         <Form.Item name="modelName" label="默认模型"><Input placeholder="AI接口可填，例如 gpt-4o / deepseek-chat；数据源可留空" /></Form.Item>
         <Form.Item name="account" label="账号/用户名"><Input /></Form.Item>
         <Form.Item name="token" label="Token / API Key"><Input.Password placeholder="留空表示保留原 token；保存后只显示掩码" /></Form.Item>
