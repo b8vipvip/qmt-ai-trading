@@ -363,6 +363,34 @@ def save_settings(body: dict[str, Any]):
     return payload(status='SAVED', source='system_settings_store', data=sanitized, sourcePath=SETTINGS_FILE.as_posix())
 
 
+def open_local_path(body: dict[str, Any] | None = None):
+    body = body or {}
+    raw_path = _clean_text(body.get('path'), '', 1000)
+    if not raw_path:
+        return payload(ok=False, status='FAILED', error='未提供要打开的目录')
+    try:
+        p = Path(raw_path).expanduser()
+        if not p.is_absolute():
+            p = Path.cwd() / p
+        if p.exists() and p.is_file():
+            p = p.parent
+        created = False
+        if not p.exists():
+            p.mkdir(parents=True, exist_ok=True)
+            created = True
+        if not p.is_dir():
+            return payload(ok=False, status='FAILED', error=f'目标不是目录：{p}')
+        if os.name == 'nt' and hasattr(os, 'startfile'):
+            os.startfile(str(p))  # type: ignore[attr-defined]  # nosec - local operator requested folder open
+        elif sys.platform == 'darwin':
+            subprocess.Popen(['open', str(p)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            subprocess.Popen(['xdg-open', str(p)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return payload(status='READY', source='local_path_opener', data={'path': str(p), 'opened': True, 'created': created})
+    except Exception as exc:
+        return payload(ok=False, status='FAILED', error=f'打开目录失败：{exc}')
+
+
 def scan_qmt_paths(body: dict[str, Any] | None = None):
     body = body or {}
     target = _clean_text(body.get('target'), 'all', 40)
