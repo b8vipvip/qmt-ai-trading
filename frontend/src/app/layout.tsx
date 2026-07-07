@@ -47,7 +47,7 @@ export function AppLayout() {
         <Header className="quant-header"><Button type="text" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed(!collapsed)} /><SystemStatusBar dark={dark} onToggleTheme={() => setDark(!dark)} /><Button icon={<BellOutlined />} onClick={() => setDrawerOpen(true)}>告警</Button></Header>
         <Content className="quant-content"><div className="page-title"><div><h1>{activeRoute.label}</h1><p>本地只读量化控制台：数据、配置和任务来自后端产物或本地安全接口；交易动作默认关闭。</p></div></div>{activeRoute.element}</Content>
       </Layout>
-      <Drawer title="风险告警 / 通知中心" open={drawerOpen} onClose={() => setDrawerOpen(false)} width={420}><EventLogPanel events={systemEvents} /></Drawer>
+      <Drawer title="风险告警 / 通知中心" open={drawerOpen} onClose={() => setDrawerOpen(false)} size="large"><EventLogPanel events={systemEvents} /></Drawer>
     </Layout>
   </ConfigProvider>;
 }
