@@ -3,6 +3,7 @@ config.json
 .env
 ai_providers.local.json
 artifacts/reports/console/system/api_configs.private.json
+artifacts/reports/console/system/system_settings.private.json
 *.key
 *.pem
 
