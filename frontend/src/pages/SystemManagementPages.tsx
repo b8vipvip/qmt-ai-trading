@@ -1,10 +1,9 @@
-import { Button, Card, Col, Descriptions, Form, Input, Modal, Row, Select, Space, Switch, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Col, Descriptions, Form, Input, InputNumber, Modal, Row, Select, Space, Switch, Table, Tag, Typography, message } from 'antd';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { EmptyState, SourcePathTag } from '../components/common';
-import { TaskRunButton } from '../components/common/TaskRunButton';
-import { getApiConfigs, getSystemApiRows, getSystemAuditRows, getSystemConfigRows, getSystemPermissionRows, getSystemSummary, saveApiConfig, testApiConfig } from '../services/systemManagementService';
-import type { ApiConfigRow, ApiRow, AuditRow, ConfigRow, PermissionRow, SystemSummary } from '../services/systemManagementService';
+import { getApiConfigs, getSystemApiRows, getSystemAuditRows, getSystemPermissionRows, getSystemSettings, getSystemSummary, saveApiConfig, saveApiConfigPurposes, saveSystemSettings, settingsFallback, testApiConfig } from '../services/systemManagementService';
+import type { ApiConfigRow, ApiRow, AuditRow, PermissionRow, SystemSettings, SystemSummary } from '../services/systemManagementService';
 
 function useAsync<T>(loader: () => Promise<T>, fallback: T): T {
   const [data, setData] = useState<T>(fallback);
@@ -14,7 +13,8 @@ function useAsync<T>(loader: () => Promise<T>, fallback: T): T {
     load();
     window.addEventListener('qmt-task-finished', load);
     window.addEventListener('qmt-api-config-saved', load);
-    return () => { mounted = false; window.removeEventListener('qmt-task-finished', load); window.removeEventListener('qmt-api-config-saved', load); };
+    window.addEventListener('qmt-settings-saved', load);
+    return () => { mounted = false; window.removeEventListener('qmt-task-finished', load); window.removeEventListener('qmt-api-config-saved', load); window.removeEventListener('qmt-settings-saved', load); };
   }, []);
   return data;
 }
@@ -33,16 +33,72 @@ function metric(title: string, value: ReactNode) {
   return <Card className="metric-card"><b>{title}</b><div className="metric-value">{value}</div></Card>;
 }
 
-const summaryFallback = { artifactRoot: '', taskCount: 0, historyCount: 0, apiConfigCount: 0, enabledApiConfigCount: 0, latestRunAt: '', liveTradingEnabled: false, orderSubmitEnabled: false, orderCancelEnabled: false } as SystemSummary;
+const purposeOptions = [
+  { value: 'market', label: '行情' },
+  { value: 'fundamental', label: '基本面' },
+  { value: 'news', label: '公告新闻' },
+  { value: 'research', label: '研究' },
+  { value: 'ai', label: 'AI服务' },
+  { value: 'all', label: '全部' },
+];
 
 export function SystemConfigPage() {
-  const summary = useAsync(getSystemSummary, summaryFallback);
-  const rows = useAsync(getSystemConfigRows, [] as ConfigRow[]);
+  const summary = useAsync(getSystemSummary, { artifactRoot: '', taskCount: 0, historyCount: 0, apiConfigCount: 0, enabledApiConfigCount: 0, latestRunAt: '', runMode: 'research', liveTradingEnabled: false, orderSubmitEnabled: false, orderCancelEnabled: false } as SystemSummary);
+  const settings = useAsync(getSystemSettings, settingsFallback);
+  const configs = useAsync(getApiConfigs, [] as ApiConfigRow[]);
+  const [form] = Form.useForm<SystemSettings>();
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { form.setFieldsValue(settings); }, [settings, form]);
+
+  const save = async () => {
+    try {
+      setSaving(true);
+      await saveSystemSettings(form.getFieldsValue(true) as SystemSettings);
+      message.success('系统配置已保存');
+      window.dispatchEvent(new Event('qmt-settings-saved'));
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const savePurposes = async (id: string, purposes: string[]) => {
+    try {
+      await saveApiConfigPurposes(id, purposes);
+      message.success('API 用途已保存');
+      window.dispatchEvent(new Event('qmt-api-config-saved'));
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   return <div className="page-grid">
-    <Section title="配置中心说明" extra={<Tag color="green">只读真实配置</Tag>}><Typography.Paragraph>这里展示本地控制台运行配置和安全状态，不放无意义任务按钮；API 凭据请到“API 接口”页面维护。</Typography.Paragraph></Section>
-    <Row gutter={[16,16]}><Col xs={12} md={6}>{metric('白名单任务', summary.taskCount)}</Col><Col xs={12} md={6}>{metric('API配置', summary.apiConfigCount)}</Col><Col xs={12} md={6}>{metric('发单开关', String(summary.orderSubmitEnabled))}</Col><Col xs={12} md={6}>{metric('实盘开关', String(summary.liveTradingEnabled))}</Col></Row>
-    <Section title="配置中心 / 只读真实配置"><Table rowKey="key" size="small" dataSource={rows} columns={[{title:'配置键',dataIndex:'key',width:180},{title:'配置项',dataIndex:'name',width:180},{title:'当前值',dataIndex:'value',render:(v,r)=><Typography.Text code={r.sensitive}> {String(v || '-')} </Typography.Text>},{title:'可编辑',dataIndex:'editable',width:90,render:(v)=><Tag color={v?'gold':'green'}>{String(v)}</Tag>},{title:'敏感',dataIndex:'sensitive',width:80,render:(v)=><Tag color={v?'red':'green'}>{String(v)}</Tag>},{title:'来源',dataIndex:'source',width:240}]} scroll={{ x: 1100, y: 480 }} locale={{ emptyText: <EmptyState text="未读取到系统配置。" /> }} /></Section>
-    <Section title="安全说明"><Descriptions bordered size="small" column={2} items={[{key:'1',label:'产物目录',children:summary.artifactRoot},{key:'2',label:'已启用 API 配置',children:String(summary.enabledApiConfigCount)},{key:'3',label:'密钥展示策略',children:'不显示 .env/token/secret/key 明文；本地 API 配置文件已加入 .gitignore'},{key:'4',label:'交易安全',children:'orderSubmit/liveTrading 固定为 false'}]} /></Section>
+    <Row gutter={[16,16]}><Col xs={12} md={6}>{metric('运行模式', summary.runMode)}</Col><Col xs={12} md={6}>{metric('API配置', summary.apiConfigCount)}</Col><Col xs={12} md={6}>{metric('发单开关', String(summary.orderSubmitEnabled))}</Col><Col xs={12} md={6}>{metric('实盘开关', String(summary.liveTradingEnabled))}</Col></Row>
+    <Form form={form} layout="vertical">
+      <Section title="系统运行模式" extra={<Button type="primary" loading={saving} onClick={save}>保存配置</Button>}>
+        <Row gutter={16}><Col xs={24} md={8}><Form.Item name={['runtime','mode']} label="运行模式"><Select options={[{value:'research',label:'研究'}, {value:'simulation',label:'仿真'}, {value:'shadow_live',label:'影子实盘'}, {value:'small_capital_live',label:'小资金实盘'}, {value:'full_live',label:'正式实盘'}]} /></Form.Item></Col><Col xs={24} md={16}><Typography.Text type="secondary">运行模式是系统级参数，不会自动触发下单。真实下单和撤单仍由后端安全闸门锁定。</Typography.Text></Col></Row>
+      </Section>
+      <Section title="默认交易参数">
+        <Row gutter={16}><Col xs={24} md={6}><Form.Item name={['trading','defaultStockPool']} label="默认股票池"><Input /></Form.Item></Col><Col xs={24} md={6}><Form.Item name={['trading','commissionRate']} label="默认手续费"><InputNumber style={{width:'100%'}} min={0} max={0.02} step={0.00001} /></Form.Item></Col><Col xs={24} md={6}><Form.Item name={['trading','slippageBps']} label="默认滑点 bps"><InputNumber style={{width:'100%'}} min={0} max={500} /></Form.Item></Col><Col xs={24} md={6}><Form.Item name={['trading','rebalancePeriod']} label="默认调仓周期"><Select options={[{value:'daily',label:'每日'}, {value:'weekly',label:'每周'}, {value:'monthly',label:'每月'}, {value:'manual',label:'手动'}]} /></Form.Item></Col></Row>
+        <Row gutter={16}><Col xs={24} md={6}><Form.Item name={['trading','backtestInitialCash']} label="回测初始资金"><InputNumber style={{width:'100%'}} min={1000} /></Form.Item></Col><Col xs={24} md={6}><Form.Item name={['trading','backtestStartDate']} label="回测开始日期"><Input /></Form.Item></Col><Col xs={24} md={6}><Form.Item name={['trading','backtestEndDate']} label="回测结束日期"><Input placeholder="留空表示最新" /></Form.Item></Col><Col xs={24} md={6}><Form.Item name={['trading','stampTaxRate']} label="印花税"><InputNumber style={{width:'100%'}} min={0} max={0.02} step={0.0001} /></Form.Item></Col></Row>
+        <Row gutter={16}><Col xs={12} md={6}><Form.Item name={['trading','enableT1']} label="启用 T+1" valuePropName="checked"><Switch /></Form.Item></Col><Col xs={12} md={6}><Form.Item name={['trading','enableLimitCheck']} label="涨跌停限制" valuePropName="checked"><Switch /></Form.Item></Col><Col xs={12} md={6}><Form.Item name={['trading','enableSuspensionCheck']} label="停牌检测" valuePropName="checked"><Switch /></Form.Item></Col><Col xs={12} md={6}><Form.Item name={['trading','enableLiquidityLimit']} label="流动性限制" valuePropName="checked"><Switch /></Form.Item></Col></Row>
+      </Section>
+      <Section title="风控默认参数">
+        <Row gutter={16}><Col xs={24} md={5}><Form.Item name={['risk','maxPositionPct']} label="最大仓位 %"><InputNumber style={{width:'100%'}} min={0} max={100} /></Form.Item></Col><Col xs={24} md={5}><Form.Item name={['risk','maxSinglePositionPct']} label="单票上限 %"><InputNumber style={{width:'100%'}} min={0} max={100} /></Form.Item></Col><Col xs={24} md={5}><Form.Item name={['risk','maxIndustryExposurePct']} label="行业上限 %"><InputNumber style={{width:'100%'}} min={0} max={100} /></Form.Item></Col><Col xs={24} md={5}><Form.Item name={['risk','maxDrawdownPct']} label="最大回撤阈值 %"><InputNumber style={{width:'100%'}} min={0} max={100} /></Form.Item></Col><Col xs={24} md={4}><Form.Item name={['risk','dailyLossLimitPct']} label="日内亏损阈值 %"><InputNumber style={{width:'100%'}} min={0} max={100} /></Form.Item></Col></Row>
+      </Section>
+      <Section title="数据路径">
+        <Row gutter={16}><Col xs={24} md={12}><Form.Item name={['paths','marketCacheDir']} label="行情缓存目录"><Input /></Form.Item></Col><Col xs={24} md={12}><Form.Item name={['paths','factorArtifactDir']} label="因子产物目录"><Input /></Form.Item></Col><Col xs={24} md={12}><Form.Item name={['paths','backtestReportDir']} label="回测报告目录"><Input /></Form.Item></Col><Col xs={24} md={12}><Form.Item name={['paths','taskHistoryDir']} label="任务历史目录"><Input /></Form.Item></Col></Row>
+      </Section>
+      <Section title="安全开关">
+        <Row gutter={16}><Col xs={12} md={6}><Form.Item name={['safety','allowRealOrder']} label="允许真实下单" valuePropName="checked"><Switch disabled /></Form.Item></Col><Col xs={12} md={6}><Form.Item name={['safety','allowCancelOrder']} label="允许撤单" valuePropName="checked"><Switch disabled /></Form.Item></Col><Col xs={12} md={6}><Form.Item name={['safety','allowAccountQuery']} label="允许查询账户" valuePropName="checked"><Switch /></Form.Item></Col><Col xs={12} md={6}><Form.Item name={['safety','enableHumanApproval']} label="启用人工审批" valuePropName="checked"><Switch disabled /></Form.Item></Col></Row>
+        <Typography.Text type="secondary">真实下单、撤单和关闭人工审批当前被安全策略锁定，不能在前端打开；账户查询只影响只读账户任务。</Typography.Text>
+      </Section>
+    </Form>
+    <Section title="API 用途配置" extra={<Tag color="blue">API 接口页只维护接口信息，这里决定用途</Tag>}>
+      <Table rowKey="id" size="small" dataSource={configs} columns={[{title:'API名称',dataIndex:'name',width:180},{title:'Provider',dataIndex:'provider',width:140,render:(v)=><Tag color="blue">{v}</Tag>},{title:'启用',dataIndex:'enabled',width:90,render:(v)=><Tag color={v?'green':'default'}>{String(v)}</Tag>},{title:'用途',dataIndex:'purposes',render:(v:string[],row)=><Select mode="multiple" allowClear style={{minWidth:360}} value={v || []} options={purposeOptions} onChange={(values)=>savePurposes(row.id, values)} />},{title:'来源',dataIndex:'sourcePath',width:120,render:(v)=><SourcePathTag value={v}/>}]} scroll={{ x: 1000 }} locale={{ emptyText: <EmptyState text="暂无 API 配置；请先到 API 接口页面新增接口。" /> }} />
+    </Section>
   </div>;
 }
 
@@ -55,7 +111,7 @@ export function SystemApiPage() {
 
   const openForm = (row?: ApiConfigRow) => {
     setEditing(row || null);
-    form.setFieldsValue(row || { provider: 'akshare', purpose: 'market', enabled: true });
+    form.setFieldsValue(row ? { ...row, token: '' } : { provider: 'openai_compatible', enabled: true });
     setOpen(true);
   };
   const submit = async () => {
@@ -72,19 +128,20 @@ export function SystemApiPage() {
   };
 
   return <div className="page-grid">
-    <Section title="外部数据 API 配置" extra={<Button type="primary" onClick={() => openForm()}>新增 API</Button>}>
-      <Table rowKey="id" size="small" dataSource={configs} columns={[{title:'名称',dataIndex:'name',width:180},{title:'Provider',dataIndex:'provider',width:120,render:(v)=><Tag color="blue">{v}</Tag>},{title:'用途',dataIndex:'purpose',width:110},{title:'Base URL',dataIndex:'baseUrl'},{title:'账号',dataIndex:'account',width:120},{title:'Token',dataIndex:'tokenMasked',width:120,render:(v,r)=><Tag color={r.hasToken?'green':'default'}>{r.hasToken ? v : '未配置'}</Tag>},{title:'启用',dataIndex:'enabled',width:90,render:(v)=><Tag color={v?'green':'default'}>{String(v)}</Tag>},{title:'更新时间',dataIndex:'updatedAt',width:180},{title:'来源',dataIndex:'sourcePath',width:120,render:(v)=><SourcePathTag value={v}/>},{title:'操作',width:180,render:(_,row)=><Space><Button size="small" onClick={()=>openForm(row)}>编辑</Button><Button size="small" onClick={()=>test(row.id)}>测试</Button></Space>}]} scroll={{ x: 1500, y: 360 }} locale={{ emptyText: <EmptyState text="暂无外部数据 API；点击“新增 API”配置 AkShare / Tushare / BaoStock / QMT。" /> }} />
+    <Section title="外部 API / 服务接口配置" extra={<Button type="primary" onClick={() => openForm()}>新增 API</Button>}>
+      <Table rowKey="id" size="small" dataSource={configs} columns={[{title:'名称',dataIndex:'name',width:180},{title:'Provider',dataIndex:'provider',width:150,render:(v)=><Tag color="blue">{v}</Tag>},{title:'Base URL',dataIndex:'baseUrl',width:240},{title:'QMT/xtdata路径',dataIndex:'xtdataPath',width:220},{title:'默认模型',dataIndex:'modelName',width:160},{title:'账号',dataIndex:'account',width:120},{title:'Token',dataIndex:'tokenMasked',width:120,render:(v,r)=><Tag color={r.hasToken?'green':'default'}>{r.hasToken ? v : '未配置'}</Tag>},{title:'用途',dataIndex:'purposes',width:180,render:(v:string[])=>(v || []).length ? (v || []).map((x)=><Tag key={x}>{x}</Tag>) : <Tag>未分配</Tag>},{title:'启用',dataIndex:'enabled',width:90,render:(v)=><Tag color={v?'green':'default'}>{String(v)}</Tag>},{title:'更新时间',dataIndex:'updatedAt',width:180},{title:'来源',dataIndex:'sourcePath',width:120,render:(v)=><SourcePathTag value={v}/>},{title:'操作',width:180,render:(_,row)=><Space><Button size="small" onClick={()=>openForm(row)}>编辑</Button><Button size="small" onClick={()=>test(row.id)}>测试</Button></Space>}]} scroll={{ x: 1900, y: 430 }} locale={{ emptyText: <EmptyState text="暂无 API；点击“新增 API”配置 AI 接口、QMT xtdata、AkShare、Tushare、BaoStock 或自定义 HTTP。" /> }} />
     </Section>
     <Section title="本地控制台 API 状态"><Table rowKey={(r)=>`${r.name}-${r.endpoint}`} size="small" dataSource={rows} columns={[{title:'接口',dataIndex:'name',width:220},{title:'Endpoint',dataIndex:'endpoint'},{title:'Method',dataIndex:'method',width:110},{title:'状态',dataIndex:'status',width:100,render:statusTag},{title:'来源',dataIndex:'source',width:300}]} scroll={{ x: 1200, y: 360 }} locale={{ emptyText: <EmptyState text="未读取到 API 路由状态。" /> }} /></Section>
     <Modal open={open} onCancel={()=>setOpen(false)} onOk={submit} title={editing ? '编辑 API 配置' : '新增 API 配置'} destroyOnClose>
       <Form form={form} layout="vertical">
-        <Form.Item name="id" label="配置ID"><Input placeholder="留空则自动使用 provider-purpose" disabled={!!editing} /></Form.Item>
-        <Form.Item name="name" label="显示名称" rules={[{ required: true, message: '请输入显示名称' }]}><Input placeholder="例如：Tushare Pro 基本面" /></Form.Item>
-        <Form.Item name="provider" label="Provider" rules={[{ required: true }]}><Select options={[{value:'akshare',label:'AkShare'}, {value:'tushare',label:'Tushare'}, {value:'baostock',label:'BaoStock'}, {value:'qmt_xtdata',label:'QMT xtdata'}, {value:'custom_http',label:'自定义 HTTP'}]} /></Form.Item>
-        <Form.Item name="purpose" label="用途" rules={[{ required: true }]}><Select options={[{value:'market',label:'行情'}, {value:'fundamental',label:'基本面'}, {value:'news',label:'公告新闻'}, {value:'research',label:'研究'}, {value:'all',label:'全部'}]} /></Form.Item>
-        <Form.Item name="baseUrl" label="Base URL"><Input placeholder="AkShare/BaoStock 可留空；自定义 HTTP 必填" /></Form.Item>
+        <Form.Item name="id" label="配置ID"><Input placeholder="留空则自动生成" disabled={!!editing} /></Form.Item>
+        <Form.Item name="name" label="显示名称" rules={[{ required: true, message: '请输入显示名称' }]}><Input placeholder="例如：OpenAI 兼容接口 / QMT xtdata / Tushare Pro" /></Form.Item>
+        <Form.Item name="provider" label="Provider" rules={[{ required: true }]}><Select options={[{value:'openai_compatible',label:'AI接口（OpenAI兼容）'}, {value:'qmt_xtdata',label:'QMT xtdata'}, {value:'akshare',label:'AkShare'}, {value:'tushare',label:'Tushare'}, {value:'baostock',label:'BaoStock'}, {value:'custom_http',label:'自定义 HTTP'}]} /></Form.Item>
+        <Form.Item name="baseUrl" label="Base URL"><Input placeholder="AI接口/自定义HTTP填写，例如 https://api.openai.com/v1；AkShare/QMT可留空" /></Form.Item>
+        <Form.Item name="xtdataPath" label="QMT / xtdata 路径"><Input placeholder="例如 D:\\国金证券QMT交易端\\bin.x64 或 xtquant 所在目录" /></Form.Item>
+        <Form.Item name="modelName" label="默认模型"><Input placeholder="AI接口可填，例如 gpt-4o / deepseek-chat；数据源可留空" /></Form.Item>
         <Form.Item name="account" label="账号/用户名"><Input /></Form.Item>
-        <Form.Item name="token" label="Token / 密钥"><Input.Password placeholder="留空表示保留原 token；保存后只显示掩码" /></Form.Item>
+        <Form.Item name="token" label="Token / API Key"><Input.Password placeholder="留空表示保留原 token；保存后只显示掩码" /></Form.Item>
         <Form.Item name="enabled" label="启用" valuePropName="checked"><Switch /></Form.Item>
         <Form.Item name="note" label="备注"><Input.TextArea rows={3} /></Form.Item>
       </Form>
@@ -95,8 +152,7 @@ export function SystemApiPage() {
 export function SystemAuditPage() {
   const rows = useAsync(getSystemAuditRows, [] as AuditRow[]);
   return <div className="page-grid">
-    <Section title="日志审计说明"><Typography.Paragraph>日志审计只展示任务执行历史和参数摘要；运行日志不再作为全局底部组件出现在每个页面。</Typography.Paragraph></Section>
-    <Section title="日志审计 / task_history"><Table rowKey={(r)=>`${r.runId}-${r.operation}`} size="small" dataSource={rows} columns={[{title:'时间',dataIndex:'time',width:200},{title:'用户',dataIndex:'user',width:120},{title:'模块',dataIndex:'module',width:110},{title:'操作',dataIndex:'operation',width:180},{title:'参数摘要',dataIndex:'paramsSummary'},{title:'IP',dataIndex:'ip',width:110},{title:'结果',dataIndex:'result',width:100,render:statusTag},{title:'来源',dataIndex:'sourcePath',width:120,render:(v)=><SourcePathTag value={v}/>}]} scroll={{ x: 1500, y: 560 }} locale={{ emptyText: <EmptyState text="暂无审计日志；运行任意任务后会写入持久化 task_history。" /> }} /></Section>
+    <Section title="日志审计 / task_history"><Table rowKey={(r)=>`${r.runId}-${r.operation}`} size="small" dataSource={rows} columns={[{title:'时间',dataIndex:'time',width:200},{title:'用户',dataIndex:'user',width:120},{title:'模块',dataIndex:'module',width:110},{title:'操作',dataIndex:'operation',width:180},{title:'参数摘要',dataIndex:'paramsSummary'},{title:'IP',dataIndex:'ip',width:110},{title:'结果',dataIndex:'result',width:100,render:statusTag},{title:'来源',dataIndex:'sourcePath',width:120,render:(v)=><SourcePathTag value={v}/>}]} scroll={{ x: 1500, y: 620 }} locale={{ emptyText: <EmptyState text="暂无审计日志；运行任意任务后会写入持久化 task_history。" /> }} /></Section>
   </div>;
 }
 
