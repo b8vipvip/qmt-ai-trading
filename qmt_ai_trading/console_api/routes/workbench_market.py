@@ -48,6 +48,26 @@ def _num(value: Any, default: float = 0.0) -> float:
         return default
 
 
+def _bool(value: Any, default: bool = False) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value in (None, ''):
+        return default
+    return str(value).strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def _normalize_purposes(row: dict[str, Any]) -> list[str]:
+    raw = row.get('purposes')
+    return [str(x) for x in raw] if isinstance(raw, list) else []
+
+
+def _priority(row: dict[str, Any]) -> int:
+    try:
+        return int(row.get('priority', 1))
+    except Exception:
+        return 1
+
+
 def _market_rows() -> list[dict[str, Any]]:
     data = read_json('datahub', 'market_latest.json', {})
     return [row for row in _first_array(data) if isinstance(row, dict)]
@@ -68,6 +88,8 @@ def market_quotes():
         pre_close = _num(item.get('pre_close') or item.get('preClose') or item.get('last_close') or item.get('close'), latest)
         change = latest - pre_close if latest and pre_close else 0
         change_pct = round(change / pre_close * 100, 4) if pre_close else 0
+        real_market_data = _bool(item.get('real_market_data'), False)
+        sandbox_fallback = _bool(item.get('sandbox_fallback'), not real_market_data)
         rows.append({
             'id': str(symbol),
             'symbol': str(symbol),
@@ -85,6 +107,8 @@ def market_quotes():
             'amount': _num(item.get('amount') or item.get('turnover')),
             'status': 'NORMAL' if symbol else 'INVALID',
             'source': item.get('source') or 'datahub.market_latest',
+            'realMarketData': real_market_data,
+            'sandboxFallback': sandbox_fallback,
             'sourcePath': _artifact_path('datahub', 'market_latest.json'),
         })
     return payload(status='READY', source='datahub_market_latest', generated_at=datetime.now().isoformat(timespec='seconds'), data=rows)
@@ -96,6 +120,8 @@ def market_summary():
     up = sum(1 for row in quotes if _num(row.get('changePct')) > 0)
     down = sum(1 for row in quotes if _num(row.get('changePct')) < 0)
     flat = max(0, len(quotes) - up - down)
+    real_market_data = any(_bool(row.get('realMarketData'), False) for row in quotes)
+    sandbox_fallback = bool(quotes) and not real_market_data and any(_bool(row.get('sandboxFallback'), True) for row in quotes)
     return payload(status='READY', source='datahub_market_latest', data={
         'quoteCount': len(quotes),
         'symbolCount': len(symbols),
@@ -103,6 +129,9 @@ def market_summary():
         'downCount': down,
         'flatCount': flat,
         'latestTime': max([str(row.get('time') or '') for row in quotes], default=''),
+        'realMarketData': real_market_data,
+        'sandboxFallback': sandbox_fallback,
+        'dataMode': 'REAL_XTDATA' if real_market_data else ('SANDBOX_FALLBACK' if sandbox_fallback else 'UNKNOWN'),
         'sourcePath': _artifact_path('datahub', 'market_latest.json'),
     })
 
@@ -142,8 +171,17 @@ def _call_openai_compatible(row: dict[str, Any], messages: list[dict[str, str]],
     return str(content).strip()
 
 
-def _selected_ai_config() -> dict[str, Any] | None:
-    return workbench_api_config.select_config_for_purpose('ai') or workbench_api_config.select_config_for_purpose('research')
+def _ai_config_candidates() -> list[dict[str, Any]]:
+    try:
+        rows = workbench_api_config._load()  # local private config store, token is only used server-side
+    except Exception:
+        rows = []
+    candidates = []
+    for row in rows:
+        purposes = _normalize_purposes(row)
+        if row.get('enabled') and ('ai' in purposes or 'research' in purposes or 'all' in purposes):
+            candidates.append(row)
+    return sorted(candidates, key=lambda x: (_priority(x), 0 if 'ai' in _normalize_purposes(x) or 'all' in _normalize_purposes(x) else 1, str(x.get('name') or '')))
 
 
 def market_ai_analysis(body: dict[str, Any] | None = None):
@@ -151,8 +189,8 @@ def market_ai_analysis(body: dict[str, Any] | None = None):
     summary = market_summary().get('data', {})
     if not quotes:
         return payload(ok=False, status='FAILED', error='暂无行情数据，先运行“真实 xtdata 只读 smoke”或“只读行情快照”')
-    row = _selected_ai_config()
-    if not row:
+    candidates = _ai_config_candidates()
+    if not candidates:
         return payload(ok=False, status='FAILED', error='未找到可用 AI 模型。请在 API 接口添加 AI 接口，并在配置中心分配“AI服务”或“全部”用途。')
     top_up = sorted(quotes, key=lambda x: _num(x.get('changePct')), reverse=True)[:8]
     top_down = sorted(quotes, key=lambda x: _num(x.get('changePct')))[:8]
@@ -160,6 +198,7 @@ def market_ai_analysis(body: dict[str, Any] | None = None):
     context = {
         'summary': summary,
         'sample_size': len(quotes),
+        'data_mode_note': 'SANDBOX_FALLBACK 表示当前不是实时真实行情，时间来自沙盒样例数据，仅用于链路测试。',
         'top_up': top_up,
         'top_down': top_down,
         'high_amount': high_amount,
@@ -168,22 +207,35 @@ def market_ai_analysis(body: dict[str, Any] | None = None):
         '你是A股量化交易系统的数据与行情分析助手。请基于以下行情快照输出一份中文分析报告。'
         '报告必须分为：1) 市场广度与方向；2) 涨跌结构；3) 成交额/流动性；4) 数据质量风险；'
         '5) 对因子研究和策略层的影响；6) 下一步建议。'
+        '如果 dataMode=SANDBOX_FALLBACK，必须明确说明这不是实时行情，只能用于链路与页面功能验证。'
         '不要给出确定性买卖建议，不要生成真实下单指令，只做研究和风控视角分析。\n\n'
         f'行情数据：{json.dumps(context, ensure_ascii=False)[:9000]}'
     )
-    try:
-        report = _call_openai_compatible(row, [
-            {'role': 'system', 'content': '你是严谨的A股量化投研助手，只做研究分析，不输出下单指令。'},
-            {'role': 'user', 'content': prompt},
-        ])
-    except Exception as exc:
-        return payload(ok=False, status='FAILED', error=str(exc))
+    errors = []
+    selected = None
+    report = ''
+    for row in candidates:
+        try:
+            report = _call_openai_compatible(row, [
+                {'role': 'system', 'content': '你是严谨的A股量化投研助手，只做研究分析，不输出下单指令。'},
+                {'role': 'user', 'content': prompt},
+            ])
+            selected = row
+            break
+        except Exception as exc:
+            errors.append(f'{row.get("name") or row.get("modelName")}: {exc}')
+            continue
+    if not selected:
+        detail = '；'.join(errors[-5:])
+        if 'HTTP 503' in detail:
+            detail = '上游 AI 服务临时不可用（HTTP 503）。系统已尝试可用 AI 配置但仍失败，可稍后重试或切换模型。' + detail
+        return payload(ok=False, status='FAILED', error=detail)
     generated_at = datetime.now().isoformat(timespec='seconds')
-    artifact = _write_text('datahub', 'market_ai_analysis.md', f'# 行情数据 AI 分析\n\n生成时间：{generated_at}\n模型：{row.get("modelName") or row.get("name")}\n\n{report}\n')
+    artifact = _write_text('datahub', 'market_ai_analysis.md', f'# 行情数据 AI 分析\n\n生成时间：{generated_at}\n模型：{selected.get("modelName") or selected.get("name")}\n\n{report}\n')
     return payload(status='READY', source='market_ai_analysis', data={
         'status': 'READY',
-        'modelName': row.get('modelName') or row.get('name') or '',
-        'apiName': row.get('name') or '',
+        'modelName': selected.get('modelName') or selected.get('name') or '',
+        'apiName': selected.get('name') or '',
         'generatedAt': generated_at,
         'report': report,
         'sourcePath': artifact,
