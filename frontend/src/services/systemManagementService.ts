@@ -16,6 +16,8 @@ export interface SystemSettings {
 export interface ApiConfigRow { id: string; name: string; provider: string; baseUrl: string; account: string; modelName: string; enabled: boolean; note: string; updatedAt: string; purposes: string[]; hasToken: boolean; tokenMasked: string; sourcePath?: string }
 export interface ApiConfigTestResult { id: string; provider: string; purposes: string[]; enabled: boolean; checkedAt: string; status: string; message: string; sourcePath?: string }
 export interface QmtTestResult { xtdataPath: string; xtquantPythonPath: string; pathStatus: string; checkedAt: string; status: string; message: string; sourcePath?: string }
+export interface QmtPathCandidate { path: string; kind: string; exists: boolean; clientName: string }
+export interface QmtScanResult { current: SystemSettings['qmt']; candidates: QmtPathCandidate[]; count: number; note: string }
 
 export const settingsFallback: SystemSettings = {
   runtime: { mode: 'research' },
@@ -39,6 +41,13 @@ export async function saveSystemSettings(settings: SystemSettings) {
   const data = await response.json();
   if (!response.ok || data.ok === false) throw new Error(data.error || '保存系统配置失败');
   return data.data as SystemSettings;
+}
+
+export async function scanQmtPaths() {
+  const response = await fetch('/api/v1/frontend/system/qmt/scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+  const data = await response.json();
+  if (!response.ok || data.ok === false) throw new Error(data.error || '扫描 QMT / xtdata 路径失败');
+  return data.data as QmtScanResult;
 }
 
 export async function testQmtSettings() {
