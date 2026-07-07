@@ -54,6 +54,15 @@ function currentPathText(value?: string) {
   return <Typography.Text type="secondary">当前路径：{value || '未配置'}</Typography.Text>;
 }
 
+function openFolder(path?: string) {
+  if (!path) {
+    message.warning('当前路径未配置');
+    return;
+  }
+  const normalized = String(path).replace(/\\/g, '/');
+  window.open(`file:///${normalized}`, '_blank');
+}
+
 const purposeOptions = [
   { value: 'market', label: '行情' },
   { value: 'fundamental', label: '基本面' },
@@ -82,7 +91,9 @@ export function SystemConfigPage() {
   const configs = useAsync(getApiConfigs, [] as ApiConfigRow[]);
   const [form] = Form.useForm<SystemSettings>();
   const [saving, setSaving] = useState(false);
+  const [pathDraft, setPathDraft] = useState<SystemSettings['paths']>(settingsFallback.paths);
   useEffect(() => { form.setFieldsValue(settings); }, [settings, form]);
+  useEffect(() => { setPathDraft(settings.paths); }, [settings.paths]);
   const apiConfigs = configs.filter((x) => x.provider !== 'qmt_xtdata');
 
   const save = async () => {
@@ -98,15 +109,34 @@ export function SystemConfigPage() {
     }
   };
 
-  const savePurposes = async (id: string, purposes: string[]) => {
+  const savePurposes = async (id: string, purposes: string[], priority?: number) => {
     try {
-      await saveApiConfigPurposes(id, purposes);
-      message.success('API 用途已保存');
+      await saveApiConfigPurposes(id, purposes, priority);
+      message.success('API 用途/优先级已保存');
       window.dispatchEvent(new Event('qmt-api-config-saved'));
     } catch (error) {
       message.error(error instanceof Error ? error.message : String(error));
     }
   };
+
+  const saveSystemPath = async (key: SystemPathKey) => {
+    try {
+      await saveSystemSettings({ ...settings, paths: { ...settings.paths, ...pathDraft } });
+      message.success(`${systemPathMeta.find((x) => x.key === key)?.title || '系统路径'} 已保存`);
+      window.dispatchEvent(new Event('qmt-settings-saved'));
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  const systemPathField = ({ key, title, placeholder }: { key: SystemPathKey; title: string; placeholder: string }) => <Form.Item label={title} style={{ maxWidth: 720 }}>
+    <Space.Compact style={{ width: '100%' }}>
+      <Input value={pathDraft[key] || ''} placeholder={placeholder} onChange={(event) => setPathDraft((prev) => ({ ...prev, [key]: event.target.value }))} />
+      <Button onClick={() => openFolder(pathDraft[key] || settings.paths[key])}>打开</Button>
+      <Button onClick={() => saveSystemPath(key)}>保存</Button>
+    </Space.Compact>
+    <div style={{ marginTop: 6 }}>{currentPathText(settings.paths[key])}</div>
+  </Form.Item>;
 
   return <div className="page-grid">
     <Row gutter={[16, 16]}>
@@ -147,11 +177,13 @@ export function SystemConfigPage() {
           <Col xs={24} md={4}><Form.Item name={['risk', 'dailyLossLimitPct']} label="日内亏损阈值 %"><InputNumber style={{ width: '100%' }} min={0} max={100} /></Form.Item></Col>
         </Row>
       </Section>
-      <Section title="数据路径"><Row gutter={16}><Col xs={24} md={12}><Form.Item name={['paths', 'marketCacheDir']} label="行情缓存目录"><Input /></Form.Item></Col><Col xs={24} md={12}><Form.Item name={['paths', 'factorArtifactDir']} label="因子产物目录"><Input /></Form.Item></Col><Col xs={24} md={12}><Form.Item name={['paths', 'backtestReportDir']} label="回测报告目录"><Input /></Form.Item></Col><Col xs={24} md={12}><Form.Item name={['paths', 'taskHistoryDir']} label="任务历史目录"><Input /></Form.Item></Col></Row></Section>
+      <Section title="系统目录 / .env 目录统一配置">
+        <Row gutter={16}>{systemPathMeta.map((item) => <Col xs={24} xl={12} key={item.key}>{systemPathField(item)}</Col>)}</Row>
+      </Section>
       <Section title="安全开关"><Row gutter={16}><Col xs={12} md={6}><Form.Item name={['safety', 'allowRealOrder']} label="允许真实下单" valuePropName="checked"><Switch disabled /></Form.Item></Col><Col xs={12} md={6}><Form.Item name={['safety', 'allowCancelOrder']} label="允许撤单" valuePropName="checked"><Switch disabled /></Form.Item></Col><Col xs={12} md={6}><Form.Item name={['safety', 'allowAccountQuery']} label="允许查询账户" valuePropName="checked"><Switch /></Form.Item></Col><Col xs={12} md={6}><Form.Item name={['safety', 'enableHumanApproval']} label="启用人工审批" valuePropName="checked"><Switch disabled /></Form.Item></Col></Row><Typography.Text type="secondary">真实下单、撤单和关闭人工审批当前被安全策略锁定，不能在前端打开；账户查询只影响只读账户任务。</Typography.Text></Section>
     </Form>
-    <Section title="API 用途配置" extra={<Tag color="blue">API 接口页只维护接口信息，这里决定用途</Tag>}>
-      <Table rowKey="id" size="small" dataSource={apiConfigs} columns={[{ title: 'API名称', dataIndex: 'name', width: 180 }, { title: 'Provider', dataIndex: 'provider', width: 140, render: (v) => <Tag color="blue">{v}</Tag> }, { title: '启用', dataIndex: 'enabled', width: 90, render: (v) => <Tag color={v ? 'green' : 'default'}>{String(v)}</Tag> }, { title: '用途', dataIndex: 'purposes', render: (v: string[], row) => <Select mode="multiple" allowClear style={{ minWidth: 360 }} value={v || []} options={purposeOptions} onChange={(values) => savePurposes(row.id, values)} /> }, { title: '来源', dataIndex: 'sourcePath', width: 120, render: (v) => <SourcePathTag value={v} /> }]} scroll={{ x: 1000 }} locale={{ emptyText: <EmptyState text="暂无 API 配置；请先到 API 接口页面新增接口。" /> }} />
+    <Section title="API 用途配置" extra={<Tag color="blue">优先级数字越小越优先；同优先级后端随机选择</Tag>}>
+      <Table rowKey="id" size="small" dataSource={apiConfigs} columns={[{ title: 'API名称', dataIndex: 'name', width: 220 }, { title: 'Provider', dataIndex: 'provider', width: 140, render: (v) => <Tag color="blue">{v}</Tag> }, { title: '优先级', dataIndex: 'priority', width: 110, render: (v: number, row) => <InputNumber min={1} max={20} size="small" value={v || 1} onChange={(value) => savePurposes(row.id, row.purposes || [], Number(value) || 1)} /> }, { title: '启用', dataIndex: 'enabled', width: 90, render: (v) => <Tag color={v ? 'green' : 'default'}>{String(v)}</Tag> }, { title: '用途', dataIndex: 'purposes', render: (v: string[], row) => <Select mode="multiple" allowClear style={{ minWidth: 360 }} value={v || []} options={purposeOptions} onChange={(values) => savePurposes(row.id, values, row.priority || 1)} /> }, { title: '来源', dataIndex: 'sourcePath', width: 120, render: (v) => <SourcePathTag value={v} /> }]} scroll={{ x: 1120 }} locale={{ emptyText: <EmptyState text="暂无 API 配置；请先到 API 接口页面新增接口。" /> }} />
     </Section>
   </div>;
 }
@@ -167,14 +199,12 @@ export function SystemApiPage() {
   const [qmtCandidates, setQmtCandidates] = useState<QmtPathCandidate[]>([]);
   const [qmtBusy, setQmtBusy] = useState<QmtPathKey | 'loginApi' | ''>('');
   const [qmtTestResults, setQmtTestResults] = useState<Record<string, QmtTestResult>>({});
-  const [pathDraft, setPathDraft] = useState<SystemSettings['paths']>(settingsFallback.paths);
 
   useEffect(() => { qmtForm.setFieldsValue(settings.qmt); }, [settings, qmtForm]);
-  useEffect(() => { setPathDraft(settings.paths); }, [settings.paths]);
 
   const openForm = (row?: ApiConfigRow) => {
     setEditing(row || null);
-    form.setFieldsValue(row ? { ...row, token: '' } : { provider: 'openai_compatible', enabled: true });
+    form.setFieldsValue(row ? { ...row, token: '' } : { provider: 'openai_compatible', enabled: true, priority: 1 });
     setOpen(true);
   };
 
@@ -196,12 +226,6 @@ export function SystemApiPage() {
     const qmt = qmtForm.getFieldsValue(true);
     await saveSystemSettings({ ...settings, qmt });
     message.success(kind ? `${pathMeta[kind].title} 已保存` : 'QMT 路径已保存');
-    window.dispatchEvent(new Event('qmt-settings-saved'));
-  };
-
-  const saveSystemPath = async (key: SystemPathKey) => {
-    await saveSystemSettings({ ...settings, paths: { ...settings.paths, ...pathDraft } });
-    message.success(`${systemPathMeta.find((x) => x.key === key)?.title || '系统路径'} 已保存`);
     window.dispatchEvent(new Event('qmt-settings-saved'));
   };
 
@@ -255,14 +279,7 @@ export function SystemApiPage() {
 
   const qmtPathField = (kind: QmtPathKey, withClientActions = false) => <Form.Item name={kind} label={pathMeta[kind].title} style={{ maxWidth: 1120 }}>
     <Space.Compact style={{ width: '100%' }}>
-      <AutoComplete
-        style={{ width: '100%' }}
-        options={optionsFor(kind)}
-        onSelect={(value) => {
-          const c = candidateByPath(kind, value);
-          if (c) qmtForm.setFieldsValue({ clientName: c.clientName });
-        }}
-      >
+      <AutoComplete style={{ width: '100%' }} options={optionsFor(kind)} onSelect={(value) => { const c = candidateByPath(kind, value); if (c) qmtForm.setFieldsValue({ clientName: c.clientName }); }}>
         <Input placeholder={pathMeta[kind].placeholder} />
       </AutoComplete>
       <Button type="primary" loading={qmtBusy === kind} onClick={() => scanQmt(kind)}>选择/扫描</Button>
@@ -271,14 +288,6 @@ export function SystemApiPage() {
     </Space.Compact>
     <div style={{ marginTop: 6 }}>{currentPathText((settings.qmt as any)[kind])}</div>
     {withClientActions && <Typography.Text type="secondary">客户端测试只针对 QMT 启动程序；xtdata 和 xtquant 目录不放入客户端列表。</Typography.Text>}
-  </Form.Item>;
-
-  const systemPathField = ({ key, title, placeholder }: { key: SystemPathKey; title: string; placeholder: string }) => <Form.Item label={title} style={{ maxWidth: 720 }}>
-    <Space.Compact style={{ width: '100%' }}>
-      <Input value={pathDraft[key] || ''} placeholder={placeholder} onChange={(event) => setPathDraft((prev) => ({ ...prev, [key]: event.target.value }))} />
-      <Button onClick={() => saveSystemPath(key)}>保存</Button>
-    </Space.Compact>
-    <div style={{ marginTop: 6 }}>{currentPathText(settings.paths[key])}</div>
   </Form.Item>;
 
   const loginApiMessage = qmtTestResults.loginApi?.message || '';
@@ -292,16 +301,16 @@ export function SystemApiPage() {
   };
 
   const apiColumns = [
-    { title: '名称', dataIndex: 'name', width: 150 },
+    { title: '名称', dataIndex: 'name', width: 180 },
     { title: 'Provider', dataIndex: 'provider', width: 125, render: (v: string) => <Tag color="blue">{v}</Tag> },
     { title: 'Base URL', dataIndex: 'baseUrl', width: 230, ellipsis: true },
     { title: '模型', dataIndex: 'modelName', width: 110 },
     { title: '账号', dataIndex: 'account', width: 90 },
     { title: 'Token', dataIndex: 'tokenMasked', width: 105, render: (v: string, r: ApiConfigRow) => <Tag color={r.hasToken ? 'green' : 'default'}>{r.hasToken ? v : '未配置'}</Tag> },
     { title: '用途', dataIndex: 'purposes', width: 130, render: (v: string[]) => (v || []).length ? (v || []).map((x) => <Tag key={x}>{x}</Tag>) : <Tag>未分配</Tag> },
+    { title: '优先级', dataIndex: 'priority', width: 80 },
     { title: '启用', dataIndex: 'enabled', width: 80, render: (v: boolean) => <Tag color={v ? 'green' : 'default'}>{String(v)}</Tag> },
     { title: '更新时间', dataIndex: 'updatedAt', width: 170 },
-    { title: '来源', dataIndex: 'sourcePath', width: 95, render: (v: string) => <SourcePathTag value={v} /> },
     { title: '操作', width: 135, fixed: 'right' as const, render: (_: unknown, row: ApiConfigRow) => <Space size={4}><Button size="small" onClick={() => openForm(row)}>编辑</Button><Button size="small" onClick={() => test(row.id)}>测试</Button></Space> },
   ];
 
@@ -313,27 +322,7 @@ export function SystemApiPage() {
         {qmtPathField('xtdataPath')}
         {qmtPathField('xtquantPythonPath')}
       </Form>
-      <Table
-        rowKey="kind"
-        size="small"
-        dataSource={[clientRow]}
-        pagination={false}
-        columns={[
-          { title: '类型', dataIndex: 'label', width: 120 },
-          { title: '识别客户端', dataIndex: 'clientName', width: 125 },
-          { title: '客户端路径', dataIndex: 'path', width: 390, ellipsis: true, render: (v) => <Typography.Text copyable={!!v}>{v || '未配置'}</Typography.Text> },
-          { title: '状态', dataIndex: 'status', width: 90, render: statusTag },
-          { title: '测试信息', dataIndex: 'message', ellipsis: true },
-          { title: '操作', width: 230, fixed: 'right', render: () => <Space size={4}><Button size="small" onClick={() => saveQmt('qmtClientPath')}>保存</Button><Button size="small" loading={qmtBusy === 'qmtClientPath'} onClick={testQmt}>测试连接</Button><Button size="small" loading={qmtBusy === 'loginApi'} onClick={testLoggedInApi}>登录后API</Button></Space> },
-        ]}
-        scroll={{ x: 1040 }}
-      />
-    </Section>
-
-    <Section title="系统目录 / .env 目录统一配置">
-      <Row gutter={16}>
-        {systemPathMeta.map((item) => <Col xs={24} xl={12} key={item.key}>{systemPathField(item)}</Col>)}
-      </Row>
+      <Table rowKey="kind" size="small" dataSource={[clientRow]} pagination={false} columns={[{ title: '类型', dataIndex: 'label', width: 120 }, { title: '识别客户端', dataIndex: 'clientName', width: 125 }, { title: '客户端路径', dataIndex: 'path', width: 390, ellipsis: true, render: (v) => <Typography.Text copyable={!!v}>{v || '未配置'}</Typography.Text> }, { title: '状态', dataIndex: 'status', width: 90, render: statusTag }, { title: '测试信息', dataIndex: 'message', ellipsis: true }, { title: '操作', width: 230, fixed: 'right', render: () => <Space size={4}><Button size="small" onClick={() => saveQmt('qmtClientPath')}>保存</Button><Button size="small" loading={qmtBusy === 'qmtClientPath'} onClick={testQmt}>测试连接</Button><Button size="small" loading={qmtBusy === 'loginApi'} onClick={testLoggedInApi}>登录后API</Button></Space> }]} scroll={{ x: 1040 }} />
     </Section>
 
     <Section title={<Space size={12}><span>外部 API / AI 服务接口配置</span><Button type="primary" size="small" onClick={() => openForm()}>新增 API</Button></Space>}>
@@ -343,10 +332,10 @@ export function SystemApiPage() {
     <Modal open={open} onCancel={() => setOpen(false)} onOk={submit} title={editing ? '编辑 API 配置' : '新增 API 配置'} destroyOnClose>
       <Form form={form} layout="vertical">
         <Form.Item name="id" label="配置ID"><Input placeholder="留空则自动生成" disabled={!!editing} /></Form.Item>
-        <Form.Item name="name" label="显示名称" rules={[{ required: true, message: '请输入显示名称' }]}><Input placeholder="例如：OpenAI 兼容接口 / Tushare Pro / AkShare" /></Form.Item>
+        <Form.Item name="name" label="显示名称" rules={[{ required: true, message: '请输入显示名称' }]}><Input placeholder="例如：OpenAI 兼容接口；保存后自动拼接模型ID" /></Form.Item>
         <Form.Item name="provider" label="Provider" rules={[{ required: true }]}><Select options={[{ value: 'openai_compatible', label: 'AI接口（OpenAI兼容）' }, { value: 'akshare', label: 'AkShare' }, { value: 'tushare', label: 'Tushare' }, { value: 'baostock', label: 'BaoStock' }, { value: 'custom_http', label: '自定义 HTTP' }]} /></Form.Item>
         <Form.Item name="baseUrl" label="Base URL"><Input placeholder="AI接口/自定义HTTP填写，例如 https://api.openai.com/v1；AkShare 可留空" /></Form.Item>
-        <Form.Item name="modelName" label="默认模型"><Input placeholder="AI接口建议填写，例如 gpt-4o / deepseek-chat；用于 /models 被禁用时测试 chat/completions" /></Form.Item>
+        <Form.Item name="modelName" label="默认模型"><Input placeholder="AI接口建议填写，例如 gpt-4o / deepseek-chat；保存后自动拼接到名称" /></Form.Item>
         <Form.Item name="account" label="账号/用户名"><Input /></Form.Item>
         <Form.Item name="token" label="Token / API Key"><Input.Password placeholder="留空表示保留原 token；保存后只显示掩码" /></Form.Item>
         <Form.Item name="enabled" label="启用" valuePropName="checked"><Switch /></Form.Item>
