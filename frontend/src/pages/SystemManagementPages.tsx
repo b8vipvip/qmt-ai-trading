@@ -2,13 +2,14 @@ import { AutoComplete, Button, Card, Col, Form, Input, InputNumber, Modal, Row, 
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { EmptyState, SourcePathTag } from '../components/common';
-import { getApiConfigs, getSystemApiRows, getSystemAuditRows, getSystemPermissionRows, getSystemSettings, getSystemSummary, saveApiConfig, saveApiConfigPurposes, saveSystemSettings, scanQmtPaths, settingsFallback, testApiConfig, testQmtSettings } from '../services/systemManagementService';
-import type { ApiConfigRow, ApiRow, AuditRow, PermissionRow, QmtPathCandidate, QmtTestResult, SystemSettings, SystemSummary } from '../services/systemManagementService';
+import { getApiConfigs, getSystemAuditRows, getSystemPermissionRows, getSystemSettings, getSystemSummary, saveApiConfig, saveApiConfigPurposes, saveSystemSettings, scanQmtPaths, settingsFallback, testApiConfig, testQmtSettings } from '../services/systemManagementService';
+import type { ApiConfigRow, AuditRow, PermissionRow, QmtPathCandidate, QmtTestResult, SystemSettings, SystemSummary } from '../services/systemManagementService';
 
 type QmtPathKey = 'qmtClientPath' | 'xtdataPath' | 'xtquantPythonPath';
+type SystemPathKey = keyof SystemSettings['paths'];
 
-type QmtPathRow = {
-  kind: QmtPathKey;
+type QmtClientRow = {
+  kind: 'qmtClientPath';
   label: string;
   path: string;
   clientName: string;
@@ -49,6 +50,10 @@ function metric(title: string, value: ReactNode) {
   return <Card className="metric-card"><b>{title}</b><div className="metric-value">{value}</div></Card>;
 }
 
+function currentPathText(value?: string) {
+  return <Typography.Text type="secondary">当前路径：{value || '未配置'}</Typography.Text>;
+}
+
 const purposeOptions = [
   { value: 'market', label: '行情' },
   { value: 'fundamental', label: '基本面' },
@@ -59,10 +64,17 @@ const purposeOptions = [
 ];
 
 const pathMeta: Record<QmtPathKey, { title: string; placeholder: string; scanText: string }> = {
-  qmtClientPath: { title: 'QMT 客户端目录', placeholder: '例如 D:\\国金证券QMT交易端\\bin.x64', scanText: '扫描QMT目录' },
-  xtdataPath: { title: 'xtdata 数据目录', placeholder: '例如 D:\\国金证券QMT交易端\\userdata_mini\\datadir；没有可先留空', scanText: '扫描xtdata目录' },
+  qmtClientPath: { title: 'QMT 客户端目录', placeholder: '建议选择 QMT 根目录或 bin.x64，例如 D:\\国金证券QMT交易端\\bin.x64', scanText: '扫描QMT目录' },
+  xtdataPath: { title: 'xtdata 数据目录', placeholder: '建议选择 userdata_mini\\datadir；不要选普通程序 data 目录', scanText: '扫描xtdata目录' },
   xtquantPythonPath: { title: 'xtquant Python 目录', placeholder: '例如 C:\\Users\\...\\Python310\\Lib\\site-packages\\xtquant', scanText: '扫描xtquant目录' },
 };
+
+const systemPathMeta: { key: SystemPathKey; title: string; placeholder: string }[] = [
+  { key: 'marketCacheDir', title: '行情缓存目录', placeholder: '例如 artifacts/reports/console/datahub' },
+  { key: 'factorArtifactDir', title: '因子产物目录', placeholder: '例如 artifacts/reports/console/research' },
+  { key: 'backtestReportDir', title: '回测报告目录', placeholder: '例如 artifacts/reports/console/backtest' },
+  { key: 'taskHistoryDir', title: '任务历史目录', placeholder: '例如 artifacts/reports/console/task_history' },
+];
 
 export function SystemConfigPage() {
   const summary = useAsync(getSystemSummary, { artifactRoot: '', taskCount: 0, historyCount: 0, apiConfigCount: 0, enabledApiConfigCount: 0, latestRunAt: '', runMode: 'research', qmtPathConfigured: false, liveTradingEnabled: false, orderSubmitEnabled: false, orderCancelEnabled: false } as SystemSummary);
@@ -145,7 +157,6 @@ export function SystemConfigPage() {
 }
 
 export function SystemApiPage() {
-  const rows = useAsync(getSystemApiRows, [] as ApiRow[]);
   const configs = useAsync(getApiConfigs, [] as ApiConfigRow[]);
   const settings = useAsync(getSystemSettings, settingsFallback);
   const apiConfigs = configs.filter((x) => x.provider !== 'qmt_xtdata');
@@ -156,8 +167,10 @@ export function SystemApiPage() {
   const [qmtCandidates, setQmtCandidates] = useState<QmtPathCandidate[]>([]);
   const [qmtBusy, setQmtBusy] = useState<QmtPathKey | 'loginApi' | ''>('');
   const [qmtTestResults, setQmtTestResults] = useState<Record<string, QmtTestResult>>({});
+  const [pathDraft, setPathDraft] = useState<SystemSettings['paths']>(settingsFallback.paths);
 
   useEffect(() => { qmtForm.setFieldsValue(settings.qmt); }, [settings, qmtForm]);
+  useEffect(() => { setPathDraft(settings.paths); }, [settings.paths]);
 
   const openForm = (row?: ApiConfigRow) => {
     setEditing(row || null);
@@ -186,6 +199,12 @@ export function SystemApiPage() {
     window.dispatchEvent(new Event('qmt-settings-saved'));
   };
 
+  const saveSystemPath = async (key: SystemPathKey) => {
+    await saveSystemSettings({ ...settings, paths: { ...settings.paths, ...pathDraft } });
+    message.success(`${systemPathMeta.find((x) => x.key === key)?.title || '系统路径'} 已保存`);
+    window.dispatchEvent(new Event('qmt-settings-saved'));
+  };
+
   const scanQmt = async (kind: QmtPathKey) => {
     try {
       setQmtBusy(kind);
@@ -201,13 +220,13 @@ export function SystemApiPage() {
     }
   };
 
-  const testQmt = async (kind: QmtPathKey) => {
+  const testQmt = async () => {
     try {
-      setQmtBusy(kind);
-      await saveQmt(kind);
-      const res = await testQmtSettings(kind);
-      setQmtTestResults((prev) => ({ ...prev, [kind]: res }));
-      if (res.status === 'READY') message.success(`${pathMeta[kind].title} 测试通过`);
+      setQmtBusy('qmtClientPath');
+      await saveQmt('qmtClientPath');
+      const res = await testQmtSettings('qmtClientPath');
+      setQmtTestResults((prev) => ({ ...prev, qmtClientPath: res }));
+      if (res.status === 'READY') message.success('QMT 客户端测试通过');
       else message.warning(res.message);
     } catch (error) {
       message.error(error instanceof Error ? error.message : String(error));
@@ -234,7 +253,7 @@ export function SystemApiPage() {
   const optionsFor = (kind: QmtPathKey) => qmtCandidates.filter((x) => x.kind === kind).map((x) => ({ value: x.path, label: `${x.path}${x.exists ? '' : '（未确认）'}` }));
   const candidateByPath = (kind: QmtPathKey, path: string) => qmtCandidates.find((x) => x.kind === kind && x.path === path);
 
-  const pathField = (kind: QmtPathKey) => <Form.Item name={kind} label={pathMeta[kind].title}>
+  const qmtPathField = (kind: QmtPathKey, withClientActions = false) => <Form.Item name={kind} label={pathMeta[kind].title} style={{ maxWidth: 1120 }}>
     <Space.Compact style={{ width: '100%' }}>
       <AutoComplete
         style={{ width: '100%' }}
@@ -250,17 +269,27 @@ export function SystemApiPage() {
       <Button loading={qmtBusy === kind} onClick={() => scanQmt(kind)}>{pathMeta[kind].scanText}</Button>
       <Button onClick={() => saveQmt(kind)}>保存</Button>
     </Space.Compact>
+    <div style={{ marginTop: 6 }}>{currentPathText((settings.qmt as any)[kind])}</div>
+    {withClientActions && <Typography.Text type="secondary">客户端测试只针对 QMT 启动程序；xtdata 和 xtquant 目录不放入客户端列表。</Typography.Text>}
+  </Form.Item>;
+
+  const systemPathField = ({ key, title, placeholder }: { key: SystemPathKey; title: string; placeholder: string }) => <Form.Item label={title} style={{ maxWidth: 720 }}>
+    <Space.Compact style={{ width: '100%' }}>
+      <Input value={pathDraft[key] || ''} placeholder={placeholder} onChange={(event) => setPathDraft((prev) => ({ ...prev, [key]: event.target.value }))} />
+      <Button onClick={() => saveSystemPath(key)}>保存</Button>
+    </Space.Compact>
+    <div style={{ marginTop: 6 }}>{currentPathText(settings.paths[key])}</div>
   </Form.Item>;
 
   const loginApiMessage = qmtTestResults.loginApi?.message || '';
-  const qmtRows: QmtPathRow[] = ([['qmtClientPath', 'QMT客户端目录'], ['xtdataPath', 'xtdata数据目录'], ['xtquantPythonPath', 'xtquant Python目录']] as [QmtPathKey, string][]).map(([kind, label]) => ({
-    kind,
-    label,
-    path: (settings.qmt as any)[kind] || '',
+  const clientRow: QmtClientRow = {
+    kind: 'qmtClientPath',
+    label: 'QMT客户端',
+    path: settings.qmt.qmtClientPath || '',
     clientName: settings.qmt.clientName || '-',
-    status: qmtTestResults[kind]?.status || ((settings.qmt as any)[kind] ? '已保存' : '未配置'),
-    message: kind === 'xtquantPythonPath' && loginApiMessage ? `${qmtTestResults[kind]?.message || ''}${qmtTestResults[kind]?.message ? '；' : ''}登录后API：${loginApiMessage}` : (qmtTestResults[kind]?.message || ''),
-  }));
+    status: qmtTestResults.qmtClientPath?.status || (settings.qmt.qmtClientPath ? '已保存' : '未配置'),
+    message: `${qmtTestResults.qmtClientPath?.message || ''}${loginApiMessage ? `${qmtTestResults.qmtClientPath?.message ? '；' : ''}登录后API：${loginApiMessage}` : ''}`,
+  };
 
   const apiColumns = [
     { title: '名称', dataIndex: 'name', width: 150 },
@@ -277,38 +306,38 @@ export function SystemApiPage() {
   ];
 
   return <div className="page-grid">
-    <Section title="QMT / xtdata 本地路径">
+    <Section title="QMT 客户端与 xtdata / xtquant 路径">
       <Form form={qmtForm} layout="vertical">
         <Form.Item name="clientName" hidden><Input /></Form.Item>
-        <Row gutter={12}>
-          <Col xs={24} lg={24}>{pathField('qmtClientPath')}</Col>
-          <Col xs={24} lg={24}>{pathField('xtdataPath')}</Col>
-          <Col xs={24} lg={24}>{pathField('xtquantPythonPath')}</Col>
-        </Row>
+        {qmtPathField('qmtClientPath', true)}
+        {qmtPathField('xtdataPath')}
+        {qmtPathField('xtquantPythonPath')}
       </Form>
       <Table
         rowKey="kind"
         size="small"
-        dataSource={qmtRows}
+        dataSource={[clientRow]}
         pagination={false}
         columns={[
-          { title: '类型', dataIndex: 'label', width: 145 },
+          { title: '类型', dataIndex: 'label', width: 120 },
           { title: '识别客户端', dataIndex: 'clientName', width: 125 },
-          { title: '已配置路径', dataIndex: 'path', width: 430, ellipsis: true, render: (v) => <Typography.Text copyable={!!v}>{v || '未配置'}</Typography.Text> },
-          { title: '状态', dataIndex: 'status', width: 95, render: statusTag },
+          { title: '客户端路径', dataIndex: 'path', width: 390, ellipsis: true, render: (v) => <Typography.Text copyable={!!v}>{v || '未配置'}</Typography.Text> },
+          { title: '状态', dataIndex: 'status', width: 90, render: statusTag },
           { title: '测试信息', dataIndex: 'message', ellipsis: true },
-          { title: '操作', width: 250, fixed: 'right', render: (_, row: QmtPathRow) => <Space size={4}><Button size="small" onClick={() => saveQmt(row.kind)}>保存</Button><Button size="small" loading={qmtBusy === row.kind} onClick={() => testQmt(row.kind)}>测试连接</Button><Button size="small" loading={qmtBusy === 'loginApi'} onClick={testLoggedInApi}>登录后API</Button></Space> },
+          { title: '操作', width: 230, fixed: 'right', render: () => <Space size={4}><Button size="small" onClick={() => saveQmt('qmtClientPath')}>保存</Button><Button size="small" loading={qmtBusy === 'qmtClientPath'} onClick={testQmt}>测试连接</Button><Button size="small" loading={qmtBusy === 'loginApi'} onClick={testLoggedInApi}>登录后API</Button></Space> },
         ]}
-        scroll={{ x: 1180 }}
+        scroll={{ x: 1040 }}
       />
+    </Section>
+
+    <Section title="系统目录 / .env 目录统一配置">
+      <Row gutter={16}>
+        {systemPathMeta.map((item) => <Col xs={24} xl={12} key={item.key}>{systemPathField(item)}</Col>)}
+      </Row>
     </Section>
 
     <Section title={<Space size={12}><span>外部 API / AI 服务接口配置</span><Button type="primary" size="small" onClick={() => openForm()}>新增 API</Button></Space>}>
       <Table rowKey="id" size="small" dataSource={apiConfigs} columns={apiColumns as any} scroll={{ x: 1420, y: 360 }} locale={{ emptyText: <EmptyState text="暂无 API；点击“新增 API”配置 AI 接口、AkShare、Tushare、BaoStock 或自定义 HTTP。" /> }} />
-    </Section>
-
-    <Section title="本地控制台 API 状态">
-      <Table rowKey={(r) => `${r.name}-${r.endpoint}`} size="small" dataSource={rows} columns={[{ title: '接口', dataIndex: 'name', width: 190 }, { title: 'Endpoint', dataIndex: 'endpoint', width: 300 }, { title: 'Method', dataIndex: 'method', width: 95 }, { title: '状态', dataIndex: 'status', width: 90, render: statusTag }, { title: '来源', dataIndex: 'source', width: 260 }]} scroll={{ x: 980, y: 320 }} locale={{ emptyText: <EmptyState text="未读取到 API 路由状态。" /> }} />
     </Section>
 
     <Modal open={open} onCancel={() => setOpen(false)} onOk={submit} title={editing ? '编辑 API 配置' : '新增 API 配置'} destroyOnClose>
