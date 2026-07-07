@@ -2,7 +2,7 @@ import { AutoComplete, Button, Card, Col, Form, Input, InputNumber, Modal, Row, 
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { EmptyState, SourcePathTag } from '../components/common';
-import { getApiConfigs, getSystemAuditRows, getSystemPermissionRows, getSystemSettings, getSystemSummary, saveApiConfig, saveApiConfigPurposes, saveSystemSettings, scanQmtPaths, settingsFallback, testApiConfig, testQmtSettings } from '../services/systemManagementService';
+import { getApiConfigs, getSystemAuditRows, getSystemPermissionRows, getSystemSettings, getSystemSummary, openLocalPath, saveApiConfig, saveApiConfigPurposes, saveSystemSettings, scanQmtPaths, settingsFallback, testApiConfig, testQmtSettings } from '../services/systemManagementService';
 import type { ApiConfigRow, AuditRow, PermissionRow, QmtPathCandidate, QmtTestResult, SystemSettings, SystemSummary } from '../services/systemManagementService';
 
 type QmtPathKey = 'qmtClientPath' | 'xtdataPath' | 'xtquantPythonPath';
@@ -54,13 +54,17 @@ function currentPathText(value?: string) {
   return <Typography.Text type="secondary">当前路径：{value || '未配置'}</Typography.Text>;
 }
 
-function openFolder(path?: string) {
+async function openFolder(path?: string) {
   if (!path) {
     message.warning('当前路径未配置');
     return;
   }
-  const normalized = String(path).replace(/\\/g, '/');
-  window.open(`file:///${normalized}`, '_blank');
+  try {
+    const result = await openLocalPath(path);
+    message.success(result.created ? `目录已创建并打开：${result.path}` : `已打开目录：${result.path}`);
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : String(error));
+  }
 }
 
 const purposeOptions = [
