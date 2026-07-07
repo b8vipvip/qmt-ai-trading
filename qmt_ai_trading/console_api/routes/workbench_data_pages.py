@@ -36,8 +36,8 @@ def _num(value: Any, default: float = 0.0) -> float:
 def _configs_for(*purposes: str) -> list[dict[str, Any]]:
     rows = []
     for cfg in workbench_api_config._load():
-        purpose = cfg.get('purpose') or 'all'
-        if purpose == 'all' or purpose in purposes:
+        cfg_purposes = workbench_api_config._normalize_purposes(cfg)
+        if 'all' in cfg_purposes or any(p in cfg_purposes for p in purposes):
             rows.append(cfg)
     return rows
 
