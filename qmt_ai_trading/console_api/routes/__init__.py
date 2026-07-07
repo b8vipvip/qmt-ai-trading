@@ -19,11 +19,13 @@ ROUTES={
 '/api/v1/frontend/deployment/stages': workbench.deployment_stages,
 '/api/v1/frontend/execution/holdings': workbench.holdings, '/api/v1/frontend/execution/orders': workbench.order_plan, '/api/v1/frontend/execution/trades': workbench.trades,
 '/api/v1/frontend/risk/overview': workbench_more.risk_overview, '/api/v1/frontend/risk/rules': workbench.risk_rules, '/api/v1/frontend/risk/events': workbench.risk_events,
-'/api/v1/frontend/system/api-status': workbench_system.api_status, '/api/v1/frontend/system/config': workbench_system.config_center, '/api/v1/frontend/system/audit-logs': workbench_system.audit_logs, '/api/v1/frontend/system/permissions': workbench_system.permission_matrix, '/api/v1/frontend/system/summary': workbench_system.system_summary, '/api/v1/frontend/system/api-configs': workbench_api_config.list_configs,
+'/api/v1/frontend/system/api-status': workbench_system.api_status, '/api/v1/frontend/system/config': workbench_system.config_center, '/api/v1/frontend/system/settings': workbench_system.settings, '/api/v1/frontend/system/audit-logs': workbench_system.audit_logs, '/api/v1/frontend/system/permissions': workbench_system.permission_matrix, '/api/v1/frontend/system/summary': workbench_system.system_summary, '/api/v1/frontend/system/api-configs': workbench_api_config.list_configs,
 '/api/v1/frontend/backtest/tasks': workbench_more.backtest_tasks, '/api/v1/frontend/backtest/report': workbench_more.backtest_report,
 '/api/v1/frontend/monitoring/realtime': workbench_more.monitoring_realtime, '/api/v1/frontend/monitoring/attribution': workbench_more.monitoring_attribution, '/api/v1/frontend/monitoring/execution-quality': workbench_more.monitoring_execution_quality, '/api/v1/frontend/monitoring/daily-review': workbench_more.monitoring_daily_review,
 }
 POST_ROUTES={
 '/api/v1/frontend/system/api-configs/save': workbench_api_config.save_config,
 '/api/v1/frontend/system/api-configs/test': workbench_api_config.test_config,
+'/api/v1/frontend/system/api-configs/purposes': workbench_api_config.set_purposes,
+'/api/v1/frontend/system/settings/save': workbench_system.save_settings,
 }
