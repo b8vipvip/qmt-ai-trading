@@ -17,6 +17,8 @@ export interface MarketQuoteRow {
   amount: number;
   status: string;
   source: string;
+  realMarketData?: boolean;
+  sandboxFallback?: boolean;
   sourcePath?: string;
 }
 
@@ -27,6 +29,9 @@ export interface MarketSummary {
   downCount: number;
   flatCount: number;
   latestTime: string;
+  realMarketData?: boolean;
+  sandboxFallback?: boolean;
+  dataMode?: string;
   sourcePath?: string;
 }
 
@@ -43,7 +48,7 @@ export function getMarketQuotes() {
 }
 
 export function getMarketSummary() {
-  return apiOrMock('/data/market-summary', { quoteCount: 0, symbolCount: 0, upCount: 0, downCount: 0, flatCount: 0, latestTime: '' } as MarketSummary);
+  return apiOrMock('/data/market-summary', { quoteCount: 0, symbolCount: 0, upCount: 0, downCount: 0, flatCount: 0, latestTime: '', realMarketData: false, sandboxFallback: true, dataMode: 'UNKNOWN' } as MarketSummary);
 }
 
 export async function runMarketAIAnalysis() {
