@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
+import time
 from copy import deepcopy
 from dataclasses import asdict
 from pathlib import Path
@@ -12,6 +14,11 @@ from .common import CONSOLE, payload, read_json
 from . import workbench_api_config
 
 SETTINGS_FILE = CONSOLE / 'system' / 'system_settings.private.json'
+QMT_EXE_KEYWORDS = ('qmt', 'xt', 'trade', 'trader', 'client', '国金', '交易', '终端')
+QMT_EXE_NAMES = (
+    'qmt.exe', 'miniQmt.exe', 'MiniQmt.exe', 'XtItClient.exe', 'XtMiniQmt.exe',
+    '国金证券QMT交易端.exe', 'xiadan.exe', 'trader.exe', 'client.exe'
+)
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     'runtime': {'mode': 'research'},
@@ -196,8 +203,47 @@ def _task_catalog() -> list[dict[str, Any]]:
         return []
 
 
+def _find_client_executable(path: str) -> Path | None:
+    if not path:
+        return None
+    p = Path(path)
+    if p.is_file() and p.suffix.lower() == '.exe':
+        return p
+    if not p.exists() or not p.is_dir():
+        return None
+    search_dirs = [p, p / 'bin.x64', p / 'bin', p / 'bin64']
+    for d in search_dirs:
+        if not d.exists() or not d.is_dir():
+            continue
+        for name in QMT_EXE_NAMES:
+            candidate = d / name
+            if candidate.exists() and candidate.is_file():
+                return candidate
+        for exe in d.glob('*.exe'):
+            lower = exe.name.lower()
+            if any(k in lower for k in QMT_EXE_KEYWORDS) or any(k in exe.name for k in ('交易', '终端', '国金')):
+                return exe
+    return None
+
+
+def _path_has_xtdata_files(path: str) -> bool:
+    p = Path(path)
+    if not p.exists() or not p.is_dir():
+        return False
+    try:
+        return any(p.iterdir())
+    except Exception:
+        return True
+
+
+def _xtquant_dir_valid(path: str) -> bool:
+    p = Path(path)
+    return p.exists() and p.is_dir() and ((p / 'xtdata.py').exists() or (p / '__init__.py').exists())
+
+
 def _candidate(path: Path, kind: str, label: str = '') -> dict[str, Any]:
-    return {'path': str(path), 'kind': kind, 'label': label or kind, 'exists': path.exists(), 'clientName': _detect_client_name(str(path))}
+    exe = _find_client_executable(str(path)) if kind == 'qmtClientPath' else None
+    return {'path': str(path), 'kind': kind, 'label': label or kind, 'exists': path.exists(), 'clientName': _detect_client_name(str(path)), 'executable': str(exe) if exe else ''}
 
 
 def _add_candidate(candidates: list[dict[str, Any]], seen: set[str], path: Path, kind: str, label: str = '') -> None:
@@ -205,8 +251,17 @@ def _add_candidate(candidates: list[dict[str, Any]], seen: set[str], path: Path,
     if key in seen:
         return
     seen.add(key)
-    if path.exists() or any(x in str(path).lower() for x in ['qmt', 'xtquant', 'xtdata']) or '国金' in str(path):
-        candidates.append(_candidate(path, kind, label))
+    if kind == 'qmtClientPath':
+        if path.exists() and _find_client_executable(str(path)):
+            candidates.append(_candidate(path, kind, label))
+        return
+    if kind == 'xtdataPath':
+        if _path_has_xtdata_files(str(path)):
+            candidates.append(_candidate(path, kind, label))
+        return
+    if kind == 'xtquantPythonPath':
+        if _xtquant_dir_valid(str(path)):
+            candidates.append(_candidate(path, kind, label))
 
 
 def _scan_qmt_candidates(target: str = 'all') -> list[dict[str, Any]]:
@@ -241,10 +296,57 @@ def _scan_qmt_candidates(target: str = 'all') -> list[dict[str, Any]]:
                 pass
         for base in bases:
             for rel in ['Lib/site-packages/xtquant', 'site-packages/xtquant', 'xtquant']:
-                p = base / rel
-                if (p / 'xtdata.py').exists() or p.exists():
-                    _add_candidate(candidates, seen, p, 'xtquantPythonPath', 'xtquant Python目录')
+                _add_candidate(candidates, seen, base / rel, 'xtquantPythonPath', 'xtquant Python目录')
     return candidates[:120]
+
+
+def _process_running(exe: Path) -> bool:
+    if os.name != 'nt':
+        return False
+    try:
+        result = subprocess.run(['tasklist', '/FI', f'IMAGENAME eq {exe.name}'], capture_output=True, text=True, timeout=5)
+        return exe.name.lower() in result.stdout.lower()
+    except Exception:
+        return False
+
+
+def _launch_client(exe: Path) -> tuple[str, str]:
+    if _process_running(exe):
+        return 'READY', f'客户端进程已运行：{exe.name}'
+    try:
+        flags = 0
+        if os.name == 'nt':
+            flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP  # type: ignore[attr-defined]
+        proc = subprocess.Popen([str(exe)], cwd=str(exe.parent), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL, creationflags=flags)
+        time.sleep(1.5)
+        if proc.poll() is None or _process_running(exe):
+            return 'READY', f'客户端已启动：{exe}'
+        return 'FAILED', f'客户端启动后立即退出，退出码：{proc.poll()}'
+    except Exception as exc:
+        return 'FAILED', f'客户端启动失败：{exc}'
+
+
+def _xtdata_api_probe(python_path: str) -> tuple[str, str]:
+    if python_path and python_path not in sys.path and Path(python_path).exists():
+        sys.path.insert(0, python_path)
+    try:
+        from xtquant import xtdata  # type: ignore
+    except Exception as exc:
+        return 'FAILED', f'xtquant.xtdata 不可导入：{exc}'
+    probes = []
+    for name, fn in [
+        ('get_trading_dates', lambda: xtdata.get_trading_dates('SH', '20240101', '20240131')),
+        ('get_stock_list_in_sector', lambda: xtdata.get_stock_list_in_sector('沪深A股')),
+    ]:
+        try:
+            value = fn()
+            size = len(value) if hasattr(value, '__len__') else 0
+            probes.append(f'{name}=OK({size})')
+            if size:
+                return 'READY', 'xtdata 只读 API 正常：' + ', '.join(probes)
+        except Exception as exc:
+            probes.append(f'{name}=FAILED({exc})')
+    return 'FAILED', 'xtdata 已导入，但只读 API 调用失败。请确认 QMT 客户端已打开并已登录：' + '; '.join(probes)
 
 
 def settings():
@@ -268,39 +370,48 @@ def scan_qmt_paths(body: dict[str, Any] | None = None):
         target = 'all'
     settings_data = _settings()
     candidates = _scan_qmt_candidates(target)
-    return payload(status='READY', source='qmt_path_scanner', data={'target': target, 'current': settings_data.get('qmt', {}), 'candidates': candidates, 'count': len(candidates), 'note': 'Web 浏览器不能直接读取本机绝对目录，使用后端扫描候选路径；也可以手动修正。'})
+    return payload(status='READY', source='qmt_path_scanner', data={'target': target, 'current': settings_data.get('qmt', {}), 'candidates': candidates, 'count': len(candidates), 'note': '只返回真实存在且可识别的目录：QMT 客户端目录必须包含真实 exe；xtdata/xtquant 目录必须真实存在。'})
 
 
-def _test_path(kind: str, path: str) -> tuple[str, str]:
+def _test_path(kind: str, qmt: dict[str, Any]) -> dict[str, Any]:
+    path = _clean_text(qmt.get(kind), '', 500)
+    labels = {'qmtClientPath': 'QMT客户端目录', 'xtdataPath': 'xtdata数据目录', 'xtquantPythonPath': 'xtquant Python目录'}
+    label = labels.get(kind, kind)
     if not path:
-        return 'FAILED', '未配置路径'
-    return ('READY', '路径存在') if Path(path).exists() else ('FAILED', '路径不存在')
+        return {'kind': kind, 'label': label, 'path': path, 'status': 'FAILED', 'message': '未配置路径'}
+    if kind == 'qmtClientPath':
+        exe = _find_client_executable(path)
+        if not Path(path).exists():
+            return {'kind': kind, 'label': label, 'path': path, 'status': 'FAILED', 'message': '目录不存在'}
+        if not exe:
+            return {'kind': kind, 'label': label, 'path': path, 'status': 'FAILED', 'message': '目录存在，但未发现真实 QMT 客户端 exe'}
+        status, message = _launch_client(exe)
+        return {'kind': kind, 'label': label, 'path': path, 'status': status, 'message': message, 'executable': str(exe)}
+    if kind == 'xtdataPath':
+        if _path_has_xtdata_files(path):
+            return {'kind': kind, 'label': label, 'path': path, 'status': 'READY', 'message': 'xtdata 数据目录存在且非空'}
+        return {'kind': kind, 'label': label, 'path': path, 'status': 'FAILED', 'message': 'xtdata 数据目录不存在或为空'}
+    if kind == 'xtquantPythonPath':
+        if _xtquant_dir_valid(path):
+            return {'kind': kind, 'label': label, 'path': path, 'status': 'READY', 'message': 'xtquant Python 目录存在，包含 xtdata.py 或 __init__.py'}
+        return {'kind': kind, 'label': label, 'path': path, 'status': 'FAILED', 'message': 'xtquant Python 目录无效'}
+    return {'kind': kind, 'label': label, 'path': path, 'status': 'FAILED', 'message': '未知测试类型'}
 
 
 def test_qmt_settings(body: dict[str, Any] | None = None):
     body = body or {}
     kind = _clean_text(body.get('kind'), 'all', 40)
+    if kind not in {'all', 'qmtClientPath', 'xtdataPath', 'xtquantPythonPath', 'loginApi'}:
+        kind = 'all'
     settings_data = _settings()
     qmt = settings_data.get('qmt', {})
-    python_path = _clean_text(qmt.get('xtquantPythonPath'), '', 500)
-    if python_path and python_path not in sys.path and Path(python_path).exists():
-        sys.path.insert(0, python_path)
     checks: list[dict[str, Any]] = []
-    for key, label in [('qmtClientPath', 'QMT客户端目录'), ('xtdataPath', 'xtdata数据目录'), ('xtquantPythonPath', 'xtquant Python目录')]:
-        if kind not in {'all', key}:
-            continue
-        path = _clean_text(qmt.get(key), '', 500)
-        status, message = _test_path(key, path)
-        checks.append({'kind': key, 'label': label, 'path': path, 'status': status, 'message': message})
-    import_status = 'FAILED'
-    import_message = ''
-    try:
-        from xtquant import xtdata  # type: ignore
-        import_status, import_message = 'READY', 'xtquant.xtdata 可导入'
-    except Exception as exc:
-        import_message = f'xtquant.xtdata 不可导入：{exc}'
-    if kind in {'all', 'xtquantPythonPath'}:
-        checks.append({'kind': 'xtdataImport', 'label': 'xtquant.xtdata导入', 'path': python_path, 'status': import_status, 'message': import_message})
+    for key in ['qmtClientPath', 'xtdataPath', 'xtquantPythonPath']:
+        if kind in {'all', key}:
+            checks.append(_test_path(key, qmt))
+    if kind in {'all', 'loginApi'}:
+        status, message = _xtdata_api_probe(_clean_text(qmt.get('xtquantPythonPath'), '', 500))
+        checks.append({'kind': 'loginApi', 'label': '登录后 xtdata API 测试', 'path': _clean_text(qmt.get('xtquantPythonPath'), '', 500), 'status': status, 'message': message})
     final_status = 'READY' if checks and all(x['status'] == 'READY' for x in checks) else 'FAILED'
     result = {'kind': kind, 'checks': checks, 'checkedAt': workbench_api_config._now(), 'status': final_status, 'message': '；'.join([f"{x['label']}:{x['message']}" for x in checks]), 'sourcePath': SETTINGS_FILE.as_posix()}
     return payload(status=final_status, source='qmt_xtdata_system_settings_test', data=result)
