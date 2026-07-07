@@ -16,8 +16,8 @@ from . import workbench_api_config
 SETTINGS_FILE = CONSOLE / 'system' / 'system_settings.private.json'
 QMT_EXE_KEYWORDS = ('qmt', 'xt', 'trade', 'trader', 'client', '国金', '交易', '终端')
 QMT_EXE_NAMES = (
-    'qmt.exe', 'miniQmt.exe', 'MiniQmt.exe', 'XtItClient.exe', 'XtMiniQmt.exe',
-    '国金证券QMT交易端.exe', 'xiadan.exe', 'trader.exe', 'client.exe'
+    'XtMiniQmt.exe', 'miniQmt.exe', 'MiniQmt.exe', 'qmt.exe', '国金证券QMT交易端.exe',
+    'XtItClient.exe', 'xiadan.exe', 'trader.exe', 'client.exe'
 )
 
 DEFAULT_SETTINGS: dict[str, Any] = {
@@ -276,8 +276,8 @@ def _scan_qmt_candidates(target: str = 'all') -> list[dict[str, Any]]:
             raw_roots.append(value)
     for drive in ['C:', 'D:', 'E:', 'F:']:
         raw_roots.extend([
-            fr'{drive}\国金证券QMT交易端', fr'{drive}\国金证券QMT交易端\bin.x64', fr'{drive}\QMT', fr'{drive}\QMT\bin.x64',
-            fr'{drive}\迅投极速交易终端睿智融科版', fr'{drive}\Program Files\QMT', fr'{drive}\Program Files (x86)\QMT',
+            fr'{drive}\\国金证券QMT交易端', fr'{drive}\\国金证券QMT交易端\\bin.x64', fr'{drive}\\QMT', fr'{drive}\\QMT\\bin.x64',
+            fr'{drive}\\迅投极速交易终端睿智融科版', fr'{drive}\\Program Files\\QMT', fr'{drive}\\Program Files (x86)\\QMT',
         ])
     for raw in raw_roots:
         p = Path(raw)
