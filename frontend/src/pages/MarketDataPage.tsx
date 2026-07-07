@@ -81,7 +81,7 @@ export function MarketDataPage() {
   const quality = useAsync(getDataQualityRows, [] as DataQualityRow[]);
   const quotes = useAsync(getMarketQuotes, [] as MarketQuoteRow[]);
   const summary = useAsync(getMarketSummary, { quoteCount: 0, symbolCount: 0, upCount: 0, downCount: 0, flatCount: 0, latestTime: '' } as MarketSummary);
-  const apiConfigs = useAsync(getApiConfigs, [] as ApiConfigRow[]).filter((x) => x.enabled && (x.purpose === 'market' || x.purpose === 'all'));
+  const apiConfigs = useAsync(getApiConfigs, [] as ApiConfigRow[]).filter((x) => x.enabled && ((x.purposes || []).includes('market') || (x.purposes || []).includes('all')));
 
   const columns: ColumnsType<MarketQuoteRow> = [
     { title: '代码', dataIndex: 'symbol', fixed: 'left', width: 130 },
@@ -101,8 +101,8 @@ export function MarketDataPage() {
   ];
 
   return <div className="page-grid">
-    <Section title="行情真实 API 配置" extra={<Tag color="green">系统管理 → API 接口维护</Tag>}>
-      <Table rowKey="id" size="small" dataSource={apiConfigs} columns={[{title:'名称',dataIndex:'name'},{title:'Provider',dataIndex:'provider',render:(v)=><Tag color="blue">{v}</Tag>},{title:'用途',dataIndex:'purpose'},{title:'Token',dataIndex:'tokenMasked',render:(v,r)=><Tag color={r.hasToken?'green':'default'}>{r.hasToken ? v : '未配置'}</Tag>},{title:'来源',dataIndex:'sourcePath',render:(v)=><SourcePathTag value={v}/>},{title:'操作',render:(_,row)=><ApiTestButton id={row.id}/>}]} scroll={{ x: 1000 }} pagination={false} locale={{ emptyText: <EmptyState text="暂无行情 API 配置；请到 系统管理 → API 接口 新增 AkShare / QMT xtdata / Tushare。" /> }} />
+    <Section title="行情真实 API 配置" extra={<Tag color="green">API 接口新增，配置中心分配用途</Tag>}>
+      <Table rowKey="id" size="small" dataSource={apiConfigs} columns={[{title:'名称',dataIndex:'name'},{title:'Provider',dataIndex:'provider',render:(v)=><Tag color="blue">{v}</Tag>},{title:'用途',dataIndex:'purposes',render:(v:string[])=>(v || []).map((x)=><Tag key={x}>{x}</Tag>)},{title:'Token',dataIndex:'tokenMasked',render:(v,r)=><Tag color={r.hasToken?'green':'default'}>{r.hasToken ? v : '未配置'}</Tag>},{title:'来源',dataIndex:'sourcePath',render:(v)=><SourcePathTag value={v}/>},{title:'操作',render:(_,row)=><ApiTestButton id={row.id}/>}]} scroll={{ x: 1000 }} pagination={false} locale={{ emptyText: <EmptyState text="暂无已分配“行情”用途的 API；请到 API 接口新增，再到配置中心分配用途。" /> }} />
     </Section>
 
     <Section title="行情数据任务" extra={<Tag color="green">只读 / dry-run / 不触发交易</Tag>}>
