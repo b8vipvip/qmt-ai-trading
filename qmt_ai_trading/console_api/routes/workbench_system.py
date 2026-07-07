@@ -13,8 +13,11 @@ from . import workbench_api_config
 SETTINGS_FILE = CONSOLE / 'system' / 'system_settings.private.json'
 
 DEFAULT_SETTINGS: dict[str, Any] = {
-    'runtime': {
-        'mode': 'research',
+    'runtime': {'mode': 'research'},
+    'qmt': {
+        'xtdataPath': '',
+        'xtquantPythonPath': '',
+        'clientName': 'QMT',
     },
     'trading': {
         'defaultStockPool': '沪深300',
@@ -111,6 +114,7 @@ def _sanitize_settings(raw: dict[str, Any]) -> tuple[dict[str, Any] | None, str 
     runtime_mode = _clean_text(data.get('runtime', {}).get('mode'), 'research')
     if runtime_mode not in {'research', 'simulation', 'shadow_live', 'small_capital_live', 'full_live'}:
         return None, '系统运行模式不合法'
+    qmt = data.get('qmt', {})
     trading = data.get('trading', {})
     risk = data.get('risk', {})
     paths = data.get('paths', {})
@@ -123,6 +127,11 @@ def _sanitize_settings(raw: dict[str, Any]) -> tuple[dict[str, Any] | None, str 
         return None, '当前阶段必须启用人工审批闸门'
     sanitized = {
         'runtime': {'mode': runtime_mode},
+        'qmt': {
+            'xtdataPath': _clean_text(qmt.get('xtdataPath'), '', 500),
+            'xtquantPythonPath': _clean_text(qmt.get('xtquantPythonPath'), '', 500),
+            'clientName': _clean_text(qmt.get('clientName'), 'QMT', 120),
+        },
         'trading': {
             'defaultStockPool': _clean_text(trading.get('defaultStockPool'), '沪深300', 120),
             'commissionRate': _num(trading.get('commissionRate'), 0.00025, 0, 0.02),
@@ -198,11 +207,38 @@ def save_settings(body: dict[str, Any]):
     return payload(status='SAVED', source='system_settings_store', data=sanitized, sourcePath=SETTINGS_FILE.as_posix())
 
 
+def test_qmt_settings(body: dict[str, Any] | None = None):
+    settings_data = _settings()
+    qmt = settings_data.get('qmt', {})
+    xtdata_path = _clean_text(qmt.get('xtdataPath'), '', 500)
+    python_path = _clean_text(qmt.get('xtquantPythonPath'), '', 500)
+    if python_path and python_path not in sys.path and Path(python_path).exists():
+        sys.path.insert(0, python_path)
+    path_status = 'NOT_CONFIGURED'
+    if xtdata_path:
+        path_status = 'EXISTS' if Path(xtdata_path).exists() else 'MISSING'
+    result = {
+        'xtdataPath': xtdata_path,
+        'xtquantPythonPath': python_path,
+        'pathStatus': path_status,
+        'checkedAt': workbench_api_config._now(),
+        'sourcePath': SETTINGS_FILE.as_posix(),
+    }
+    try:
+        from xtquant import xtdata  # type: ignore
+        result.update({'status': 'READY', 'message': 'xtquant.xtdata 可导入；QMT 路径配置已独立于 API 接口。'})
+    except Exception as exc:
+        result.update({'status': 'FAILED', 'message': f'xtquant.xtdata 不可导入：{exc}'})
+    return payload(status=result['status'], source='qmt_xtdata_system_settings_test', data=result)
+
+
 def config_center():
     settings_data = _settings()
     pkg = _read_json_file('frontend/package.json', {})
     rows = [
         {'key': 'runtime.mode', 'name': '系统运行模式', 'value': settings_data['runtime']['mode'], 'source': SETTINGS_FILE.as_posix(), 'editable': True, 'sensitive': False},
+        {'key': 'qmt.xtdataPath', 'name': 'QMT / xtdata 路径', 'value': settings_data['qmt']['xtdataPath'], 'source': SETTINGS_FILE.as_posix(), 'editable': True, 'sensitive': False},
+        {'key': 'qmt.xtquantPythonPath', 'name': 'xtquant Python 路径', 'value': settings_data['qmt']['xtquantPythonPath'], 'source': SETTINGS_FILE.as_posix(), 'editable': True, 'sensitive': False},
         {'key': 'trading.defaultStockPool', 'name': '默认股票池', 'value': settings_data['trading']['defaultStockPool'], 'source': SETTINGS_FILE.as_posix(), 'editable': True, 'sensitive': False},
         {'key': 'risk.maxPositionPct', 'name': '最大仓位', 'value': settings_data['risk']['maxPositionPct'], 'source': SETTINGS_FILE.as_posix(), 'editable': True, 'sensitive': False},
         {'key': 'paths.marketCacheDir', 'name': '行情缓存目录', 'value': settings_data['paths']['marketCacheDir'], 'source': SETTINGS_FILE.as_posix(), 'editable': True, 'sensitive': False},
@@ -228,6 +264,7 @@ def api_status():
         {'name': 'Task History', 'endpoint': '/api/v1/tasks/history', 'status': 'READY', 'method': 'GET', 'source': _artifact_path('task_history', 'task_history.json')},
         {'name': 'External API Configs', 'endpoint': '/api/v1/frontend/system/api-configs', 'status': 'READY', 'method': 'GET/POST', 'source': 'qmt_ai_trading/console_api/routes/workbench_api_config.py'},
         {'name': 'System Settings', 'endpoint': '/api/v1/frontend/system/settings', 'status': 'READY', 'method': 'GET/POST', 'source': SETTINGS_FILE.as_posix()},
+        {'name': 'QMT xtdata Path Test', 'endpoint': '/api/v1/frontend/system/qmt/test', 'status': 'READY', 'method': 'POST', 'source': SETTINGS_FILE.as_posix()},
         {'name': 'Frontend Adapter Routes', 'endpoint': '/api/v1/frontend/*', 'status': 'READY', 'method': 'GET', 'source': 'qmt_ai_trading/console_api/routes/workbench_*.py'},
     ]
     return payload(status='READY', source='registered_routes', route_count=route_count, routes=routes, data=rows)
@@ -250,6 +287,6 @@ def permission_matrix():
 def system_summary():
     history = _task_history()
     catalog = _task_catalog()
-    api_configs = workbench_api_config._load()
+    api_configs = [x for x in workbench_api_config._load() if x.get('provider') != 'qmt_xtdata']
     settings_data = _settings()
-    return payload(status='READY', source='system_summary', data={'artifactRoot': CONSOLE.as_posix(), 'taskCount': len(catalog), 'historyCount': len(history), 'apiConfigCount': len(api_configs), 'enabledApiConfigCount': sum(1 for x in api_configs if x.get('enabled')), 'latestRunAt': (history[0].get('finished_at') if history else ''), 'runMode': settings_data['runtime']['mode'], 'liveTradingEnabled': False, 'orderSubmitEnabled': False, 'orderCancelEnabled': False, 'sourcePath': SETTINGS_FILE.as_posix()})
+    return payload(status='READY', source='system_summary', data={'artifactRoot': CONSOLE.as_posix(), 'taskCount': len(catalog), 'historyCount': len(history), 'apiConfigCount': len(api_configs), 'enabledApiConfigCount': sum(1 for x in api_configs if x.get('enabled')), 'latestRunAt': (history[0].get('finished_at') if history else ''), 'runMode': settings_data['runtime']['mode'], 'qmtPathConfigured': bool(settings_data.get('qmt', {}).get('xtdataPath')), 'liveTradingEnabled': False, 'orderSubmitEnabled': False, 'orderCancelEnabled': False, 'sourcePath': SETTINGS_FILE.as_posix()})
