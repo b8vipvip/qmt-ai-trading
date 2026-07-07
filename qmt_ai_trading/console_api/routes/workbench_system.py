@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from copy import deepcopy
 from dataclasses import asdict
@@ -14,44 +15,18 @@ SETTINGS_FILE = CONSOLE / 'system' / 'system_settings.private.json'
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     'runtime': {'mode': 'research'},
-    'qmt': {
-        'xtdataPath': '',
-        'xtquantPythonPath': '',
-        'clientName': 'QMT',
-    },
+    'qmt': {'xtdataPath': '', 'xtquantPythonPath': '', 'clientName': 'QMT'},
     'trading': {
-        'defaultStockPool': '沪深300',
-        'commissionRate': 0.00025,
-        'slippageBps': 3,
-        'rebalancePeriod': 'daily',
-        'backtestInitialCash': 1000000,
-        'backtestStartDate': '2021-01-01',
-        'backtestEndDate': '',
-        'stampTaxRate': 0.001,
-        'enableT1': True,
-        'enableLimitCheck': True,
-        'enableSuspensionCheck': True,
-        'enableLiquidityLimit': True,
+        'defaultStockPool': '沪深300', 'commissionRate': 0.00025, 'slippageBps': 3, 'rebalancePeriod': 'daily',
+        'backtestInitialCash': 1000000, 'backtestStartDate': '2021-01-01', 'backtestEndDate': '', 'stampTaxRate': 0.001,
+        'enableT1': True, 'enableLimitCheck': True, 'enableSuspensionCheck': True, 'enableLiquidityLimit': True,
     },
-    'risk': {
-        'maxPositionPct': 80,
-        'maxSinglePositionPct': 10,
-        'maxIndustryExposurePct': 30,
-        'maxDrawdownPct': 15,
-        'dailyLossLimitPct': 3,
-    },
+    'risk': {'maxPositionPct': 80, 'maxSinglePositionPct': 10, 'maxIndustryExposurePct': 30, 'maxDrawdownPct': 15, 'dailyLossLimitPct': 3},
     'paths': {
-        'marketCacheDir': 'artifacts/reports/console/datahub',
-        'factorArtifactDir': 'artifacts/reports/console/research',
-        'backtestReportDir': 'artifacts/reports/console/backtest',
-        'taskHistoryDir': 'artifacts/reports/console/task_history',
+        'marketCacheDir': 'artifacts/reports/console/datahub', 'factorArtifactDir': 'artifacts/reports/console/research',
+        'backtestReportDir': 'artifacts/reports/console/backtest', 'taskHistoryDir': 'artifacts/reports/console/task_history',
     },
-    'safety': {
-        'allowRealOrder': False,
-        'allowCancelOrder': False,
-        'allowAccountQuery': False,
-        'enableHumanApproval': True,
-    },
+    'safety': {'allowRealOrder': False, 'allowCancelOrder': False, 'allowAccountQuery': False, 'enableHumanApproval': True},
 }
 
 
@@ -193,6 +168,56 @@ def _task_catalog() -> list[dict[str, Any]]:
         return []
 
 
+def _detect_client_name(path: str) -> str:
+    text = path.lower()
+    if '国金' in path or 'gjzq' in text:
+        return '国金证券 QMT'
+    if 'qmt' in text:
+        return 'QMT'
+    if 'xtquant' in text:
+        return 'xtquant'
+    return 'QMT'
+
+
+def _candidate(path: Path, kind: str) -> dict[str, Any]:
+    return {'path': str(path), 'kind': kind, 'exists': path.exists(), 'clientName': _detect_client_name(str(path))}
+
+
+def _scan_qmt_candidates() -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    raw_roots = []
+    for env_name in ('QMT_PATH', 'XTQUANT_PATH', 'PATH'):
+        value = os.environ.get(env_name, '')
+        if env_name == 'PATH':
+            raw_roots.extend([x for x in value.split(os.pathsep) if 'qmt' in x.lower() or 'xtquant' in x.lower()])
+        elif value:
+            raw_roots.append(value)
+    for drive in ['C:', 'D:', 'E:', 'F:']:
+        raw_roots.extend([
+            fr'{drive}\国金证券QMT交易端', fr'{drive}\国金证券QMT交易端\bin.x64', fr'{drive}\QMT', fr'{drive}\QMT\bin.x64',
+            fr'{drive}\迅投极速交易终端睿智融科版', fr'{drive}\Program Files\QMT', fr'{drive}\Program Files (x86)\QMT',
+        ])
+    for raw in raw_roots:
+        p = Path(raw)
+        checks = [p, p / 'bin.x64', p / 'bin']
+        for item in checks:
+            key = str(item).lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            if item.exists() or ('qmt' in key or 'xtquant' in key or '国金' in str(item)):
+                candidates.append(_candidate(item, 'qmt_path'))
+    for base in [Path(sys.prefix), Path.cwd(), Path.home()]:
+        for rel in ['Lib/site-packages/xtquant', 'Lib/site-packages/xtquant/xtdata.py', 'site-packages/xtquant']:
+            p = base / rel
+            key = str(p).lower()
+            if key not in seen and p.exists():
+                seen.add(key)
+                candidates.append(_candidate(p.parent if p.is_file() else p, 'xtquant_python_path'))
+    return candidates[:80]
+
+
 def settings():
     return payload(status='READY', source='system_settings_store', data=_settings(), sourcePath=SETTINGS_FILE.as_posix())
 
@@ -207,6 +232,12 @@ def save_settings(body: dict[str, Any]):
     return payload(status='SAVED', source='system_settings_store', data=sanitized, sourcePath=SETTINGS_FILE.as_posix())
 
 
+def scan_qmt_paths(body: dict[str, Any] | None = None):
+    settings_data = _settings()
+    candidates = _scan_qmt_candidates()
+    return payload(status='READY', source='qmt_path_scanner', data={'current': settings_data.get('qmt', {}), 'candidates': candidates, 'count': len(candidates), 'note': '浏览器不能直接读取本机绝对目录，因此使用后端本机扫描候选路径；仍可手动修正。'})
+
+
 def test_qmt_settings(body: dict[str, Any] | None = None):
     settings_data = _settings()
     qmt = settings_data.get('qmt', {})
@@ -217,16 +248,10 @@ def test_qmt_settings(body: dict[str, Any] | None = None):
     path_status = 'NOT_CONFIGURED'
     if xtdata_path:
         path_status = 'EXISTS' if Path(xtdata_path).exists() else 'MISSING'
-    result = {
-        'xtdataPath': xtdata_path,
-        'xtquantPythonPath': python_path,
-        'pathStatus': path_status,
-        'checkedAt': workbench_api_config._now(),
-        'sourcePath': SETTINGS_FILE.as_posix(),
-    }
+    result = {'xtdataPath': xtdata_path, 'xtquantPythonPath': python_path, 'pathStatus': path_status, 'checkedAt': workbench_api_config._now(), 'sourcePath': SETTINGS_FILE.as_posix()}
     try:
         from xtquant import xtdata  # type: ignore
-        result.update({'status': 'READY', 'message': 'xtquant.xtdata 可导入；QMT 路径配置已独立于 API 接口。'})
+        result.update({'status': 'READY', 'message': 'xtquant.xtdata 可导入；QMT 路径已保存。'})
     except Exception as exc:
         result.update({'status': 'FAILED', 'message': f'xtquant.xtdata 不可导入：{exc}'})
     return payload(status=result['status'], source='qmt_xtdata_system_settings_test', data=result)
@@ -237,8 +262,6 @@ def config_center():
     pkg = _read_json_file('frontend/package.json', {})
     rows = [
         {'key': 'runtime.mode', 'name': '系统运行模式', 'value': settings_data['runtime']['mode'], 'source': SETTINGS_FILE.as_posix(), 'editable': True, 'sensitive': False},
-        {'key': 'qmt.xtdataPath', 'name': 'QMT / xtdata 路径', 'value': settings_data['qmt']['xtdataPath'], 'source': SETTINGS_FILE.as_posix(), 'editable': True, 'sensitive': False},
-        {'key': 'qmt.xtquantPythonPath', 'name': 'xtquant Python 路径', 'value': settings_data['qmt']['xtquantPythonPath'], 'source': SETTINGS_FILE.as_posix(), 'editable': True, 'sensitive': False},
         {'key': 'trading.defaultStockPool', 'name': '默认股票池', 'value': settings_data['trading']['defaultStockPool'], 'source': SETTINGS_FILE.as_posix(), 'editable': True, 'sensitive': False},
         {'key': 'risk.maxPositionPct', 'name': '最大仓位', 'value': settings_data['risk']['maxPositionPct'], 'source': SETTINGS_FILE.as_posix(), 'editable': True, 'sensitive': False},
         {'key': 'paths.marketCacheDir', 'name': '行情缓存目录', 'value': settings_data['paths']['marketCacheDir'], 'source': SETTINGS_FILE.as_posix(), 'editable': True, 'sensitive': False},
@@ -264,7 +287,7 @@ def api_status():
         {'name': 'Task History', 'endpoint': '/api/v1/tasks/history', 'status': 'READY', 'method': 'GET', 'source': _artifact_path('task_history', 'task_history.json')},
         {'name': 'External API Configs', 'endpoint': '/api/v1/frontend/system/api-configs', 'status': 'READY', 'method': 'GET/POST', 'source': 'qmt_ai_trading/console_api/routes/workbench_api_config.py'},
         {'name': 'System Settings', 'endpoint': '/api/v1/frontend/system/settings', 'status': 'READY', 'method': 'GET/POST', 'source': SETTINGS_FILE.as_posix()},
-        {'name': 'QMT xtdata Path Test', 'endpoint': '/api/v1/frontend/system/qmt/test', 'status': 'READY', 'method': 'POST', 'source': SETTINGS_FILE.as_posix()},
+        {'name': 'QMT xtdata Path Scan/Test', 'endpoint': '/api/v1/frontend/system/qmt/scan + /qmt/test', 'status': 'READY', 'method': 'POST', 'source': SETTINGS_FILE.as_posix()},
         {'name': 'Frontend Adapter Routes', 'endpoint': '/api/v1/frontend/*', 'status': 'READY', 'method': 'GET', 'source': 'qmt_ai_trading/console_api/routes/workbench_*.py'},
     ]
     return payload(status='READY', source='registered_routes', route_count=route_count, routes=routes, data=rows)
