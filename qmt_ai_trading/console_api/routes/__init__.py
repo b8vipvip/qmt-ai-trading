@@ -24,6 +24,7 @@ ROUTES={
 '/api/v1/frontend/monitoring/realtime': workbench_more.monitoring_realtime, '/api/v1/frontend/monitoring/attribution': workbench_more.monitoring_attribution, '/api/v1/frontend/monitoring/execution-quality': workbench_more.monitoring_execution_quality, '/api/v1/frontend/monitoring/daily-review': workbench_more.monitoring_daily_review,
 }
 POST_ROUTES={
+'/api/v1/frontend/data/market-ai-analysis': workbench_market.market_ai_analysis,
 '/api/v1/frontend/system/api-configs/save': workbench_api_config.save_config,
 '/api/v1/frontend/system/api-configs/test': workbench_api_config.test_config,
 '/api/v1/frontend/system/api-configs/purposes': workbench_api_config.set_purposes,
