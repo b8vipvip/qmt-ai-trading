@@ -1,13 +1,31 @@
 from __future__ import annotations
 
+import json
+import urllib.error
+import urllib.request
 from datetime import datetime
 from typing import Any
 
 from .common import CONSOLE, payload, read_json
+from . import workbench_api_config
+
+
+OPENAI_COMPAT_HEADERS = {
+    'Accept': 'application/json',
+    'User-Agent': 'qmt-ai-trading-local-console/1.0 Market-Analysis',
+}
 
 
 def _artifact_path(module: str, name: str) -> str:
     return (CONSOLE / module / name).as_posix()
+
+
+def _write_text(module: str, name: str, text: str) -> str:
+    folder = CONSOLE / module
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / name
+    path.write_text(text, encoding='utf-8')
+    return path.as_posix()
 
 
 def _first_array(obj: Any) -> list[Any]:
@@ -86,4 +104,87 @@ def market_summary():
         'flatCount': flat,
         'latestTime': max([str(row.get('time') or '') for row in quotes], default=''),
         'sourcePath': _artifact_path('datahub', 'market_latest.json'),
+    })
+
+
+def _http_error_message(exc: urllib.error.HTTPError, url: str) -> str:
+    try:
+        body = exc.read(600).decode('utf-8', errors='replace')
+    except Exception:
+        body = ''
+    return f'HTTP {exc.code}: {url}' + (f'；响应：{body[:360]}' if body else '')
+
+
+def _call_openai_compatible(row: dict[str, Any], messages: list[dict[str, str]], max_tokens: int = 900) -> str:
+    base_url = str(row.get('baseUrl') or '').rstrip('/')
+    token = str(row.get('token') or '').strip()
+    model = str(row.get('modelName') or '').strip()
+    if not base_url or not token or not model:
+        raise RuntimeError('AI 接口必须配置 Base URL、Token 和默认模型')
+    body = {'model': model, 'messages': messages, 'max_tokens': max_tokens, 'temperature': 0.2, 'stream': False}
+    req = urllib.request.Request(base_url + '/chat/completions', method='POST', data=json.dumps(body, ensure_ascii=False).encode('utf-8'))
+    req.add_header('Content-Type', 'application/json')
+    req.add_header('Authorization', f'Bearer {token}')
+    for key, value in OPENAI_COMPAT_HEADERS.items():
+        req.add_header(key, value)
+    try:
+        with urllib.request.urlopen(req, timeout=35) as resp:  # nosec - user configured local AI endpoint
+            data = json.loads(resp.read().decode('utf-8', errors='replace'))
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(_http_error_message(exc, base_url + '/chat/completions')) from exc
+    choices = data.get('choices') if isinstance(data, dict) else None
+    if not choices:
+        raise RuntimeError('AI 接口返回为空：未发现 choices')
+    message = choices[0].get('message') or {}
+    content = message.get('content') or choices[0].get('text') or ''
+    if not content:
+        raise RuntimeError('AI 接口返回为空：未发现 content')
+    return str(content).strip()
+
+
+def _selected_ai_config() -> dict[str, Any] | None:
+    return workbench_api_config.select_config_for_purpose('ai') or workbench_api_config.select_config_for_purpose('research')
+
+
+def market_ai_analysis(body: dict[str, Any] | None = None):
+    quotes = market_quotes().get('data', [])
+    summary = market_summary().get('data', {})
+    if not quotes:
+        return payload(ok=False, status='FAILED', error='暂无行情数据，先运行“真实 xtdata 只读 smoke”或“只读行情快照”')
+    row = _selected_ai_config()
+    if not row:
+        return payload(ok=False, status='FAILED', error='未找到可用 AI 模型。请在 API 接口添加 AI 接口，并在配置中心分配“AI服务”或“全部”用途。')
+    top_up = sorted(quotes, key=lambda x: _num(x.get('changePct')), reverse=True)[:8]
+    top_down = sorted(quotes, key=lambda x: _num(x.get('changePct')))[:8]
+    high_amount = sorted(quotes, key=lambda x: _num(x.get('amount')), reverse=True)[:8]
+    context = {
+        'summary': summary,
+        'sample_size': len(quotes),
+        'top_up': top_up,
+        'top_down': top_down,
+        'high_amount': high_amount,
+    }
+    prompt = (
+        '你是A股量化交易系统的数据与行情分析助手。请基于以下行情快照输出一份中文分析报告。'
+        '报告必须分为：1) 市场广度与方向；2) 涨跌结构；3) 成交额/流动性；4) 数据质量风险；'
+        '5) 对因子研究和策略层的影响；6) 下一步建议。'
+        '不要给出确定性买卖建议，不要生成真实下单指令，只做研究和风控视角分析。\n\n'
+        f'行情数据：{json.dumps(context, ensure_ascii=False)[:9000]}'
+    )
+    try:
+        report = _call_openai_compatible(row, [
+            {'role': 'system', 'content': '你是严谨的A股量化投研助手，只做研究分析，不输出下单指令。'},
+            {'role': 'user', 'content': prompt},
+        ])
+    except Exception as exc:
+        return payload(ok=False, status='FAILED', error=str(exc))
+    generated_at = datetime.now().isoformat(timespec='seconds')
+    artifact = _write_text('datahub', 'market_ai_analysis.md', f'# 行情数据 AI 分析\n\n生成时间：{generated_at}\n模型：{row.get("modelName") or row.get("name")}\n\n{report}\n')
+    return payload(status='READY', source='market_ai_analysis', data={
+        'status': 'READY',
+        'modelName': row.get('modelName') or row.get('name') or '',
+        'apiName': row.get('name') or '',
+        'generatedAt': generated_at,
+        'report': report,
+        'sourcePath': artifact,
     })
