@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
+import re
 import threading
-import time
 import urllib.error
 import urllib.request
 from datetime import datetime
@@ -19,6 +19,7 @@ OPENAI_COMPAT_HEADERS = {
 }
 
 AUTO_REFRESH_FILE = CONSOLE / 'market' / 'auto_refresh_settings.private.json'
+UNIVERSE_FILE = CONSOLE / 'market' / 'universe_settings.private.json'
 AUTO_REFRESH_LOCK = threading.Lock()
 AUTO_REFRESH_THREAD: threading.Thread | None = None
 AUTO_REFRESH_STOP = threading.Event()
@@ -33,14 +34,46 @@ AUTO_REFRESH_RUNTIME: dict[str, Any] = {
     'runCount': 0,
 }
 
+PRESET_UNIVERSES = {
+    'broad_etf': {
+        'name': '宽基ETF池',
+        'description': '适合先做ETF轮动、低频验证和行情链路测试。',
+        'symbols': ['510300.SH', '510500.SH', '512100.SH', '588000.SH', '159915.SZ', '510050.SH', '159919.SZ', '159922.SZ', '512880.SH', '512000.SH'],
+    },
+    'index_benchmark': {
+        'name': '指数/基准池',
+        'description': '用于基准、风格判断和策略对比。',
+        'symbols': ['000001.SH', '399001.SZ', '399006.SZ', '000300.SH', '000905.SH', '000852.SH'],
+    },
+    'sector_etf': {
+        'name': '行业/主题ETF池',
+        'description': '用于行业轮动和板块热度跟踪。',
+        'symbols': ['512800.SH', '512880.SH', '512000.SH', '512010.SH', '512660.SH', '515790.SH', '515030.SH', '159996.SZ', '516160.SH', '159928.SZ'],
+    },
+    'stock_core_sample': {
+        'name': 'A股核心样例池',
+        'description': '先用少量高流动性个股验证链路；全A同步后会替换为真实可交易池。',
+        'symbols': ['600519.SH', '601318.SH', '600036.SH', '601166.SH', '600030.SH', '000333.SZ', '000651.SZ', '000858.SZ', '002415.SZ', '300750.SZ'],
+    },
+}
+
+DEFAULT_UNIVERSE = {
+    'preset': 'broad_etf',
+    'name': PRESET_UNIVERSES['broad_etf']['name'],
+    'symbols': PRESET_UNIVERSES['broad_etf']['symbols'],
+    'customSymbolsText': '',
+    'source': 'preset',
+}
+
 DEFAULT_AUTO_REFRESH = {
     'enabled': False,
     'intervalSec': 60,
-    'symbols': ['510300.SH', '510500.SH', '588000.SH'],
     'period': '1d',
     'limit': 120,
     'onlyMissingCache': True,
 }
+
+_SYMBOL_RE = re.compile(r'^(\d{6})\.(SH|SZ|BJ)$', re.I)
 
 
 def _artifact_path(module: str, name: str) -> str:
@@ -69,6 +102,86 @@ def _write_json_file(path, data: Any) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
 
 
+def _normalize_symbol(value: Any) -> str:
+    raw = str(value or '').strip().upper().replace(' ', '')
+    if not raw:
+        return ''
+    raw = raw.replace('，', ',').replace('；', ',').replace(';', ',')
+    if raw.startswith('SH') and len(raw) == 8:
+        raw = raw[2:] + '.SH'
+    elif raw.startswith('SZ') and len(raw) == 8:
+        raw = raw[2:] + '.SZ'
+    elif raw.startswith('BJ') and len(raw) == 8:
+        raw = raw[2:] + '.BJ'
+    elif raw.endswith('SH') and '.' not in raw and len(raw) == 8:
+        raw = raw[:6] + '.SH'
+    elif raw.endswith('SZ') and '.' not in raw and len(raw) == 8:
+        raw = raw[:6] + '.SZ'
+    elif raw.endswith('BJ') and '.' not in raw and len(raw) == 8:
+        raw = raw[:6] + '.BJ'
+    elif raw.isdigit() and len(raw) == 6:
+        if raw.startswith(('5', '6', '9')):
+            raw = raw + '.SH'
+        elif raw.startswith(('0', '1', '2', '3')):
+            raw = raw + '.SZ'
+        elif raw.startswith(('4', '8')):
+            raw = raw + '.BJ'
+    return raw if _SYMBOL_RE.match(raw) else ''
+
+
+def _split_symbols(value: Any) -> list[str]:
+    if isinstance(value, list):
+        raw_items = value
+    else:
+        text = str(value or '').replace('\n', ',').replace('\t', ',').replace('，', ',').replace('；', ',').replace(';', ',')
+        raw_items = [x for x in text.split(',')]
+    out: list[str] = []
+    seen = set()
+    for item in raw_items:
+        symbol = _normalize_symbol(item)
+        if symbol and symbol not in seen:
+            seen.add(symbol)
+            out.append(symbol)
+    return out[:1000]
+
+
+def _universe_presets() -> list[dict[str, Any]]:
+    return [{'key': key, **value, 'symbolCount': len(value['symbols'])} for key, value in PRESET_UNIVERSES.items()]
+
+
+def _universe_settings() -> dict[str, Any]:
+    data = _read_json_file(UNIVERSE_FILE, {})
+    if not isinstance(data, dict):
+        data = {}
+    preset = str(data.get('preset') or DEFAULT_UNIVERSE['preset'])
+    if preset not in PRESET_UNIVERSES and preset != 'custom':
+        preset = DEFAULT_UNIVERSE['preset']
+    custom_text = str(data.get('customSymbolsText') or '')
+    if preset == 'custom':
+        symbols = _split_symbols(custom_text or data.get('symbols') or [])
+        name = '自定义股票池'
+        source = 'custom'
+    else:
+        symbols = _split_symbols(data.get('symbols') or PRESET_UNIVERSES[preset]['symbols'])
+        name = PRESET_UNIVERSES[preset]['name']
+        source = 'preset'
+    if not symbols:
+        symbols = list(DEFAULT_UNIVERSE['symbols'])
+        preset = DEFAULT_UNIVERSE['preset']
+        name = DEFAULT_UNIVERSE['name']
+        source = 'preset'
+    return {
+        'preset': preset,
+        'name': name,
+        'symbols': symbols,
+        'symbolCount': len(symbols),
+        'customSymbolsText': custom_text,
+        'source': source,
+        'presets': _universe_presets(),
+        'sourcePath': UNIVERSE_FILE.as_posix(),
+    }
+
+
 def _auto_settings() -> dict[str, Any]:
     data = _read_json_file(AUTO_REFRESH_FILE, {})
     if not isinstance(data, dict):
@@ -82,12 +195,14 @@ def _auto_settings() -> dict[str, Any]:
         out['limit'] = max(1, min(500, int(out.get('limit') or 120)))
     except Exception:
         out['limit'] = 120
-    symbols = out.get('symbols')
-    if isinstance(symbols, str):
-        symbols = [x.strip() for x in symbols.split(',') if x.strip()]
-    if not isinstance(symbols, list) or not symbols:
-        symbols = DEFAULT_AUTO_REFRESH['symbols']
-    out['symbols'] = [str(x).strip() for x in symbols if str(x).strip()][:50]
+    universe = _universe_settings()
+    symbols = _split_symbols(out.get('symbols') or universe.get('symbols') or DEFAULT_UNIVERSE['symbols'])
+    if not symbols:
+        symbols = list(DEFAULT_UNIVERSE['symbols'])
+    out['symbols'] = symbols[:1000]
+    out['universeName'] = universe.get('name')
+    out['universePreset'] = universe.get('preset')
+    out['universeSymbolCount'] = len(out['symbols'])
     out['period'] = str(out.get('period') or '1d')[:20]
     out['onlyMissingCache'] = bool(out.get('onlyMissingCache', True))
     out['enabled'] = bool(out.get('enabled', False))
@@ -187,6 +302,7 @@ def market_quotes():
 def market_summary():
     quotes = market_quotes().get('data', [])
     symbols = _symbols()
+    universe = _universe_settings()
     up = sum(1 for row in quotes if _num(row.get('changePct')) > 0)
     down = sum(1 for row in quotes if _num(row.get('changePct')) < 0)
     flat = max(0, len(quotes) - up - down)
@@ -195,6 +311,8 @@ def market_summary():
     return payload(status='READY', source='datahub_market_latest', data={
         'quoteCount': len(quotes),
         'symbolCount': len(symbols),
+        'universeName': universe.get('name'),
+        'universeSymbolCount': universe.get('symbolCount'),
         'upCount': up,
         'downCount': down,
         'flatCount': flat,
@@ -266,14 +384,15 @@ def _auto_refresh_once(settings: dict[str, Any]) -> dict[str, Any]:
             qmt_check = workbench_system.test_qmt_settings({'kind': 'qmtClientPath'}).get('data', {})
         except Exception as exc:
             qmt_check = {'status': 'FAILED', 'message': f'QMT 客户端检查失败：{exc}'}
-        symbols = list(settings.get('symbols') or DEFAULT_AUTO_REFRESH['symbols'])
+        symbols = list(settings.get('symbols') or DEFAULT_UNIVERSE['symbols'])
+        requested_count = len(symbols)
         if settings.get('onlyMissingCache'):
             cached = _cached_symbol_set()
             missing = [s for s in symbols if s not in cached]
             if missing:
                 symbols = missing
             elif cached:
-                AUTO_REFRESH_RUNTIME.update({'lastStatus': 'CACHE_HIT', 'lastMessage': '本地已有缓存，本轮未重复下载。', 'lastRunAt': datetime.now().isoformat(timespec='seconds'), 'running': False})
+                AUTO_REFRESH_RUNTIME.update({'lastStatus': 'CACHE_HIT', 'lastMessage': f'Universe 本地已有缓存，本轮未重复下载。当前 Universe：{settings.get("universeName")}，标的数：{requested_count}', 'lastRunAt': datetime.now().isoformat(timespec='seconds'), 'running': False})
                 return dict(AUTO_REFRESH_RUNTIME)
         report = run_xtdata_live_stage87(
             repo_root='.',
@@ -295,7 +414,7 @@ def _auto_refresh_once(settings: dict[str, Any]) -> dict[str, Any]:
         AUTO_REFRESH_RUNTIME.update({
             'lastRunAt': datetime.now().isoformat(timespec='seconds'),
             'lastStatus': 'REAL_MARKET_DATA' if report.get('real_market_data') else 'WAITING_LOGIN_OR_FALLBACK',
-            'lastMessage': f"{qmt_check.get('message', '')}；{message}" if qmt_check else message,
+            'lastMessage': f"Universe：{settings.get('universeName')}；请求标的 {requested_count} 个，本轮下载 {len(symbols)} 个；{qmt_check.get('message', '')}；{message}" if qmt_check else message,
             'lastRealMarketData': bool(report.get('real_market_data')),
             'lastSandboxFallback': bool(report.get('sandbox_fallback')),
             'lastFailureReason': str(report.get('failure_reason') or ''),
@@ -332,6 +451,30 @@ def _ensure_auto_thread() -> None:
     AUTO_REFRESH_THREAD.start()
 
 
+def market_universe_status():
+    universe = _universe_settings()
+    return payload(status='READY', source='market_universe', data=universe)
+
+
+def save_market_universe(body: dict[str, Any] | None = None):
+    body = body or {}
+    preset = str(body.get('preset') or DEFAULT_UNIVERSE['preset'])
+    custom_text = str(body.get('customSymbolsText') or '')
+    if preset not in PRESET_UNIVERSES and preset != 'custom':
+        return payload(ok=False, status='FAILED', error='未知 Universe 类型')
+    if preset == 'custom':
+        symbols = _split_symbols(custom_text)
+        if not symbols:
+            return payload(ok=False, status='FAILED', error='自定义 Universe 至少需要 1 个合法证券代码，例如 510300.SH')
+        data = {'preset': 'custom', 'name': '自定义股票池', 'symbols': symbols, 'customSymbolsText': '\n'.join(symbols), 'source': 'custom'}
+    else:
+        preset_symbols = PRESET_UNIVERSES[preset]['symbols']
+        data = {'preset': preset, 'name': PRESET_UNIVERSES[preset]['name'], 'symbols': preset_symbols, 'customSymbolsText': custom_text, 'source': 'preset'}
+    _write_json_file(UNIVERSE_FILE, data)
+    AUTO_REFRESH_RUNTIME.update({'lastStatus': 'UNIVERSE_UPDATED', 'lastMessage': f'行情 Universe 已更新：{data["name"]}，标的数 {len(data["symbols"])}。自动刷新将按新 Universe 获取缺失缓存。'})
+    return market_universe_status()
+
+
 def market_auto_refresh_status():
     _ensure_auto_thread()
     settings = _auto_settings()
@@ -353,11 +496,16 @@ def save_market_auto_refresh(body: dict[str, Any] | None = None):
             next_settings['intervalSec'] = 60
     if 'onlyMissingCache' in body:
         next_settings['onlyMissingCache'] = bool(body.get('onlyMissingCache'))
+    # Universe is configured separately and should not be duplicated into auto-refresh settings.
+    next_settings.pop('symbols', None)
+    next_settings.pop('universeName', None)
+    next_settings.pop('universePreset', None)
+    next_settings.pop('universeSymbolCount', None)
     _write_json_file(AUTO_REFRESH_FILE, next_settings)
     if next_settings.get('enabled'):
         AUTO_REFRESH_STOP.clear()
         _ensure_auto_thread()
-        AUTO_REFRESH_RUNTIME.update({'lastStatus': 'AUTO_REFRESH_ENABLED', 'lastMessage': '自动刷新已启用，后台将检查 QMT 连接并刷新缺失行情缓存。'})
+        AUTO_REFRESH_RUNTIME.update({'lastStatus': 'AUTO_REFRESH_ENABLED', 'lastMessage': '自动刷新已启用，后台将按当前 Universe 检查 QMT 连接并刷新缺失行情缓存。'})
     else:
         AUTO_REFRESH_STOP.set()
         AUTO_REFRESH_RUNTIME.update({'lastStatus': 'AUTO_REFRESH_DISABLED', 'lastMessage': '自动刷新已关闭。', 'running': False})
@@ -368,7 +516,7 @@ def market_ai_analysis(body: dict[str, Any] | None = None):
     quotes = market_quotes().get('data', [])
     summary = market_summary().get('data', {})
     if not quotes:
-        return payload(ok=False, status='FAILED', error='暂无行情数据，先运行“真实 xtdata 只读 smoke”或“只读行情快照”')
+        return payload(ok=False, status='FAILED', error='暂无行情数据，请先开启自动刷新行情并等待 QMT / xtdata 获取缓存')
     candidates = _ai_config_candidates()
     if not candidates:
         return payload(ok=False, status='FAILED', error='未找到可用 AI 模型。请在 API 接口添加 AI 接口，并在配置中心分配“AI服务”或“全部”用途。')
@@ -385,8 +533,8 @@ def market_ai_analysis(body: dict[str, Any] | None = None):
     }
     prompt = (
         '你是A股量化交易系统的数据与行情分析助手。请基于以下行情快照输出一份中文分析报告。'
-        '报告必须分为：1) 市场广度与方向；2) 涨跌结构；3) 成交额/流动性；4) 数据质量风险；'
-        '5) 对因子研究和策略层的影响；6) 下一步建议。'
+        '报告必须分为：1) 当前 Universe 覆盖范围；2) 市场广度与方向；3) 涨跌结构；4) 成交额/流动性；5) 数据质量风险；'
+        '6) 对因子研究和策略层的影响；7) 下一步建议。'
         '如果 dataMode=SANDBOX_FALLBACK，必须明确说明这不是实时行情，只能用于链路与页面功能验证。'
         '不要给出确定性买卖建议，不要生成真实下单指令，只做研究和风控视角分析。\n\n'
         f'行情数据：{json.dumps(context, ensure_ascii=False)[:9000]}'
