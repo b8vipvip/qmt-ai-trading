@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { EmptyState } from '../components/common';
 import { getDataSources } from '../services/dataService';
-import { getDownloadedDatasetStatus, getMarketAutoRefreshStatus, getMarketQuotes, getMarketSummary, getMarketUniverseStatus, getQmtUniverseSyncStatus, runMarketAIAnalysis, runQmtUniverseSync, saveMarketAutoRefresh, saveMarketUniverse } from '../services/marketDataService';
-import type { DownloadedDatasetRow, DownloadedDatasetStatus, MarketAIAnalysis, MarketAutoRefreshStatus, MarketQuoteRow, MarketSummary, MarketUniverseStatus, QmtUniverseGroup, QmtUniverseSyncResult } from '../services/marketDataService';
+import { getDownloadedDatasetStatus, getMarketAutoRefreshStatus, getMarketHistoryStatus, getMarketQuotes, getMarketSummary, getMarketUniverseStatus, getQmtUniverseSyncStatus, runMarketAIAnalysis, runMarketHistoryDownload, runQmtUniverseSync, saveMarketAutoRefresh, saveMarketUniverse } from '../services/marketDataService';
+import type { DownloadedDatasetRow, DownloadedDatasetStatus, MarketAIAnalysis, MarketAutoRefreshStatus, MarketHistoryLayer, MarketHistoryRun, MarketHistoryStatus, MarketQuoteRow, MarketSummary, MarketUniverseStatus, QmtUniverseGroup, QmtUniverseSyncResult } from '../services/marketDataService';
 import type { DataSourceStatus } from '../types';
 
 function useAsync<T>(loader: () => Promise<T>, fallback: T): T {
@@ -19,7 +19,8 @@ function useAsync<T>(loader: () => Promise<T>, fallback: T): T {
     window.addEventListener('qmt-market-auto-refresh-updated', load);
     window.addEventListener('qmt-market-universe-updated', load);
     window.addEventListener('qmt-downloaded-datasets-updated', load);
-    return () => { mounted = false; window.removeEventListener('qmt-task-finished', load); window.removeEventListener('qmt-api-config-saved', load); window.removeEventListener('qmt-market-auto-refresh-updated', load); window.removeEventListener('qmt-market-universe-updated', load); window.removeEventListener('qmt-downloaded-datasets-updated', load); };
+    window.addEventListener('qmt-market-history-updated', load);
+    return () => { mounted = false; window.removeEventListener('qmt-task-finished', load); window.removeEventListener('qmt-api-config-saved', load); window.removeEventListener('qmt-market-auto-refresh-updated', load); window.removeEventListener('qmt-market-universe-updated', load); window.removeEventListener('qmt-downloaded-datasets-updated', load); window.removeEventListener('qmt-market-history-updated', load); };
   }, []);
   return data;
 }
@@ -50,7 +51,7 @@ function formatMarketTime(value: unknown) {
   return raw;
 }
 function latestMarketTime(quotes: MarketQuoteRow[], fallback: unknown) { let best: { raw: unknown; ms: number } | null = null; for (const row of quotes) { const ms = parseMarketTimeMs(row.time); if (ms !== null && (!best || ms > best.ms)) best = { raw: row.time, ms }; } return best ? formatMarketTime(best.raw) : formatMarketTime(fallback); }
-function statusTag(value: string) { const text = String(value || 'UNKNOWN'); return <Tag color={text === 'NORMAL' || text === 'READY' || text === 'REAL_MARKET_DATA' ? 'green' : text === 'PENDING' || text === 'WAITING_LOGIN_OR_FALLBACK' || text === 'NOT_SYNCED' || text === 'MISSING' ? 'gold' : text === 'FAILED' ? 'red' : 'default'}>{text}</Tag>; }
+function statusTag(value: string) { const text = String(value || 'UNKNOWN'); return <Tag color={text === 'NORMAL' || text === 'READY' || text === 'REAL_MARKET_DATA' ? 'green' : text === 'PENDING' || text === 'WAITING_LOGIN_OR_FALLBACK' || text === 'NOT_SYNCED' || text === 'NOT_DOWNLOADED' || text === 'PLANNED_ONLY' || text === 'MISSING' ? 'gold' : text === 'FAILED' ? 'red' : 'default'}>{text}</Tag>; }
 function dataModeTag(summary: MarketSummary) { if (summary.realMarketData) return <Tag color="green">真实 xtdata</Tag>; if (summary.sandboxFallback || summary.dataMode === 'SANDBOX_FALLBACK') return <Tag color="gold">沙盒样例</Tag>; return <Tag>未知</Tag>; }
 
 function AnalysisReport({ report, error }: { report?: MarketAIAnalysis; error?: string }) {
@@ -63,6 +64,7 @@ const universeFallback: MarketUniverseStatus = { preset: 'broad_etf', name: '宽
 const autoFallback: MarketAutoRefreshStatus = { enabled: false, intervalSec: 60, onlyMissingCache: true, running: false, threadAlive: false, lastRunAt: '', lastStatus: 'IDLE', lastMessage: '自动刷新未启动', lastRealMarketData: false, lastSandboxFallback: false, lastFailureReason: '', runCount: 0 };
 const syncFallback: QmtUniverseSyncResult = { status: 'NOT_SYNCED', syncedAt: '', message: '尚未同步 QMT 真实股票列表', groups: [], groupCount: 0 };
 const downloadedFallback: DownloadedDatasetStatus = { rows: [], readyCount: 0, totalCount: 0, generatedAt: '' };
+const historyFallback: MarketHistoryStatus = { status: 'NOT_DOWNLOADED', message: '尚未执行历史行情下载任务', latestRun: null, runs: [], layers: [] };
 
 function AutoRefreshControl({ onChanged }: { onChanged: () => void }) {
   const [status, setStatus] = useState<MarketAutoRefreshStatus>(autoFallback);
@@ -88,21 +90,10 @@ function QmtUniverseSyncControl({ onChanged }: { onChanged: () => void }) {
   const [applyingKey, setApplyingKey] = useState('');
   const load = async () => { try { setSync(await getQmtUniverseSyncStatus()); } catch { setSync(syncFallback); } };
   useEffect(() => { load(); }, []);
-  const run = async () => {
-    try { setRunning(true); const res = await runQmtUniverseSync(['all_a', 'etf', 'index', 'broad_market', 'convertible_bond', 'sector_index']); setSync(res); message.success(res.message || 'QMT 真实列表同步完成'); window.dispatchEvent(new Event('qmt-downloaded-datasets-updated')); onChanged(); }
-    catch (error) { message.error(error instanceof Error ? error.message : String(error)); await load(); }
-    finally { setRunning(false); }
-  };
-  const apply = async (group: QmtUniverseGroup) => {
-    try { setApplyingKey(group.key); const next = await saveMarketUniverse({ preset: 'custom', customSymbolsText: (group.symbols || []).join('\n') }); message.success(`已应用到 Universe：${group.name} → ${next.symbolCount} 个标的`); window.dispatchEvent(new Event('qmt-market-universe-updated')); window.dispatchEvent(new Event('qmt-market-auto-refresh-updated')); window.dispatchEvent(new Event('qmt-downloaded-datasets-updated')); onChanged(); }
-    catch (error) { message.error(error instanceof Error ? error.message : String(error)); }
-    finally { setApplyingKey(''); }
-  };
+  const run = async () => { try { setRunning(true); const res = await runQmtUniverseSync(['all_a', 'etf', 'index', 'broad_market', 'convertible_bond', 'sector_index']); setSync(res); message.success(res.message || 'QMT 真实列表同步完成'); window.dispatchEvent(new Event('qmt-downloaded-datasets-updated')); onChanged(); } catch (error) { message.error(error instanceof Error ? error.message : String(error)); await load(); } finally { setRunning(false); } };
+  const apply = async (group: QmtUniverseGroup) => { try { setApplyingKey(group.key); const next = await saveMarketUniverse({ preset: 'custom', customSymbolsText: (group.symbols || []).join('\n') }); message.success(`已应用到 Universe：${group.name} → ${next.symbolCount} 个标的`); window.dispatchEvent(new Event('qmt-market-universe-updated')); window.dispatchEvent(new Event('qmt-market-auto-refresh-updated')); window.dispatchEvent(new Event('qmt-downloaded-datasets-updated')); onChanged(); } catch (error) { message.error(error instanceof Error ? error.message : String(error)); } finally { setApplyingKey(''); } };
   const columns: ColumnsType<QmtUniverseGroup> = [
-    { title: '列表', dataIndex: 'name', width: 190 },
-    { title: '状态', dataIndex: 'status', width: 90, render: statusTag },
-    { title: '标的数', dataIndex: 'symbolCount', width: 90 },
-    { title: '同步时间', dataIndex: 'syncedAt', width: 170, render: formatMarketTime },
+    { title: '列表', dataIndex: 'name', width: 190 }, { title: '状态', dataIndex: 'status', width: 90, render: statusTag }, { title: '标的数', dataIndex: 'symbolCount', width: 90 }, { title: '同步时间', dataIndex: 'syncedAt', width: 170, render: formatMarketTime },
     { title: 'QMT sector 调用', dataIndex: 'sectorResults', render: (items?: QmtUniverseGroup['sectorResults']) => <Space wrap>{(items || []).map((x) => <Tag key={x.sector} color={x.status === 'READY' ? 'green' : x.status === 'EMPTY' ? 'gold' : 'red'}>{x.sector}:{x.count}</Tag>)}</Space> },
     { title: '操作', width: 150, render: (_, row) => <Button size="small" disabled={!row.symbolCount} loading={applyingKey === row.key} onClick={() => apply(row)}>应用到Universe</Button> },
   ];
@@ -123,21 +114,43 @@ function UniverseControl({ onChanged }: { onChanged: () => void }) {
   </Space>;
 }
 
+function LayeredHistoryDownload({ onChanged }: { onChanged: () => void }) {
+  const [status, setStatus] = useState<MarketHistoryStatus>(historyFallback);
+  const [runningLayer, setRunningLayer] = useState('');
+  const [years, setYears] = useState<Record<string, number>>({});
+  const [maxSymbols, setMaxSymbols] = useState<Record<string, number>>({});
+  const load = async () => { try { setStatus(await getMarketHistoryStatus()); } catch { setStatus(historyFallback); } };
+  useEffect(() => { load(); window.addEventListener('qmt-market-history-updated', load); return () => window.removeEventListener('qmt-market-history-updated', load); }, []);
+  const run = async (layer: MarketHistoryLayer) => {
+    try {
+      setRunningLayer(layer.key);
+      const next = await runMarketHistoryDownload({ layer: layer.key, period: layer.defaultPeriod, years: years[layer.key] ?? layer.defaultYears, maxSymbols: maxSymbols[layer.key] ?? layer.defaultMaxSymbols });
+      setStatus(next);
+      message.success(next.message || '历史行情下载任务完成');
+      window.dispatchEvent(new Event('qmt-market-history-updated'));
+      window.dispatchEvent(new Event('qmt-downloaded-datasets-updated'));
+      onChanged();
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : String(error));
+      await load();
+    } finally { setRunningLayer(''); }
+  };
+  const runColumns: ColumnsType<MarketHistoryRun> = [
+    { title: '层级', dataIndex: 'layerName', width: 210 }, { title: '状态', dataIndex: 'status', width: 110, render: statusTag }, { title: '周期', dataIndex: 'period', width: 80 }, { title: '年限', dataIndex: 'years', width: 70 }, { title: '下载标的', dataIndex: 'downloadedSymbolCount', width: 100 }, { title: '记录数', dataIndex: 'recordCount', width: 110, render: (v) => Number(v || 0).toLocaleString() }, { title: '时间区间', dataIndex: 'timeRange', width: 260, render: (v) => v || '-' }, { title: '说明', dataIndex: 'message' },
+  ];
+  return <Section title="行情数据分层下载" extra={statusTag(status.status)}>
+    <Alert type="info" showIcon message="分层原则：全A/ETF/指数日线必须全量建设，用于选股；分钟线只对候选池/Universe下载；Tick/Level2只对实盘交易池规划，不做全市场全量下载。" />
+    <Row gutter={[12, 12]} style={{ marginTop: 12 }}>{(status.layers || []).map((layer) => <Col xs={24} lg={8} key={layer.key}><Card className="source-card" size="small"><Space direction="vertical" style={{ width: '100%' }}><Space wrap><b>{layer.name}</b><Tag color="blue">{layer.priority}</Tag></Space><Typography.Paragraph type="secondary" style={{ margin: 0 }}>{layer.description}</Typography.Paragraph><Space wrap><Tag color="cyan">周期：{layer.periods.join(' / ')}</Tag><Tag color="purple">对象：{layer.groups.join(' / ')}</Tag></Space><Space wrap><span>年限</span><InputNumber min={0} max={15} value={years[layer.key] ?? layer.defaultYears} onChange={(v) => setYears((old) => ({ ...old, [layer.key]: Number(v) || 0 }))} /><span>最大标的</span><InputNumber min={1} max={10000} value={maxSymbols[layer.key] ?? layer.defaultMaxSymbols} onChange={(v) => setMaxSymbols((old) => ({ ...old, [layer.key]: Number(v) || layer.defaultMaxSymbols }))} /></Space><Button size="small" type={layer.key === 'selection_daily' ? 'primary' : 'default'} loading={runningLayer === layer.key} onClick={() => run(layer)}>{layer.plannedOnly ? '生成规划' : '开始下载'}</Button></Space></Card></Col>)}</Row>
+    <Table style={{ marginTop: 12 }} rowKey={(r, i) => `${r.runId || r.layer}-${i}`} size="small" dataSource={status.runs || []} columns={runColumns} pagination={false} scroll={{ x: 1100, y: 260 }} locale={{ emptyText: <EmptyState text="尚未执行历史行情下载。建议先同步QMT真实列表，再执行第一层全市场日线选股库。" /> }} />
+  </Section>;
+}
+
 function DownloadedDataList() {
   const data = useAsync(getDownloadedDatasetStatus, downloadedFallback);
   const columns: ColumnsType<DownloadedDatasetRow> = [
-    { title: '数据名称', dataIndex: 'name', width: 190 },
-    { title: '类型', dataIndex: 'type', width: 130 },
-    { title: '状态', dataIndex: 'status', width: 90, render: statusTag },
-    { title: '记录数', dataIndex: 'recordCount', width: 90, render: (v) => Number(v || 0).toLocaleString() },
-    { title: '数据时间区间', dataIndex: 'timeRange', width: 260, render: (v) => v || '-' },
-    { title: '更新时间', dataIndex: 'updatedAt', width: 170, render: formatMarketTime },
-    { title: '说明', dataIndex: 'note' },
-    { title: '产物路径', dataIndex: 'sourcePath', width: 280, render: (v) => <Typography.Text copyable ellipsis style={{ maxWidth: 260 }}>{v}</Typography.Text> },
+    { title: '数据名称', dataIndex: 'name', width: 190 }, { title: '类型', dataIndex: 'type', width: 130 }, { title: '状态', dataIndex: 'status', width: 90, render: statusTag }, { title: '记录数', dataIndex: 'recordCount', width: 90, render: (v) => Number(v || 0).toLocaleString() }, { title: '数据时间区间', dataIndex: 'timeRange', width: 260, render: (v) => v || '-' }, { title: '更新时间', dataIndex: 'updatedAt', width: 170, render: formatMarketTime }, { title: '说明', dataIndex: 'note' }, { title: '产物路径', dataIndex: 'sourcePath', width: 280, render: (v) => <Typography.Text copyable ellipsis style={{ maxWidth: 260 }}>{v}</Typography.Text> },
   ];
-  return <Section title="当前已下载的数据列表" extra={<Tag color="green">已就绪 {data.readyCount}/{data.totalCount}</Tag>}>
-    <Table rowKey="key" size="small" dataSource={data.rows || []} columns={columns} scroll={{ x: 1360, y: 320 }} locale={{ emptyText: <EmptyState text="暂无已下载数据；先同步 QMT 真实列表或开启自动刷新行情。" /> }} />
-  </Section>;
+  return <Section title="当前已下载的数据列表" extra={<Tag color="green">已就绪 {data.readyCount}/{data.totalCount}</Tag>}><Table rowKey="key" size="small" dataSource={data.rows || []} columns={columns} scroll={{ x: 1360, y: 320 }} locale={{ emptyText: <EmptyState text="暂无已下载数据；先同步 QMT 真实列表或执行历史行情下载。" /> }} /></Section>;
 }
 
 export function MarketDataPage() {
@@ -154,8 +167,9 @@ export function MarketDataPage() {
   const columns: ColumnsType<MarketQuoteRow> = [{ title: '代码', dataIndex: 'symbol', fixed: 'left', width: 130 }, { title: '名称', dataIndex: 'name', width: 130 }, { title: '时间', dataIndex: 'time', width: 180, render: formatMarketTime }, { title: '最新价', dataIndex: 'latest', width: 100, render: price }, { title: '涨跌', dataIndex: 'change', width: 100, render: (v) => <span className={Number(v) >= 0 ? 'up' : 'down'}>{price(v)}</span> }, { title: '涨跌幅', dataIndex: 'changePct', width: 100, render: (v) => <span className={Number(v) >= 0 ? 'up' : 'down'}>{price(v)}%</span> }, { title: '开盘', dataIndex: 'open', width: 90, render: price }, { title: '最高', dataIndex: 'high', width: 90, render: price }, { title: '最低', dataIndex: 'low', width: 90, render: price }, { title: '收盘', dataIndex: 'close', width: 90, render: price }, { title: '成交量', dataIndex: 'volume', width: 120, render: (v) => Number(v || 0).toLocaleString() }, { title: '成交额', dataIndex: 'amount', width: 120, render: money }, { title: '状态', dataIndex: 'status', width: 100, render: statusTag }];
   return <div className="page-grid">
     <Section title="行情自动刷新控制" extra={<Tag color="green">只读 / dry-run / 不触发交易</Tag>}><AutoRefreshControl onChanged={() => setRefreshTick((x) => x + 1)} /></Section>
-    <Section title={<Space size={10}><span>行情数据用途</span><Button size="small" type="primary" loading={analyzing} onClick={analyze}>AI 分析行情</Button></Space>}><Typography.Paragraph>行情数据是量化系统的“价格与成交事实层”，用于生成 K 线、计算收益率和波动率、更新因子、触发策略信号、估算成交成本、校验停牌/涨跌停/流动性，并为回测、仿真、影子实盘和风控提供统一输入。大盘/基准指数行情也需要同步，用来做相对收益、Beta、市场状态、择时过滤、回撤对照和风控判断。</Typography.Paragraph><Space wrap><Tag color="cyan">采集：QMT xtdata / 本地缓存 / 外部数据源</Tag><Tag color="green">清洗：复权 / 对齐 / 去异常 / 去重复</Tag><Tag color="gold">校验：延迟 / 缺失 / 异常 / 覆盖率</Tag><Tag color="purple">服务：因子研究 / 策略信号 / 风控 / 监控复盘</Tag></Space></Section>
-    <Section title="行情 Universe / QMT真实列表同步" extra={<Tag color="blue">决定自动刷新下载哪些标的</Tag>}><UniverseControl onChanged={() => setRefreshTick((x) => x + 1)} /></Section>
+    <Section title={<Space size={10}><span>行情数据用途</span><Button size="small" type="primary" loading={analyzing} onClick={analyze}>AI 分析行情</Button></Space>}><Typography.Paragraph>行情数据按三层建设：第一层全市场日线是选股和因子研究的核心数据库；第二层候选池分钟线用于择时和买卖点优化；第三层 Tick/Level2 只服务实盘执行。大盘/基准指数行情也必须同步，用于相对收益、Beta、市场状态、择时过滤、回撤对照和风控判断。</Typography.Paragraph><Space wrap><Tag color="cyan">第一层：全A/ETF/指数日线</Tag><Tag color="green">第二层：候选池分钟线</Tag><Tag color="gold">第三层：交易池Tick/Level2规划</Tag><Tag color="purple">统一缓存：只读、不查账户、不下单</Tag></Space></Section>
+    <Section title="行情 Universe / QMT真实列表同步" extra={<Tag color="blue">决定下载哪些标的</Tag>}><UniverseControl onChanged={() => setRefreshTick((x) => x + 1)} /></Section>
+    <LayeredHistoryDownload onChanged={() => setRefreshTick((x) => x + 1)} />
     <DownloadedDataList />
     <Row gutter={[16, 16]}><Col xs={24} md={8}><Card className="metric-card"><b>行情记录数</b><div className="metric-value">{summary.quoteCount}</div><span>当前快照记录数量</span></Card></Col><Col xs={24} md={8}><Card className="metric-card"><b>Universe 标的数</b><div className="metric-value">{summary.universeSymbolCount || summary.symbolCount}</div><span>{summary.universeName || '当前行情池'}；缓存标的 {summary.symbolCount}</span></Card></Col><Col xs={24} md={8}><Card className="metric-card"><b>最新时间</b><div className="metric-value" style={{ fontSize: 18 }}>{latestTime}</div><Space wrap>{dataModeTag(summary)}<span>{summary.sandboxFallback ? '当前为沙盒样例时间，不是真实市场时间' : '用于判断行情是否滞后'}</span></Space></Card></Col></Row>
     <Section title="AI 行情分析报告"><AnalysisReport report={analysis} error={analysisError} /></Section>
