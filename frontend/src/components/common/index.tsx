@@ -39,7 +39,7 @@ export function MetricCard({ item }: { item: MetricItem }) {
 
 export function SystemStatusBar({ dark, onToggleTheme }: { dark: boolean; onToggleTheme: () => void }) {
   const now = new Date();
-  return <div className="system-status-bar"><div><strong>A股量化交易控制台</strong><span>{now.toLocaleDateString()} {now.toLocaleTimeString()}</span></div><Space size={8} wrap><Tag color="cyan">市场：非交易日</Tag><StatusBadge status="normal" text="行情连接" /><StatusBadge status="offline" text="券商未连接" /><StatusBadge status="normal" text="数据库正常" /><StatusBadge status="warning" text="风控 MEDIUM" /><Tag color="blue">模式：研究 / 仿真</Tag><Button size="small" icon={dark ? <SunOutlined /> : <MoonOutlined />} onClick={onToggleTheme}>{dark ? '浅色' : '深色'}</Button></Space></div>;
+  return <div className="system-status-bar"><div className="status-title-line"><strong>控制台状态</strong><span>{now.toLocaleDateString()} {now.toLocaleTimeString()}</span></div><Space size={8}><Tag color="cyan">市场：非交易日</Tag><StatusBadge status="normal" text="行情连接" /><StatusBadge status="offline" text="券商未连接" /><StatusBadge status="normal" text="数据库正常" /><StatusBadge status="warning" text="风控 MEDIUM" /><Tag color="blue">模式：研究 / 仿真</Tag><Button size="small" icon={dark ? <SunOutlined /> : <MoonOutlined />} onClick={onToggleTheme}>{dark ? '浅色' : '深色'}</Button></Space></div>;
 }
 
 export function ConfirmDangerActionModal({ open, title, confirmText, onCancel, onConfirm }: { open: boolean; title: string; confirmText: string; onCancel: () => void; onConfirm: () => void }) {
