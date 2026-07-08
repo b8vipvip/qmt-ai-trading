@@ -24,6 +24,14 @@ def _md(path, title, data):
     text='# '+title+'\n\n```json\n'+json.dumps(_json_safe(data), ensure_ascii=False, indent=2, sort_keys=True)+'\n```\n'
     if not path.exists() or path.read_text(encoding='utf-8') != text: path.write_text(text,encoding='utf-8')
 
+def _first_error(*docs):
+    for doc in docs:
+        if isinstance(doc, dict):
+            for key in ('error_message','get_full_tick_error','get_market_data_ex_error','error'):
+                if doc.get(key):
+                    return str(doc.get(key))
+    return ''
+
 def run_xtdata_live_stage87(repo_root='.', output_dir='local_console_xtdata_live_stage87', **kwargs):
     root=Path(repo_root); out=root/output_dir
     loaded={rel:_load(root,rel) for rel in INPUTS}; missing=[k for k,v in loaded.items() if v is None]
@@ -32,8 +40,13 @@ def run_xtdata_live_stage87(repo_root='.', output_dir='local_console_xtdata_live
     cfg_data['limit']=max(1,min(int(cfg_data.get('limit',100)),500)); cfg=XtDataLiveReadOnlyConfig(**cfg_data)
     provider=XtDataLiveReadOnlyProvider(cfg); status=provider.get_status(); snapshots=provider.get_snapshot(cfg.symbols); bars=provider.get_bars(cfg.symbols[0], cfg.period, cfg.limit)
     safety=evaluate_live_config(cfg); scan=scan_xtdata_live_safety([root/'qmt_ai_trading'/'market_gateway'/'xtdata_live_provider.py', root/'qmt_ai_trading'/'market_gateway'/'xtdata_live_safety.py']); safety['import_scan']=scan
-    context={'stage':'Stage87','created_at':f'2026-01-01T00:00:00+00:00#Stage87-{h}','input_files':INPUTS,'missing_inputs':missing,'fallback_used':bool(missing) or not status.get('real_market_data'),'sandbox_fallback':status.get('sandbox_fallback',True),'read_only':True,'not_live_trading':True,'no_xttrader':True,'no_order_submitted':True,'no_account_query':True}
-    report={'stage':'Stage87','status':'SUCCESS','task_id':'xtdata_live_readonly_smoke','output_dir':output_dir,'provider':'xtdata_live_readonly','real_market_data':status.get('real_market_data',False),'sandbox_fallback':status.get('sandbox_fallback',True),'read_only':True,'not_live_trading':True,'no_xttrader':True,'no_order_submitted':True,'no_account_query':True,'allow_xttrader':False,'allow_order_submit':False,'allow_account_query':False,'safety_status':safety['safety_status'],'api_count':6}
+    real_market_data=bool(status.get('real_market_data') and (bars.get('real_market_data') or snapshots.get('real_market_data')))
+    sandbox_fallback=bool(status.get('sandbox_fallback',True) or bars.get('sandbox_fallback',False) or snapshots.get('sandbox_fallback',False) or not real_market_data)
+    failure_reason=_first_error(status, snapshots, bars)
+    if not failure_reason and sandbox_fallback:
+        failure_reason='真实 xtdata 未启用、不可用，或 QMT 客户端未启动/未登录，已回退到沙盒行情。'
+    context={'stage':'Stage87','created_at':f'2026-01-01T00:00:00+00:00#Stage87-{h}','input_files':INPUTS,'missing_inputs':missing,'fallback_used':bool(missing) or sandbox_fallback,'sandbox_fallback':sandbox_fallback,'read_only':True,'not_live_trading':True,'no_xttrader':True,'no_order_submitted':True,'no_account_query':True}
+    report={'stage':'Stage87','status':'REAL_MARKET_DATA' if real_market_data else 'FALLBACK_TO_SANDBOX','task_id':'xtdata_live_readonly_smoke','output_dir':output_dir,'provider':'xtdata_live_readonly','real_market_data':real_market_data,'sandbox_fallback':sandbox_fallback,'qmt_login_required':True,'qmt_started_or_xtdata_imported':bool(status.get('xtdata_imported')),'mini_qmt_connected':bool(status.get('mini_qmt_connected') or snapshots.get('mini_qmt_connected') or bars.get('mini_qmt_connected')),'import_status':status.get('import_status'),'status_message':status.get('status'),'snapshot_status':snapshots.get('status'),'bars_status':bars.get('status'),'failure_reason':failure_reason,'read_only':True,'not_live_trading':True,'no_xttrader':True,'no_order_submitted':True,'no_account_query':True,'allow_xttrader':False,'allow_order_submit':False,'allow_account_query':False,'safety_status':safety['safety_status'],'api_count':6}
     frontend={'page':'xtdata 只读行情','apis':['GET /api/v1/market/xtdata-live/status','GET /api/v1/market/xtdata-live/snapshots','GET /api/v1/market/xtdata-live/bars','GET /api/v1/market/xtdata-live/safety','GET /api/v1/market/xtdata-live/report','POST /api/v1/tasks/run task_id=xtdata_live_readonly_smoke'],'sections':['xtdata 连接状态','MiniQMT 状态','当前 provider','行情 snapshot 表格','K线 bars 表格','sandbox fallback 状态','安全边界说明','禁止交易项检查'],'read_only':True,'no_xttrader':True,'no_order_submitted':True,'no_account_query':True,'allow_order_submit':False,'allow_xttrader':False}
     files={'xtdata_live_input_context':context,'xtdata_live_config':cfg.to_dict(),'xtdata_live_status':status,'xtdata_live_snapshots':snapshots,'xtdata_live_bars':bars,'xtdata_live_safety_report':safety,'xtdata_live_report':report,'frontend_xtdata_live_contract':frontend}
     for n,d in files.items(): _write(out/f'{n}.json',d); _md(out/f'{n}.md',n,d)
