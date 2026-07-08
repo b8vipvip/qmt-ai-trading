@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import threading
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime
@@ -8,11 +10,36 @@ from typing import Any
 
 from .common import CONSOLE, payload, read_json
 from . import workbench_api_config
+from qmt_ai_trading.console_api.artifact_writer import write_task_output_to_console_artifacts
 
 
 OPENAI_COMPAT_HEADERS = {
     'Accept': 'application/json',
     'User-Agent': 'qmt-ai-trading-local-console/1.0 Market-Analysis',
+}
+
+AUTO_REFRESH_FILE = CONSOLE / 'market' / 'auto_refresh_settings.private.json'
+AUTO_REFRESH_LOCK = threading.Lock()
+AUTO_REFRESH_THREAD: threading.Thread | None = None
+AUTO_REFRESH_STOP = threading.Event()
+AUTO_REFRESH_RUNTIME: dict[str, Any] = {
+    'running': False,
+    'lastRunAt': '',
+    'lastStatus': 'IDLE',
+    'lastMessage': '自动刷新未启动',
+    'lastRealMarketData': False,
+    'lastSandboxFallback': False,
+    'lastFailureReason': '',
+    'runCount': 0,
+}
+
+DEFAULT_AUTO_REFRESH = {
+    'enabled': False,
+    'intervalSec': 60,
+    'symbols': ['510300.SH', '510500.SH', '588000.SH'],
+    'period': '1d',
+    'limit': 120,
+    'onlyMissingCache': True,
 }
 
 
@@ -26,6 +53,45 @@ def _write_text(module: str, name: str, text: str) -> str:
     path = folder / name
     path.write_text(text, encoding='utf-8')
     return path.as_posix()
+
+
+def _read_json_file(path, default: Any) -> Any:
+    try:
+        if path.exists():
+            return json.loads(path.read_text(encoding='utf-8'))
+    except Exception:
+        return default
+    return default
+
+
+def _write_json_file(path, data: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+
+
+def _auto_settings() -> dict[str, Any]:
+    data = _read_json_file(AUTO_REFRESH_FILE, {})
+    if not isinstance(data, dict):
+        data = {}
+    out = {**DEFAULT_AUTO_REFRESH, **data}
+    try:
+        out['intervalSec'] = max(10, min(3600, int(out.get('intervalSec') or 60)))
+    except Exception:
+        out['intervalSec'] = 60
+    try:
+        out['limit'] = max(1, min(500, int(out.get('limit') or 120)))
+    except Exception:
+        out['limit'] = 120
+    symbols = out.get('symbols')
+    if isinstance(symbols, str):
+        symbols = [x.strip() for x in symbols.split(',') if x.strip()]
+    if not isinstance(symbols, list) or not symbols:
+        symbols = DEFAULT_AUTO_REFRESH['symbols']
+    out['symbols'] = [str(x).strip() for x in symbols if str(x).strip()][:50]
+    out['period'] = str(out.get('period') or '1d')[:20]
+    out['onlyMissingCache'] = bool(out.get('onlyMissingCache', True))
+    out['enabled'] = bool(out.get('enabled', False))
+    return out
 
 
 def _first_array(obj: Any) -> list[Any]:
@@ -78,6 +144,10 @@ def _symbols() -> list[str]:
     if isinstance(data, dict) and isinstance(data.get('symbols'), list):
         return [str(x) for x in data.get('symbols', [])]
     return []
+
+
+def _cached_symbol_set() -> set[str]:
+    return {str(row.get('symbol')) for row in _market_rows() if row.get('symbol')}
 
 
 def market_quotes():
@@ -182,6 +252,116 @@ def _ai_config_candidates() -> list[dict[str, Any]]:
         if row.get('enabled') and ('ai' in purposes or 'research' in purposes or 'all' in purposes):
             candidates.append(row)
     return sorted(candidates, key=lambda x: (_priority(x), 0 if 'ai' in _normalize_purposes(x) or 'all' in _normalize_purposes(x) else 1, str(x.get('name') or '')))
+
+
+def _auto_refresh_once(settings: dict[str, Any]) -> dict[str, Any]:
+    from qmt_ai_trading.market_gateway import run_xtdata_live_stage87
+    with AUTO_REFRESH_LOCK:
+        AUTO_REFRESH_RUNTIME['running'] = True
+        AUTO_REFRESH_RUNTIME['lastStatus'] = 'CHECKING_QMT'
+        AUTO_REFRESH_RUNTIME['lastMessage'] = '正在检查 QMT 客户端和 xtdata 登录状态'
+    try:
+        try:
+            from . import workbench_system
+            qmt_check = workbench_system.test_qmt_settings({'kind': 'qmtClientPath'}).get('data', {})
+        except Exception as exc:
+            qmt_check = {'status': 'FAILED', 'message': f'QMT 客户端检查失败：{exc}'}
+        symbols = list(settings.get('symbols') or DEFAULT_AUTO_REFRESH['symbols'])
+        if settings.get('onlyMissingCache'):
+            cached = _cached_symbol_set()
+            missing = [s for s in symbols if s not in cached]
+            if missing:
+                symbols = missing
+            elif cached:
+                AUTO_REFRESH_RUNTIME.update({'lastStatus': 'CACHE_HIT', 'lastMessage': '本地已有缓存，本轮未重复下载。', 'lastRunAt': datetime.now().isoformat(timespec='seconds'), 'running': False})
+                return dict(AUTO_REFRESH_RUNTIME)
+        report = run_xtdata_live_stage87(
+            repo_root='.',
+            output_dir='local_console_xtdata_live_stage87',
+            enabled=True,
+            allow_import_xtdata=True,
+            allow_real_market_data=True,
+            allow_connect_miniqmt=True,
+            read_only=True,
+            allow_xttrader=False,
+            allow_account_query=False,
+            allow_order_submit=False,
+            symbols=symbols,
+            period=str(settings.get('period') or '1d'),
+            limit=int(settings.get('limit') or 120),
+        )
+        write_task_output_to_console_artifacts('xtdata_live_readonly_smoke', report)
+        message = report.get('failure_reason') or ('已获取并缓存真实行情' if report.get('real_market_data') else '未获取真实行情，已回退沙盒样例')
+        AUTO_REFRESH_RUNTIME.update({
+            'lastRunAt': datetime.now().isoformat(timespec='seconds'),
+            'lastStatus': 'REAL_MARKET_DATA' if report.get('real_market_data') else 'WAITING_LOGIN_OR_FALLBACK',
+            'lastMessage': f"{qmt_check.get('message', '')}；{message}" if qmt_check else message,
+            'lastRealMarketData': bool(report.get('real_market_data')),
+            'lastSandboxFallback': bool(report.get('sandbox_fallback')),
+            'lastFailureReason': str(report.get('failure_reason') or ''),
+            'runCount': int(AUTO_REFRESH_RUNTIME.get('runCount') or 0) + 1,
+            'running': False,
+        })
+        return dict(AUTO_REFRESH_RUNTIME)
+    except Exception as exc:
+        AUTO_REFRESH_RUNTIME.update({'lastRunAt': datetime.now().isoformat(timespec='seconds'), 'lastStatus': 'FAILED', 'lastMessage': str(exc), 'lastFailureReason': str(exc), 'running': False})
+        return dict(AUTO_REFRESH_RUNTIME)
+
+
+def _auto_loop() -> None:
+    while not AUTO_REFRESH_STOP.is_set():
+        settings = _auto_settings()
+        if not settings.get('enabled'):
+            break
+        _auto_refresh_once(settings)
+        AUTO_REFRESH_STOP.wait(max(10, int(settings.get('intervalSec') or 60)))
+    with AUTO_REFRESH_LOCK:
+        AUTO_REFRESH_RUNTIME['running'] = False
+
+
+def _ensure_auto_thread() -> None:
+    global AUTO_REFRESH_THREAD
+    settings = _auto_settings()
+    if not settings.get('enabled'):
+        AUTO_REFRESH_STOP.set()
+        return
+    if AUTO_REFRESH_THREAD and AUTO_REFRESH_THREAD.is_alive():
+        return
+    AUTO_REFRESH_STOP.clear()
+    AUTO_REFRESH_THREAD = threading.Thread(target=_auto_loop, name='qmt-market-auto-refresh', daemon=True)
+    AUTO_REFRESH_THREAD.start()
+
+
+def market_auto_refresh_status():
+    _ensure_auto_thread()
+    settings = _auto_settings()
+    runtime = dict(AUTO_REFRESH_RUNTIME)
+    runtime['threadAlive'] = bool(AUTO_REFRESH_THREAD and AUTO_REFRESH_THREAD.is_alive())
+    return payload(status='READY', source='market_auto_refresh', data={**settings, **runtime, 'sourcePath': AUTO_REFRESH_FILE.as_posix()})
+
+
+def save_market_auto_refresh(body: dict[str, Any] | None = None):
+    body = body or {}
+    current = _auto_settings()
+    next_settings = {**current}
+    if 'enabled' in body:
+        next_settings['enabled'] = bool(body.get('enabled'))
+    if 'intervalSec' in body:
+        try:
+            next_settings['intervalSec'] = max(10, min(3600, int(body.get('intervalSec') or 60)))
+        except Exception:
+            next_settings['intervalSec'] = 60
+    if 'onlyMissingCache' in body:
+        next_settings['onlyMissingCache'] = bool(body.get('onlyMissingCache'))
+    _write_json_file(AUTO_REFRESH_FILE, next_settings)
+    if next_settings.get('enabled'):
+        AUTO_REFRESH_STOP.clear()
+        _ensure_auto_thread()
+        AUTO_REFRESH_RUNTIME.update({'lastStatus': 'AUTO_REFRESH_ENABLED', 'lastMessage': '自动刷新已启用，后台将检查 QMT 连接并刷新缺失行情缓存。'})
+    else:
+        AUTO_REFRESH_STOP.set()
+        AUTO_REFRESH_RUNTIME.update({'lastStatus': 'AUTO_REFRESH_DISABLED', 'lastMessage': '自动刷新已关闭。', 'running': False})
+    return market_auto_refresh_status()
 
 
 def market_ai_analysis(body: dict[str, Any] | None = None):
