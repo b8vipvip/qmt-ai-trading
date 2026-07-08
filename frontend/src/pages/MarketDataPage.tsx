@@ -1,6 +1,6 @@
 import { Alert, Button, Card, Col, InputNumber, message, Row, Space, Switch, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { EmptyState } from '../components/common';
 import { getDataQualityRows, getDataSources } from '../services/dataService';
@@ -22,7 +22,7 @@ function useAsync<T>(loader: () => Promise<T>, fallback: T): T {
   return data;
 }
 
-function Section({ title, extra, children }: { title: string; extra?: ReactNode; children: ReactNode }) {
+function Section({ title, extra, children }: { title: ReactNode; extra?: ReactNode; children: ReactNode }) {
   return <Card className="section-card" title={title} extra={extra}>{children}</Card>;
 }
 
@@ -35,20 +35,44 @@ function money(value: number) {
   return n ? `¥${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '-';
 }
 
+function parseMarketTimeMs(value: unknown): number | null {
+  if (value === undefined || value === null || value === '') return null;
+  const raw = String(value).trim();
+  if (!raw || raw.includes('*')) return null;
+  const digits = raw.replace(/\.0+$/, '');
+  if (/^\d{13}$/.test(digits)) return Number(digits);
+  if (/^\d{10}$/.test(digits)) return Number(digits) * 1000;
+  if (/^\d{14}$/.test(digits)) {
+    const d = new Date(Number(digits.slice(0, 4)), Number(digits.slice(4, 6)) - 1, Number(digits.slice(6, 8)), Number(digits.slice(8, 10)), Number(digits.slice(10, 12)), Number(digits.slice(12, 14)));
+    return Number.isNaN(d.getTime()) ? null : d.getTime();
+  }
+  if (/^\d{8}$/.test(digits)) {
+    const d = new Date(Number(digits.slice(0, 4)), Number(digits.slice(4, 6)) - 1, Number(digits.slice(6, 8)));
+    return Number.isNaN(d.getTime()) ? null : d.getTime();
+  }
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.getTime();
+}
+
 function formatMarketTime(value: unknown) {
+  const ms = parseMarketTimeMs(value);
+  if (ms !== null) return new Date(ms).toLocaleString('zh-CN', { hour12: false });
   if (value === undefined || value === null || value === '') return '-';
   const raw = String(value).trim();
   if (!raw) return '-';
   const digits = raw.replace(/\.0+$/, '');
-  const toCn = (date: Date) => Number.isNaN(date.getTime()) ? raw : date.toLocaleString('zh-CN', { hour12: false });
-  if (/^\d{13}$/.test(digits)) return toCn(new Date(Number(digits)));
-  if (/^\d{10}$/.test(digits)) return toCn(new Date(Number(digits) * 1000));
   if (/^\d{14}$/.test(digits)) return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)} ${digits.slice(8, 10)}:${digits.slice(10, 12)}:${digits.slice(12, 14)}`;
   if (/^\d{8}$/.test(digits)) return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
-  if (/^\d{12,16}$/.test(digits)) return toCn(new Date(Number(digits)));
-  const parsed = new Date(raw);
-  if (!Number.isNaN(parsed.getTime())) return toCn(parsed);
   return raw;
+}
+
+function latestMarketTime(quotes: MarketQuoteRow[], fallback: unknown) {
+  let best: { raw: unknown; ms: number } | null = null;
+  for (const row of quotes) {
+    const ms = parseMarketTimeMs(row.time);
+    if (ms !== null && (!best || ms > best.ms)) best = { raw: row.time, ms };
+  }
+  return best ? formatMarketTime(best.raw) : formatMarketTime(fallback);
 }
 
 function statusTag(value: string) {
@@ -130,7 +154,7 @@ function AutoRefreshControl({ onChanged }: { onChanged: () => void }) {
   return <Space direction="vertical" style={{ width: '100%' }} size={12}>
     <Space wrap size={16}>
       <Space><span>自动刷新行情</span><Switch checked={status.enabled} loading={saving} onChange={(checked) => save({ enabled: checked, intervalSec })} /></Space>
-      <Space><span>间隔秒数</span><InputNumber min={10} max={3600} value={intervalSec} onChange={(value) => setIntervalSec(Number(value) || 60)} onBlur={() => save({ intervalSec })} disabled={saving} /></Space>
+      <Space><span>间隔</span><InputNumber min={10} max={3600} value={intervalSec} onChange={(value) => setIntervalSec(Number(value) || 60)} disabled={saving} /><span>秒</span><Button size="small" loading={saving} onClick={() => save({ intervalSec })}>保存</Button></Space>
       <Space><span>只下载缺失缓存</span><Switch checked={status.onlyMissingCache} loading={saving} onChange={(checked) => save({ onlyMissingCache: checked })} /></Space>
       {statusTag(status.lastStatus)}
       {status.threadAlive && <Tag color="blue">后台循环中</Tag>}
@@ -150,6 +174,7 @@ export function MarketDataPage() {
   const [analysisError, setAnalysisError] = useState<string>('');
   const [analyzing, setAnalyzing] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
+  const latestTime = useMemo(() => latestMarketTime(quotes, summary.latestTime), [quotes, summary.latestTime]);
 
   const analyze = async () => {
     try {
@@ -188,7 +213,7 @@ export function MarketDataPage() {
   ];
 
   return <div className="page-grid">
-    <Section title="行情数据用途" extra={<Button size="small" type="primary" loading={analyzing} onClick={analyze}>AI 分析行情</Button>}>
+    <Section title={<Space size={10}><span>行情数据用途</span><Button size="small" type="primary" loading={analyzing} onClick={analyze}>AI 分析行情</Button></Space>}>
       <Typography.Paragraph>
         行情数据是量化系统的“价格与成交事实层”，用于生成 K 线、计算收益率和波动率、更新因子、触发策略信号、估算成交成本、校验停牌/涨跌停/流动性，并为回测、仿真、影子实盘和风控提供统一输入。
       </Typography.Paragraph>
@@ -207,7 +232,7 @@ export function MarketDataPage() {
     <Row gutter={[16, 16]}>
       <Col xs={24} md={8}><Card className="metric-card"><b>行情记录数</b><div className="metric-value">{summary.quoteCount}</div><span>当前快照记录数量</span></Card></Col>
       <Col xs={24} md={8}><Card className="metric-card"><b>统一标的数</b><div className="metric-value">{summary.symbolCount}</div><span>上涨 {summary.upCount} / 下跌 {summary.downCount} / 平盘 {summary.flatCount}</span></Card></Col>
-      <Col xs={24} md={8}><Card className="metric-card"><b>最新时间</b><div className="metric-value" style={{ fontSize: 18 }}>{formatMarketTime(summary.latestTime)}</div><Space wrap>{dataModeTag(summary)}<span>{summary.sandboxFallback ? '当前为沙盒样例时间，不是真实市场时间' : '用于判断行情是否滞后'}</span></Space></Card></Col>
+      <Col xs={24} md={8}><Card className="metric-card"><b>最新时间</b><div className="metric-value" style={{ fontSize: 18 }}>{latestTime}</div><Space wrap>{dataModeTag(summary)}<span>{summary.sandboxFallback ? '当前为沙盒样例时间，不是真实市场时间' : '用于判断行情是否滞后'}</span></Space></Card></Col>
     </Row>
 
     <Section title="AI 行情分析报告">
