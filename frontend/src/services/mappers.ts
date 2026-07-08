@@ -36,16 +36,16 @@ function arrayValue<T = any>(value: unknown): T[] {
 
 export function statusKind(value: unknown): StatusKind {
   const text = str(value).toUpperCase();
-  if (text.includes('CRITICAL') || text.includes('ERROR') || text.includes('FAILED')) return 'danger';
+  if (text.includes('CRITICAL') || text.includes('ERROR') || text.includes('FAILED') || text.includes('FAIL')) return 'danger';
   if (text.includes('WARN') || text.includes('MEDIUM') || text.includes('LOCK') || text.includes('OFFLINE')) return 'warning';
-  if (text.includes('DISABLED') || text.includes('EMPTY') || text.includes('MISSING')) return 'offline';
+  if (text.includes('DISABLED') || text.includes('EMPTY') || text.includes('MISSING') || text.includes('NO_DATA')) return 'offline';
   return 'normal';
 }
 
 export function riskLevel(value: unknown): RiskLevel {
   const text = str(value).toUpperCase();
   if (text.includes('CRITICAL')) return 'CRITICAL';
-  if (text.includes('HIGH') || text.includes('BLOCK')) return 'HIGH';
+  if (text.includes('HIGH') || text.includes('BLOCK') || text.includes('FAIL')) return 'HIGH';
   if (text.includes('MEDIUM') || text.includes('WARN')) return 'MEDIUM';
   return 'LOW';
 }
@@ -93,8 +93,8 @@ export function mapRiskOverview(data: any, fallback: any = {}): any {
     industry: num(raw.industry ?? fallback.industry),
     total: num(raw.total ?? raw.totalPosition ?? fallback.total),
     dayLoss: num(raw.dayLoss ?? raw.intradayLoss ?? fallback.dayLoss),
-    abnormalOrders: num(raw.abnormalOrders ?? raw.abnormal_orders),
-    disconnects: num(raw.disconnects),
+    abnormalOrders: num(raw.abnormalOrders ?? raw.abnormal_orders ?? fallback.abnormalOrders),
+    disconnects: num(raw.disconnects ?? fallback.disconnects),
   };
 }
 
@@ -301,6 +301,42 @@ export function mapRiskRules(data: any, fallback: RiskRule[] = []): RiskRule[] {
     enabled: Boolean(row.enabled ?? true),
     lastTriggered: str(row.lastTriggered ?? row.last_triggered),
     description: row.description,
+    sourcePath: row.sourcePath ?? row.source_path,
+  }));
+}
+
+export function mapRiskEvents(data: any, fallback: RiskEvent[] = []): RiskEvent[] {
+  const rows = arrayOrNull<any>(data);
+  if (!rows) return fallback;
+  return rows.map((row, i) => ({
+    id: str(row.id ?? row.event_id ?? `risk-${i + 1}`),
+    time: str(row.time ?? row.createdAt ?? row.created_at),
+    strategy: str(row.strategy ?? row.strategy_name ?? row.module ?? '-'),
+    rule: str(row.rule ?? row.rule_name ?? row.type ?? '-'),
+    level: riskLevel(row.level ?? row.riskLevel ?? row.status),
+    trigger: str(row.trigger ?? row.message ?? row.reason ?? ''),
+    threshold: str(row.threshold ?? row.limit ?? ''),
+    action: str(row.action ?? row.decision ?? ''),
+    result: str(row.result ?? row.status ?? ''),
+    operator: str(row.operator ?? row.source ?? 'system'),
+    sourcePath: row.sourcePath ?? row.source_path,
+  }));
+}
+
+export function mapBacktestTasks(data: any, fallback: BacktestTask[] = []): BacktestTask[] {
+  const rows = arrayOrNull<any>(data);
+  if (!rows) return fallback;
+  return rows.map((row, i) => ({
+    id: str(row.id ?? row.task_id ?? row.runId ?? row.run_id ?? `bt-${i + 1}`),
+    name: str(row.name ?? row.title ?? row.task_name ?? `回测任务 ${i + 1}`),
+    strategy: str(row.strategy ?? row.strategy_name ?? row.model ?? '-'),
+    universe: str(row.universe ?? row.pool ?? row.symbols ?? '-'),
+    range: str(row.range ?? row.dateRange ?? row.date_range ?? `${row.startDate ?? row.start_date ?? ''}~${row.endDate ?? row.end_date ?? ''}`),
+    capital: num(row.capital ?? row.initialCapital ?? row.initial_capital),
+    rebalance: str(row.rebalance ?? row.freq ?? row.frequency ?? '-'),
+    status: str(row.status ?? 'READY'),
+    createdAt: str(row.createdAt ?? row.created_at ?? row.startedAt ?? row.started_at),
+    cost: str(row.cost ?? row.duration ?? row.elapsed ?? ''),
     sourcePath: row.sourcePath ?? row.source_path,
   }));
 }
