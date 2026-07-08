@@ -9,7 +9,7 @@ from typing import Any
 
 from qmt_ai_trading.common.json_safe import json_safe
 
-from .common import CONSOLE, payload, read_json
+from .common import CONSOLE, payload
 
 CLEAN_ROOT = CONSOLE / 'data_cleaning'
 QUALITY_ROOT = CONSOLE / 'data_quality'
@@ -186,7 +186,7 @@ def _standardize_rows(source: dict[str, Any]) -> tuple[list[dict[str, Any]], lis
     seen: dict[tuple[str, str, str], int] = {}
     stats = {'input': 0, 'cleaned': 0, 'missing': 0, 'abnormal': 0, 'duplicate': 0, 'dropped': 0}
 
-    for idx, item in enumerate(rows):
+    for item in rows:
         if not isinstance(item, dict):
             stats['dropped'] += 1
             issues.append(_issue(dataset, '', '', 'ERROR', 'ROW_TYPE', '行不是对象，已丢弃', path.as_posix()))
@@ -262,30 +262,35 @@ def _standardize_rows(source: dict[str, Any]) -> tuple[list[dict[str, Any]], lis
     return cleaned, issues, stats
 
 
-def _write_cleaned(source: dict[str, Any], rows: list[dict[str, Any]]) -> str:
+def _write_cleaned(source: dict[str, Any], rows: list[dict[str, Any]]) -> tuple[str, int]:
     if not rows:
-        return ''
-    first = rows[0]
-    symbol = str(first.get('symbol') or 'UNKNOWN')
-    period = str(first.get('period') or source.get('period') or 'unknown')
+        return '', 0
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        grouped[str(row.get('symbol') or 'UNKNOWN')].append(row)
+    period = str(rows[0].get('period') or source.get('period') or 'unknown')
     layer = str(source.get('layer') or 'unknown')
-    out = CLEANED_ROOT / period / layer / f'{symbol}.json'
-    times = [_parse_time_ms(row.get('datetime')) for row in rows]
-    times = [t for t in times if t is not None]
-    doc = {
-        'symbol': symbol,
-        'period': period,
-        'layer': layer,
-        'recordCount': len(rows),
-        'startTime': _fmt_ms(min(times)) if times else '',
-        'endTime': _fmt_ms(max(times)) if times else '',
-        'rows': rows,
-        'cleanedAt': _now(),
-        'readOnly': True,
-        'noAccountQuery': True,
-        'noOrderSubmitted': True,
-    }
-    return _write_json(out, doc)
+    out_dir = CLEANED_ROOT / period / layer
+    file_count = 0
+    for symbol, items in grouped.items():
+        times = [_parse_time_ms(row.get('datetime')) for row in items]
+        times = [t for t in times if t is not None]
+        doc = {
+            'symbol': symbol,
+            'period': period,
+            'layer': layer,
+            'recordCount': len(items),
+            'startTime': _fmt_ms(min(times)) if times else '',
+            'endTime': _fmt_ms(max(times)) if times else '',
+            'rows': sorted(items, key=lambda x: x.get('datetime') or ''),
+            'cleanedAt': _now(),
+            'readOnly': True,
+            'noAccountQuery': True,
+            'noOrderSubmitted': True,
+        }
+        _write_json(out_dir / f'{symbol}.json', doc)
+        file_count += 1
+    return out_dir.as_posix(), file_count
 
 
 def _row_from_dataset(dataset: str, period: str, layer: str, cleaned: list[dict[str, Any]], issues: list[dict[str, Any]], stats: dict[str, int], cleaned_path: str, source_path: str) -> dict[str, Any]:
@@ -331,9 +336,8 @@ def run_data_cleaning(body: dict[str, Any] | None = None):
 
     for source in sources:
         cleaned, issues, stats = _standardize_rows(source)
-        cleaned_path = _write_cleaned(source, cleaned)
-        if cleaned_path:
-            cleaned_file_count += 1
+        cleaned_path, file_count = _write_cleaned(source, cleaned)
+        cleaned_file_count += file_count
         total_cleaned += len(cleaned)
         all_issues.extend(issues)
         rows.append(_row_from_dataset(str(source['dataset']), str(source.get('period') or 'unknown'), str(source.get('layer') or 'unknown'), cleaned, issues, stats, cleaned_path, Path(source['path']).as_posix()))
@@ -343,9 +347,6 @@ def run_data_cleaning(body: dict[str, Any] | None = None):
     passed = sum(1 for row in rows if row.get('status') == 'PASS')
     failed = sum(1 for row in rows if row.get('status') == 'FAIL')
     warn = sum(1 for row in rows if row.get('status') == 'WARN')
-    symbols = sorted({sym for row in rows for sym in []})
-    for row in rows:
-        pass
     overview = {
         'status': 'PASS' if rows and not errors else ('WARN' if rows and warnings and not errors else ('FAIL' if errors else 'NO_DATA')),
         'mode': mode,
@@ -354,7 +355,7 @@ def run_data_cleaning(body: dict[str, Any] | None = None):
         'failedCount': failed,
         'warningCount': warn,
         'recordCount': total_cleaned,
-        'symbolCount': sum(int(row.get('stockCount') or 0) for row in rows),
+        'symbolCount': len({sym for row in rows for sym in [str(row.get('dataset'))]}) if not rows else sum(int(row.get('stockCount') or 0) for row in rows),
         'issueCount': len(all_issues),
         'errorCount': errors,
         'warningIssueCount': warnings,
