@@ -1,21 +1,12 @@
-import { Alert, Button, Card, Col, message, Row, Space, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Col, InputNumber, message, Row, Space, Switch, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { EmptyState } from '../components/common';
 import { getDataQualityRows, getDataSources } from '../services/dataService';
-import { getMarketQuotes, getMarketSummary, runMarketAIAnalysis } from '../services/marketDataService';
-import type { MarketAIAnalysis, MarketQuoteRow, MarketSummary } from '../services/marketDataService';
-import { runConsoleTask } from '../services/taskService';
+import { getMarketAutoRefreshStatus, getMarketQuotes, getMarketSummary, runMarketAIAnalysis, saveMarketAutoRefresh } from '../services/marketDataService';
+import type { MarketAIAnalysis, MarketAutoRefreshStatus, MarketQuoteRow, MarketSummary } from '../services/marketDataService';
 import type { DataQualityRow, DataSourceStatus } from '../types';
-
-const REAL_XTDATA_PARAMS = {
-  enable_xtdata: true,
-  allow_import_xtdata: true,
-  allow_real_market_data: true,
-  allow_connect_miniqmt: true,
-  limit: 20,
-};
 
 function useAsync<T>(loader: () => Promise<T>, fallback: T): T {
   const [data, setData] = useState<T>(fallback);
@@ -25,55 +16,14 @@ function useAsync<T>(loader: () => Promise<T>, fallback: T): T {
     load();
     window.addEventListener('qmt-task-finished', load);
     window.addEventListener('qmt-api-config-saved', load);
-    return () => { mounted = false; window.removeEventListener('qmt-task-finished', load); window.removeEventListener('qmt-api-config-saved', load); };
+    window.addEventListener('qmt-market-auto-refresh-updated', load);
+    return () => { mounted = false; window.removeEventListener('qmt-task-finished', load); window.removeEventListener('qmt-api-config-saved', load); window.removeEventListener('qmt-market-auto-refresh-updated', load); };
   }, []);
   return data;
 }
 
 function Section({ title, extra, children }: { title: string; extra?: ReactNode; children: ReactNode }) {
   return <Card className="section-card" title={title} extra={extra}>{children}</Card>;
-}
-
-function outputFlag(output: Record<string, unknown> | undefined, key: string) {
-  return output ? Boolean(output[key]) : false;
-}
-
-function outputText(output: Record<string, unknown> | undefined, key: string) {
-  const value = output?.[key];
-  return value === undefined || value === null ? '' : String(value);
-}
-
-function TaskButton({ taskId, params, children, type }: { taskId: string; params?: Record<string, unknown>; children: ReactNode; type?: 'primary' | 'default' }) {
-  const [running, setRunning] = useState(false);
-  const run = async () => {
-    try {
-      setRunning(true);
-      const res = await runConsoleTask({ taskId, params });
-      const output = res.task?.output;
-      if (taskId === 'xtdata_live_readonly_smoke') {
-        if (outputFlag(output, 'real_market_data')) {
-          message.success('已从本地 QMT / xtdata 获取真实只读行情');
-        } else {
-          message.warning(outputText(output, 'failure_reason') || '未获取到真实 QMT 行情，已回退为沙盒样例。请确认 QMT 客户端已启动并已登录。');
-        }
-      } else if (taskId === 'qmt_data_diagnostics_readonly') {
-        if (outputText(output, 'login_api_status') === 'READY') message.success('QMT / xtdata 登录后只读 API 测试通过');
-        else message.warning(outputText(output, 'message') || 'QMT / xtdata 登录后 API 测试失败，请确认客户端已启动并登录。');
-      } else if (taskId === 'market_snapshot_readonly') {
-        message.success('已读取本地只读行情快照；该按钮不连接 QMT。');
-      } else if (taskId === 'data_cache_check') {
-        message.success('已检查本地缓存质量；该按钮不连接 QMT。');
-      } else {
-        message.success(`${res.task?.task_name || taskId} ${res.task?.status || 'DONE'}`);
-      }
-      window.dispatchEvent(new Event('qmt-task-finished'));
-    } catch (error) {
-      message.error(error instanceof Error ? error.message : String(error));
-    } finally {
-      setRunning(false);
-    }
-  };
-  return <Button size="small" type={type} loading={running} onClick={run}>{children}</Button>;
 }
 
 function price(value: number) {
@@ -87,7 +37,7 @@ function money(value: number) {
 
 function statusTag(value: string) {
   const text = String(value || 'UNKNOWN');
-  return <Tag color={text === 'NORMAL' || text === 'READY' ? 'green' : text === 'PENDING' ? 'gold' : 'default'}>{text}</Tag>;
+  return <Tag color={text === 'NORMAL' || text === 'READY' || text === 'REAL_MARKET_DATA' ? 'green' : text === 'PENDING' || text === 'WAITING_LOGIN_OR_FALLBACK' ? 'gold' : 'default'}>{text}</Tag>;
 }
 
 function dataModeTag(summary: MarketSummary) {
@@ -101,11 +51,77 @@ function AnalysisReport({ report, error }: { report?: MarketAIAnalysis; error?: 
     return <Alert type="error" showIcon message="AI 行情分析失败" description={error} />;
   }
   if (!report) {
-    return <EmptyState text="尚未生成 AI 行情分析；点击“行情数据任务”里的“AI 分析行情”后会在这里输出报告。" />;
+    return <EmptyState text="尚未生成 AI 行情分析；点击“AI 分析行情”后会在这里输出报告。" />;
   }
   return <Space direction="vertical" style={{ width: '100%' }} size={12}>
     <Alert type="success" showIcon message="AI 行情分析完成" description={`模型：${report.modelName || report.apiName || '-'}；生成时间：${report.generatedAt || '-'}`} />
     <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8, margin: 0 }}>{report.report}</Typography.Paragraph>
+  </Space>;
+}
+
+const autoFallback: MarketAutoRefreshStatus = {
+  enabled: false,
+  intervalSec: 60,
+  onlyMissingCache: true,
+  running: false,
+  threadAlive: false,
+  lastRunAt: '',
+  lastStatus: 'IDLE',
+  lastMessage: '自动刷新未启动',
+  lastRealMarketData: false,
+  lastSandboxFallback: false,
+  lastFailureReason: '',
+  runCount: 0,
+};
+
+function AutoRefreshControl({ onChanged }: { onChanged: () => void }) {
+  const [status, setStatus] = useState<MarketAutoRefreshStatus>(autoFallback);
+  const [intervalSec, setIntervalSec] = useState(60);
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    try {
+      const next = await getMarketAutoRefreshStatus();
+      setStatus(next);
+      setIntervalSec(next.intervalSec || 60);
+    } catch {
+      setStatus(autoFallback);
+    }
+  };
+
+  useEffect(() => {
+    load();
+    const timer = window.setInterval(() => { load(); onChanged(); }, 8000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const save = async (patch: Partial<Pick<MarketAutoRefreshStatus, 'enabled' | 'intervalSec' | 'onlyMissingCache'>>) => {
+    try {
+      setSaving(true);
+      const next = await saveMarketAutoRefresh(patch);
+      setStatus(next);
+      setIntervalSec(next.intervalSec || intervalSec);
+      message.success(next.enabled ? '自动刷新行情已开启' : '自动刷新行情已关闭');
+      window.dispatchEvent(new Event('qmt-market-auto-refresh-updated'));
+      onChanged();
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return <Space direction="vertical" style={{ width: '100%' }} size={12}>
+    <Space wrap size={16}>
+      <Space><span>自动刷新行情</span><Switch checked={status.enabled} loading={saving} onChange={(checked) => save({ enabled: checked, intervalSec })} /></Space>
+      <Space><span>间隔秒数</span><InputNumber min={10} max={3600} value={intervalSec} onChange={(value) => setIntervalSec(Number(value) || 60)} onBlur={() => save({ intervalSec })} disabled={saving} /></Space>
+      <Space><span>只下载缺失缓存</span><Switch checked={status.onlyMissingCache} loading={saving} onChange={(checked) => save({ onlyMissingCache: checked })} /></Space>
+      {statusTag(status.lastStatus)}
+      {status.threadAlive && <Tag color="blue">后台循环中</Tag>}
+      {status.running && <Tag color="cyan">正在检查/刷新</Tag>}
+    </Space>
+    <Alert type={status.lastRealMarketData ? 'success' : status.enabled ? 'warning' : 'info'} showIcon message={status.lastMessage || '自动刷新未启动'} description={`最近运行：${status.lastRunAt || '-'}；运行次数：${status.runCount || 0}；真实行情：${status.lastRealMarketData ? '是' : '否'}；沙盒回退：${status.lastSandboxFallback ? '是' : '否'}`} />
+    <Typography.Text type="secondary">开启后，后端会循环检查 QMT 客户端和 xtdata 登录状态；客户端未启动会尝试启动，未登录会提示并持续检测。连接成功后按间隔刷新并缓存本地缺失的行情数据。全程只读，不查询账户、不连接 xttrader、不下单。</Typography.Text>
   </Space>;
 }
 
@@ -117,6 +133,7 @@ export function MarketDataPage() {
   const [analysis, setAnalysis] = useState<MarketAIAnalysis | undefined>();
   const [analysisError, setAnalysisError] = useState<string>('');
   const [analyzing, setAnalyzing] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
 
   const analyze = async () => {
     try {
@@ -133,6 +150,10 @@ export function MarketDataPage() {
       setAnalyzing(false);
     }
   };
+
+  useEffect(() => {
+    if (refreshTick > 0) window.dispatchEvent(new Event('qmt-task-finished'));
+  }, [refreshTick]);
 
   const columns: ColumnsType<MarketQuoteRow> = [
     { title: '代码', dataIndex: 'symbol', fixed: 'left', width: 130 },
@@ -151,7 +172,7 @@ export function MarketDataPage() {
   ];
 
   return <div className="page-grid">
-    <Section title="行情数据用途">
+    <Section title="行情数据用途" extra={<Button size="small" type="primary" loading={analyzing} onClick={analyze}>AI 分析行情</Button>}>
       <Typography.Paragraph>
         行情数据是量化系统的“价格与成交事实层”，用于生成 K 线、计算收益率和波动率、更新因子、触发策略信号、估算成交成本、校验停牌/涨跌停/流动性，并为回测、仿真、影子实盘和风控提供统一输入。
       </Typography.Paragraph>
@@ -163,15 +184,8 @@ export function MarketDataPage() {
       </Space>
     </Section>
 
-    <Section title="行情数据任务" extra={<Tag color="green">只读 / dry-run / 不触发交易</Tag>}>
-      <Space wrap>
-        <TaskButton taskId="xtdata_live_readonly_smoke" params={REAL_XTDATA_PARAMS} type="primary">获取真实行情（QMT）</TaskButton>
-        <TaskButton taskId="qmt_data_diagnostics_readonly">检查QMT登录/xtdata</TaskButton>
-        <TaskButton taskId="market_snapshot_readonly">读取缓存行情快照</TaskButton>
-        <TaskButton taskId="data_cache_check">检查本地缓存</TaskButton>
-        <Button size="small" type="primary" loading={analyzing} onClick={analyze}>AI 分析行情</Button>
-      </Space>
-      <Alert style={{ marginTop: 12 }} type="info" showIcon message="真实行情必须来自本机 QMT / xtdata" description="点击“获取真实行情（QMT）”时，后端会以只读模式导入 xtquant.xtdata 并请求行情；如果 QMT 未启动、未登录或 xtdata API 不可用，会明确提示并回退到沙盒样例，不会查询账户、不连接 xttrader、不下单。" />
+    <Section title="自动刷新行情" extra={<Tag color="green">只读 / dry-run / 不触发交易</Tag>}>
+      <AutoRefreshControl onChanged={() => setRefreshTick((x) => x + 1)} />
     </Section>
 
     <Row gutter={[16, 16]}>
@@ -185,15 +199,15 @@ export function MarketDataPage() {
     </Section>
 
     <Section title="数据源状态">
-      <Row gutter={[16, 16]}>{sources.map((s) => <Col xs={24} sm={12} lg={6} key={s.name}><Card className="source-card"><Space direction="vertical"><Space><b>{s.name}</b>{statusTag(String(s.status))}</Space><span>更新时间：{s.updatedAt || '-'}</span><span>今日记录：{Number(s.records || 0).toLocaleString()}</span><span>延迟：{s.latency}</span><span>质量：{s.qualityLevel || '-'}</span><span>缺失/异常：{s.missingRate}% / {s.abnormalRate}%</span><TaskButton taskId={s.name.includes('QMT') ? 'xtdata_live_readonly_smoke' : 'market_snapshot_readonly'} params={s.name.includes('QMT') ? REAL_XTDATA_PARAMS : undefined}>刷新</TaskButton></Space></Card></Col>)}</Row>
+      <Row gutter={[16, 16]}>{sources.map((s) => <Col xs={24} sm={12} lg={6} key={s.name}><Card className="source-card"><Space direction="vertical"><Space><b>{s.name}</b>{statusTag(String(s.status))}</Space><span>更新时间：{s.updatedAt || '-'}</span><span>今日记录：{Number(s.records || 0).toLocaleString()}</span><span>延迟：{s.latency}</span><span>质量：{s.qualityLevel || '-'}</span><span>缺失/异常：{s.missingRate}% / {s.abnormalRate}%</span></Space></Card></Col>)}</Row>
     </Section>
 
-    <Section title="行情明细表" extra={<TaskButton taskId="xtdata_live_readonly_smoke" params={REAL_XTDATA_PARAMS}>刷新行情</TaskButton>}>
-      <Table rowKey="id" size="small" dataSource={quotes} columns={columns} scroll={{ x: 1380, y: 420 }} locale={{ emptyText: <EmptyState text="暂无行情明细；点击上方“获取真实行情（QMT）”或“读取缓存行情快照”后刷新。" /> }} />
+    <Section title="行情明细表">
+      <Table rowKey="id" size="small" dataSource={quotes} columns={columns} scroll={{ x: 1380, y: 420 }} locale={{ emptyText: <EmptyState text="暂无行情明细；开启自动刷新行情后，系统会从本地 QMT / xtdata 获取并缓存。" /> }} />
     </Section>
 
     <Section title="行情数据质量">
-      <Table rowKey="dataset" size="small" dataSource={quality} columns={[{ title:'数据集', dataIndex:'dataset' },{ title:'交易日', dataIndex:'tradeDate' },{ title:'覆盖股票数', dataIndex:'stockCount' },{ title:'缺失字段数', dataIndex:'missingFields' },{ title:'异常值数量', dataIndex:'abnormalValues' },{ title:'重复记录数', dataIndex:'duplicateRows' },{ title:'校验', dataIndex:'passed', render:(v)=> <Tag color={v?'green':'red'}>{v?'通过':'失败'}</Tag> },{ title:'操作', render:()=> <Space><TaskButton taskId="qmt_data_diagnostics_readonly">诊断</TaskButton><TaskButton taskId="data_cache_check">检查缓存</TaskButton></Space> }]} scroll={{ x: 950 }} locale={{ emptyText: <EmptyState text="暂无行情质量产物；运行行情任务后自动生成。" /> }} />
+      <Table rowKey="dataset" size="small" dataSource={quality} columns={[{ title:'数据集', dataIndex:'dataset' },{ title:'交易日', dataIndex:'tradeDate' },{ title:'覆盖股票数', dataIndex:'stockCount' },{ title:'缺失字段数', dataIndex:'missingFields' },{ title:'异常值数量', dataIndex:'abnormalValues' },{ title:'重复记录数', dataIndex:'duplicateRows' },{ title:'校验', dataIndex:'passed', render:(v)=> <Tag color={v?'green':'red'}>{v?'通过':'失败'}</Tag> }]} scroll={{ x: 950 }} locale={{ emptyText: <EmptyState text="暂无行情质量产物；自动刷新行情或数据质量任务运行后自动生成。" /> }} />
     </Section>
   </div>;
 }
