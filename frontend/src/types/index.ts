@@ -72,6 +72,16 @@ export interface DataQualityRow {
   abnormalValues: number;
   duplicateRows: number;
   passed: boolean;
+  period?: string;
+  layer?: string;
+  startTime?: string;
+  endTime?: string;
+  timeRange?: string;
+  recordCount?: number;
+  inputRows?: number;
+  droppedRows?: number;
+  status?: string;
+  cleanedPath?: string;
   sourcePath?: string;
 }
 
