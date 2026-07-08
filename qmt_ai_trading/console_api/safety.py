@@ -13,6 +13,7 @@ SAFE_POST_PATHS={
     '/api/v1/account-readonly/refresh',
     '/api/v1/frontend/data/market-ai-analysis',
     '/api/v1/frontend/data/market-universe/save',
+    '/api/v1/frontend/data/qmt-universe-sync/run',
     '/api/v1/frontend/data/market-auto-refresh/save',
     '/api/v1/frontend/system/api-configs/save',
     '/api/v1/frontend/system/api-configs/test',
