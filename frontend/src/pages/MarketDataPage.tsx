@@ -9,6 +9,14 @@ import type { MarketAIAnalysis, MarketQuoteRow, MarketSummary } from '../service
 import { runConsoleTask } from '../services/taskService';
 import type { DataQualityRow, DataSourceStatus } from '../types';
 
+const REAL_XTDATA_PARAMS = {
+  enable_xtdata: true,
+  allow_import_xtdata: true,
+  allow_real_market_data: true,
+  allow_connect_miniqmt: true,
+  limit: 20,
+};
+
 function useAsync<T>(loader: () => Promise<T>, fallback: T): T {
   const [data, setData] = useState<T>(fallback);
   useEffect(() => {
@@ -26,13 +34,38 @@ function Section({ title, extra, children }: { title: string; extra?: ReactNode;
   return <Card className="section-card" title={title} extra={extra}>{children}</Card>;
 }
 
+function outputFlag(output: Record<string, unknown> | undefined, key: string) {
+  return output ? Boolean(output[key]) : false;
+}
+
+function outputText(output: Record<string, unknown> | undefined, key: string) {
+  const value = output?.[key];
+  return value === undefined || value === null ? '' : String(value);
+}
+
 function TaskButton({ taskId, params, children, type }: { taskId: string; params?: Record<string, unknown>; children: ReactNode; type?: 'primary' | 'default' }) {
   const [running, setRunning] = useState(false);
   const run = async () => {
     try {
       setRunning(true);
       const res = await runConsoleTask({ taskId, params });
-      message.success(`${res.task?.task_name || taskId} ${res.task?.status || 'DONE'}`);
+      const output = res.task?.output;
+      if (taskId === 'xtdata_live_readonly_smoke') {
+        if (outputFlag(output, 'real_market_data')) {
+          message.success('已从本地 QMT / xtdata 获取真实只读行情');
+        } else {
+          message.warning(outputText(output, 'failure_reason') || '未获取到真实 QMT 行情，已回退为沙盒样例。请确认 QMT 客户端已启动并已登录。');
+        }
+      } else if (taskId === 'qmt_data_diagnostics_readonly') {
+        if (outputText(output, 'login_api_status') === 'READY') message.success('QMT / xtdata 登录后只读 API 测试通过');
+        else message.warning(outputText(output, 'message') || 'QMT / xtdata 登录后 API 测试失败，请确认客户端已启动并登录。');
+      } else if (taskId === 'market_snapshot_readonly') {
+        message.success('已读取本地只读行情快照；该按钮不连接 QMT。');
+      } else if (taskId === 'data_cache_check') {
+        message.success('已检查本地缓存质量；该按钮不连接 QMT。');
+      } else {
+        message.success(`${res.task?.task_name || taskId} ${res.task?.status || 'DONE'}`);
+      }
       window.dispatchEvent(new Event('qmt-task-finished'));
     } catch (error) {
       message.error(error instanceof Error ? error.message : String(error));
@@ -123,7 +156,7 @@ export function MarketDataPage() {
         行情数据是量化系统的“价格与成交事实层”，用于生成 K 线、计算收益率和波动率、更新因子、触发策略信号、估算成交成本、校验停牌/涨跌停/流动性，并为回测、仿真、影子实盘和风控提供统一输入。
       </Typography.Paragraph>
       <Space wrap>
-        <Tag color="cyan">采集：xtdata / 本地缓存 / 外部数据源</Tag>
+        <Tag color="cyan">采集：QMT xtdata / 本地缓存 / 外部数据源</Tag>
         <Tag color="green">清洗：复权 / 对齐 / 去异常 / 去重复</Tag>
         <Tag color="gold">校验：延迟 / 缺失 / 异常 / 覆盖率</Tag>
         <Tag color="purple">服务：因子研究 / 策略信号 / 风控 / 监控复盘</Tag>
@@ -132,12 +165,13 @@ export function MarketDataPage() {
 
     <Section title="行情数据任务" extra={<Tag color="green">只读 / dry-run / 不触发交易</Tag>}>
       <Space wrap>
-        <TaskButton taskId="xtdata_live_readonly_smoke" type="primary">真实 xtdata 只读 smoke</TaskButton>
-        <TaskButton taskId="qmt_data_diagnostics_readonly">QMT 行情只读诊断</TaskButton>
-        <TaskButton taskId="market_snapshot_readonly">只读行情快照</TaskButton>
-        <TaskButton taskId="data_cache_check">本地缓存质量检查</TaskButton>
+        <TaskButton taskId="xtdata_live_readonly_smoke" params={REAL_XTDATA_PARAMS} type="primary">获取真实行情（QMT）</TaskButton>
+        <TaskButton taskId="qmt_data_diagnostics_readonly">检查QMT登录/xtdata</TaskButton>
+        <TaskButton taskId="market_snapshot_readonly">读取缓存行情快照</TaskButton>
+        <TaskButton taskId="data_cache_check">检查本地缓存</TaskButton>
         <Button size="small" type="primary" loading={analyzing} onClick={analyze}>AI 分析行情</Button>
       </Space>
+      <Alert style={{ marginTop: 12 }} type="info" showIcon message="真实行情必须来自本机 QMT / xtdata" description="点击“获取真实行情（QMT）”时，后端会以只读模式导入 xtquant.xtdata 并请求行情；如果 QMT 未启动、未登录或 xtdata API 不可用，会明确提示并回退到沙盒样例，不会查询账户、不连接 xttrader、不下单。" />
     </Section>
 
     <Row gutter={[16, 16]}>
@@ -151,11 +185,11 @@ export function MarketDataPage() {
     </Section>
 
     <Section title="数据源状态">
-      <Row gutter={[16, 16]}>{sources.map((s) => <Col xs={24} sm={12} lg={6} key={s.name}><Card className="source-card"><Space direction="vertical"><Space><b>{s.name}</b>{statusTag(String(s.status))}</Space><span>更新时间：{s.updatedAt || '-'}</span><span>今日记录：{Number(s.records || 0).toLocaleString()}</span><span>延迟：{s.latency}</span><span>质量：{s.qualityLevel || '-'}</span><span>缺失/异常：{s.missingRate}% / {s.abnormalRate}%</span><TaskButton taskId={s.name.includes('QMT') ? 'xtdata_live_readonly_smoke' : 'market_snapshot_readonly'}>刷新</TaskButton></Space></Card></Col>)}</Row>
+      <Row gutter={[16, 16]}>{sources.map((s) => <Col xs={24} sm={12} lg={6} key={s.name}><Card className="source-card"><Space direction="vertical"><Space><b>{s.name}</b>{statusTag(String(s.status))}</Space><span>更新时间：{s.updatedAt || '-'}</span><span>今日记录：{Number(s.records || 0).toLocaleString()}</span><span>延迟：{s.latency}</span><span>质量：{s.qualityLevel || '-'}</span><span>缺失/异常：{s.missingRate}% / {s.abnormalRate}%</span><TaskButton taskId={s.name.includes('QMT') ? 'xtdata_live_readonly_smoke' : 'market_snapshot_readonly'} params={s.name.includes('QMT') ? REAL_XTDATA_PARAMS : undefined}>刷新</TaskButton></Space></Card></Col>)}</Row>
     </Section>
 
-    <Section title="行情明细表" extra={<TaskButton taskId="xtdata_live_readonly_smoke">刷新行情</TaskButton>}>
-      <Table rowKey="id" size="small" dataSource={quotes} columns={columns} scroll={{ x: 1380, y: 420 }} locale={{ emptyText: <EmptyState text="暂无行情明细；点击上方真实 xtdata 只读 smoke 或只读行情快照后刷新。" /> }} />
+    <Section title="行情明细表" extra={<TaskButton taskId="xtdata_live_readonly_smoke" params={REAL_XTDATA_PARAMS}>刷新行情</TaskButton>}>
+      <Table rowKey="id" size="small" dataSource={quotes} columns={columns} scroll={{ x: 1380, y: 420 }} locale={{ emptyText: <EmptyState text="暂无行情明细；点击上方“获取真实行情（QMT）”或“读取缓存行情快照”后刷新。" /> }} />
     </Section>
 
     <Section title="行情数据质量">
