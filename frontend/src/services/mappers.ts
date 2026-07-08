@@ -93,8 +93,8 @@ export function mapRiskOverview(data: any, fallback: any = {}): any {
     industry: num(raw.industry ?? fallback.industry),
     total: num(raw.total ?? raw.totalPosition ?? fallback.total),
     dayLoss: num(raw.dayLoss ?? raw.intradayLoss ?? fallback.dayLoss),
-    abnormalOrders: num(raw.abnormalOrders ?? raw.abnormal_orders ?? fallback.abnormalOrders),
-    disconnects: num(raw.disconnects ?? fallback.disconnects),
+    abnormalOrders: num(raw.abnormalOrders ?? raw.abnormal_orders),
+    disconnects: num(raw.disconnects),
   };
 }
 
@@ -137,23 +137,18 @@ export function mapStrategyStatusList(data: any, fallback: StrategyStatus[] = []
 export function mapEquityCurve(data: any, fallback: EquityPoint[] = []): EquityPoint[] {
   const rows = arrayOrNull<any>(data);
   if (!rows) return fallback;
-  return rows.map((row) => ({
-    date: str(row.date ?? row.time),
-    equity: num(row.equity ?? row.nav ?? row.total_value),
-    benchmark: num(row.benchmark ?? row.hs300 ?? row.index),
-    drawdown: num(row.drawdown ?? row.max_drawdown),
-  }));
+  return rows.map((row) => ({ date: str(row.date ?? row.time), equity: num(row.equity), benchmark: num(row.benchmark), drawdown: num(row.drawdown) }));
 }
 
 export function mapSystemEvents(data: any, fallback: SystemEvent[] = []): SystemEvent[] {
   const rows = arrayOrNull<any>(data);
   if (!rows) return fallback;
   return rows.map((row, i) => ({
-    id: str(row.id ?? row.run_id ?? `event-${i + 1}`),
-    time: str(row.time ?? row.finished_at ?? row.started_at),
+    id: str(row.id ?? row.runId ?? row.run_id ?? `evt-${i}`),
+    time: str(row.time ?? row.createdAt ?? row.created_at ?? row.started_at),
     level: statusKind(row.level ?? row.status),
-    module: str(row.module ?? row.category ?? row.task_id ?? 'SYSTEM'),
-    message: str(row.message ?? row.task_name ?? row.task_id ?? '系统事件'),
+    module: str(row.module ?? row.category ?? row.taskId ?? row.task_id),
+    message: str(row.message ?? row.task_name ?? row.title ?? row.description),
     runId: row.runId ?? row.run_id,
     taskId: row.taskId ?? row.task_id,
     sourcePath: row.sourcePath ?? row.source_path,
@@ -164,11 +159,11 @@ export function mapDataSources(data: any, fallback: DataSourceStatus[] = []): Da
   const rows = arrayOrNull<any>(data);
   if (!rows) return fallback;
   return rows.map((row) => ({
-    name: str(row.name ?? row.dataset ?? row.source),
+    name: str(row.name ?? row.source ?? row.dataSource),
     status: statusKind(row.status),
-    updatedAt: str(row.updatedAt ?? row.updated_at ?? row.time),
-    records: num(row.records ?? row.record_count ?? row.count),
-    latency: str(row.latency ?? row.delay ?? '-'),
+    updatedAt: str(row.updatedAt ?? row.updated_at),
+    records: num(row.records ?? row.recordCount ?? row.count),
+    latency: str(row.latency),
     missingRate: num(row.missingRate ?? row.missing_rate),
     abnormalRate: num(row.abnormalRate ?? row.abnormal_rate),
     dataSource: row.dataSource ?? row.data_source,
@@ -188,6 +183,16 @@ export function mapDataQualityRows(data: any, fallback: DataQualityRow[] = []): 
     abnormalValues: num(row.abnormalValues ?? row.abnormal_values),
     duplicateRows: num(row.duplicateRows ?? row.duplicate_rows),
     passed: Boolean(row.passed ?? row.ok ?? false),
+    period: row.period,
+    layer: row.layer,
+    startTime: row.startTime ?? row.start_time,
+    endTime: row.endTime ?? row.end_time,
+    timeRange: row.timeRange ?? row.time_range,
+    recordCount: num(row.recordCount ?? row.record_count),
+    inputRows: num(row.inputRows ?? row.input_rows),
+    droppedRows: num(row.droppedRows ?? row.dropped_rows),
+    status: str(row.status ?? ''),
+    cleanedPath: row.cleanedPath ?? row.cleaned_path,
     sourcePath: row.sourcePath ?? row.source_path,
   }));
 }
@@ -197,12 +202,12 @@ export function mapDataTasks(data: any, fallback: DataTaskRow[] = []): DataTaskR
   if (!rows) return fallback;
   return rows.map((row) => ({
     name: str(row.name ?? row.task_name ?? row.task_id),
-    type: str(row.type ?? row.category),
+    type: str(row.type ?? row.category ?? row.mode),
     cron: str(row.cron ?? row.schedule ?? '-'),
-    lastRun: str(row.lastRun ?? row.last_run ?? row.finished_at),
+    lastRun: str(row.lastRun ?? row.last_run ?? row.finishedAt ?? row.finished_at),
     nextRun: str(row.nextRun ?? row.next_run),
     status: str(row.status ?? 'UNKNOWN'),
-    cost: str(row.cost ?? row.duration ?? ''),
+    cost: str(row.cost ?? row.duration ?? row.issueCount ?? ''),
     sourcePath: row.sourcePath ?? row.source_path,
   }));
 }
@@ -235,7 +240,7 @@ export function mapHoldingRows(data: any, fallback: HoldingRow[] = []): HoldingR
   if (!rows) return fallback;
   return rows.map((row, i) => ({
     code: str(row.code ?? row.symbol ?? `POS-${i + 1}`),
-    name: str(row.name ?? row.symbol ?? row.code ?? ''),
+    name: str(row.name ?? row.symbol ?? row.code),
     currentQty: num(row.currentQty ?? row.current_qty ?? row.quantity ?? row.volume),
     currentWeight: num(row.currentWeight ?? row.current_weight),
     targetWeight: num(row.targetWeight ?? row.target_weight),
@@ -274,7 +279,7 @@ export function mapOrderRows(data: any, fallback: OrderRow[] = []): OrderRow[] {
       createdAt: str(row.createdAt ?? row.created_at),
       updatedAt: row.updatedAt ?? row.updated_at,
       intentId: row.intentId ?? row.intent_id,
-      previewOnly: row.previewOnly ?? row.preview_only ?? true,
+      previewOnly: Boolean(row.previewOnly ?? row.preview_only ?? true),
       canSubmit: Boolean(row.canSubmit ?? row.can_submit ?? false),
       latestPrice: num(row.latestPrice ?? row.latest_price ?? price),
       estimatedAmount: num(row.estimatedAmount ?? row.estimated_amount ?? amount),
@@ -296,42 +301,6 @@ export function mapRiskRules(data: any, fallback: RiskRule[] = []): RiskRule[] {
     enabled: Boolean(row.enabled ?? true),
     lastTriggered: str(row.lastTriggered ?? row.last_triggered),
     description: row.description,
-    sourcePath: row.sourcePath ?? row.source_path,
-  }));
-}
-
-export function mapRiskEvents(data: any, fallback: RiskEvent[] = []): RiskEvent[] {
-  const rows = arrayOrNull<any>(data);
-  if (!rows) return fallback;
-  return rows.map((row, i) => ({
-    id: str(row.id ?? row.intent_id ?? row.event_id ?? `risk-${i + 1}`),
-    time: str(row.time ?? row.created_at),
-    strategy: str(row.strategy ?? row.intent_id),
-    rule: str(row.rule ?? row.rule_name ?? 'Risk Gate'),
-    level: riskLevel(row.level ?? row.risk_level ?? row.decision),
-    trigger: str(row.trigger ?? row.trigger_value ?? row.decision),
-    threshold: str(row.threshold ?? 'safety_policy'),
-    action: str(row.action ?? row.decision),
-    result: str(row.result ?? row.decision),
-    operator: str(row.operator ?? 'system'),
-    sourcePath: row.sourcePath ?? row.source_path,
-  }));
-}
-
-export function mapBacktestTasks(data: any, fallback: BacktestTask[] = []): BacktestTask[] {
-  const rows = arrayOrNull<any>(data);
-  if (!rows) return fallback;
-  return rows.map((row, i) => ({
-    id: str(row.id ?? row.task_id ?? `backtest-${i + 1}`),
-    name: str(row.name ?? row.task_name ?? 'Backtest Task'),
-    strategy: str(row.strategy ?? row.strategy_name),
-    universe: str(row.universe ?? row.pool),
-    range: str(row.range ?? row.date_range),
-    capital: num(row.capital ?? row.initial_cash),
-    rebalance: str(row.rebalance ?? row.period),
-    status: str(row.status),
-    createdAt: str(row.createdAt ?? row.created_at),
-    cost: str(row.cost ?? row.duration),
     sourcePath: row.sourcePath ?? row.source_path,
   }));
 }
