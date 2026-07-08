@@ -11,17 +11,17 @@ from .common import CONSOLE, payload
 from . import workbench_system, workbench_market
 
 SYNC_FILE = CONSOLE / 'market' / 'qmt_universe_sync_result.json'
-GROUP_FILES = {
-    'all_a': CONSOLE / 'market' / 'qmt_universe_all_a.json',
-    'etf': CONSOLE / 'market' / 'qmt_universe_etf.json',
-    'index': CONSOLE / 'market' / 'qmt_universe_index.json',
-}
 
 GROUP_DEFS = {
     'all_a': {'name': 'QMT 全A股票池', 'description': '从 QMT / xtdata 真实同步沪深北 A 股代码，用于构建全A可交易池的基础列表。', 'aliases': ['沪深A股', 'A股', '上证A股', '深证A股', '北证A股']},
     'etf': {'name': 'QMT ETF全量池', 'description': '从 QMT / xtdata 真实同步场内 ETF / 基金代码，用于 ETF 轮动和主题池。', 'aliases': ['沪深ETF', 'ETF', 'ETF基金', '沪深基金', '场内基金', '基金']},
     'index': {'name': 'QMT 指数池', 'description': '从 QMT / xtdata 真实同步指数代码，用于基准、行业和风格分析。', 'aliases': ['沪深指数', '指数', '上证指数', '深证指数', '中证指数']},
+    'broad_market': {'name': '大盘/基准指数池', 'description': '量化研究必需的大盘基准行情，用于相对收益、市场状态、Beta、择时和风控判断。', 'aliases': ['沪深指数', '中证指数', '上证指数', '深证指数'], 'fixedSymbols': ['000001.SH', '000016.SH', '000300.SH', '000905.SH', '000852.SH', '399001.SZ', '399006.SZ']},
+    'convertible_bond': {'name': '可转债池', 'description': '用于可转债策略、股债联动和风险偏好分析；如果本机 QMT sector 不支持会显示 EMPTY/FAILED。', 'aliases': ['可转债', '沪深转债', '转债', '债券']},
+    'sector_index': {'name': '行业/板块指数池', 'description': '用于行业轮动、行业暴露、板块热度和风格归因分析；不同 QMT 版本 sector 名称可能不同。', 'aliases': ['行业指数', '申万行业指数', '中证行业指数', '概念指数', '板块指数']},
 }
+
+GROUP_FILES = {key: CONSOLE / 'market' / f'qmt_universe_{key}.json' for key in GROUP_DEFS}
 
 PREFIX_RE = re.compile(r'^(SH|SZ|BJ)[\.:-]?(\d{6})$', re.I)
 SUFFIX_RE = re.compile(r'^(\d{6})[\.:-]?(SH|SZ|BJ)$', re.I)
@@ -96,9 +96,12 @@ def _call_sector(xtdata: Any, sector_name: str) -> dict[str, Any]:
 
 def _sync_group(xtdata: Any, group_key: str) -> dict[str, Any]:
     definition = GROUP_DEFS[group_key]
-    sector_results = [_call_sector(xtdata, sector) for sector in definition['aliases']]
+    sector_results = [_call_sector(xtdata, sector) for sector in definition.get('aliases', [])]
     symbols: list[str] = []
     seen: set[str] = set()
+    for symbol in _dedupe_symbols(definition.get('fixedSymbols') or []):
+        seen.add(symbol)
+        symbols.append(symbol)
     for result in sector_results:
         for symbol in result.get('symbols') or []:
             if symbol not in seen:
@@ -126,12 +129,12 @@ def qmt_universe_sync_status():
 
 def sync_qmt_universe(body: dict[str, Any] | None = None):
     body = body or {}
-    requested = body.get('groups') or ['all_a', 'etf', 'index']
+    requested = body.get('groups') or list(GROUP_DEFS.keys())
     if isinstance(requested, str):
         requested = [requested]
     groups = [g for g in requested if g in GROUP_DEFS]
     if not groups:
-        groups = ['all_a', 'etf', 'index']
+        groups = list(GROUP_DEFS.keys())
     client_probe = workbench_system.test_qmt_settings({'kind': 'qmtClientPath'}).get('data', {})
     xtdata, import_status = _import_xtdata()
     if xtdata is None:
@@ -146,3 +149,45 @@ def sync_qmt_universe(body: dict[str, Any] | None = None):
     result = {'status': status, 'syncedAt': _now(), 'message': message, 'importStatus': import_status, 'clientProbe': client_probe, 'groups': results, 'groupCount': len(results), 'readyGroupCount': ready_count, 'totalSymbolCount': total_symbols, 'source': 'xtdata.get_stock_list_in_sector', 'readOnly': True, 'noXtTrader': True, 'noOrderSubmitted': True, 'noAccountQuery': True}
     result['sourcePath'] = _write_json(SYNC_FILE, result)
     return payload(status=status, source='qmt_universe_sync', data=result)
+
+
+def _first_array(obj: Any) -> list[Any]:
+    if isinstance(obj, list):
+        return obj
+    if isinstance(obj, dict):
+        for value in obj.values():
+            arr = _first_array(value)
+            if arr:
+                return arr
+    return []
+
+
+def _count_records(data: Any) -> int:
+    if isinstance(data, dict):
+        for key in ('symbols', 'groups', 'data', 'rows', 'bars', 'snapshots'):
+            value = data.get(key)
+            if isinstance(value, list):
+                return len(value)
+    arr = _first_array(data)
+    return len(arr)
+
+
+def _dataset_row(key: str, name: str, data_type: str, path: Path, note: str = '') -> dict[str, Any]:
+    exists = path.exists()
+    data = _read_json(path, {}) if exists else {}
+    mtime = datetime.fromtimestamp(path.stat().st_mtime).isoformat(timespec='seconds') if exists else ''
+    return {'key': key, 'name': name, 'type': data_type, 'status': 'READY' if exists else 'MISSING', 'recordCount': _count_records(data), 'updatedAt': data.get('syncedAt') or data.get('generated_at') or data.get('updatedAt') or mtime if isinstance(data, dict) else mtime, 'sourcePath': path.as_posix(), 'note': note}
+
+
+def downloaded_data_status():
+    rows = [
+        _dataset_row('market_latest', '当前行情缓存', '行情K线/快照', CONSOLE / 'datahub' / 'market_latest.json', '自动刷新行情写入的本地行情缓存'),
+        _dataset_row('datahub_symbols', '统一标的缓存', '标的列表', CONSOLE / 'datahub' / 'datahub_symbols.json', 'Data Hub 当前可见标的'),
+        _dataset_row('universe_settings', '当前Universe配置', '配置', CONSOLE / 'market' / 'universe_settings.private.json', '自动刷新行情使用的股票池配置'),
+        _dataset_row('qmt_universe_sync', 'QMT同步汇总', 'QMT列表同步结果', SYNC_FILE, 'get_stock_list_in_sector 同步汇总'),
+    ]
+    for key, path in GROUP_FILES.items():
+        definition = GROUP_DEFS[key]
+        rows.append(_dataset_row(key, definition['name'], 'QMT真实列表', path, definition['description']))
+    ready = sum(1 for row in rows if row['status'] == 'READY')
+    return payload(status='READY', source='downloaded_data_inventory', data={'rows': rows, 'readyCount': ready, 'totalCount': len(rows), 'generatedAt': _now()})
