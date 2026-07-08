@@ -25,6 +25,8 @@ export interface MarketQuoteRow {
 export interface MarketSummary {
   quoteCount: number;
   symbolCount: number;
+  universeName?: string;
+  universeSymbolCount?: number;
   upCount: number;
   downCount: number;
   flatCount: number;
@@ -43,10 +45,32 @@ export interface MarketAIAnalysis {
   report: string;
 }
 
+export interface MarketUniversePreset {
+  key: string;
+  name: string;
+  description: string;
+  symbols: string[];
+  symbolCount: number;
+}
+
+export interface MarketUniverseStatus {
+  preset: string;
+  name: string;
+  symbols: string[];
+  symbolCount: number;
+  customSymbolsText: string;
+  source: string;
+  presets: MarketUniversePreset[];
+  sourcePath?: string;
+}
+
 export interface MarketAutoRefreshStatus {
   enabled: boolean;
   intervalSec: number;
   onlyMissingCache: boolean;
+  universeName?: string;
+  universePreset?: string;
+  universeSymbolCount?: number;
   running: boolean;
   threadAlive: boolean;
   lastRunAt: string;
@@ -74,12 +98,37 @@ const autoFallback: MarketAutoRefreshStatus = {
   runCount: 0,
 };
 
+const universeFallback: MarketUniverseStatus = {
+  preset: 'broad_etf',
+  name: '宽基ETF池',
+  symbols: ['510300.SH', '510500.SH', '512100.SH', '588000.SH', '159915.SZ'],
+  symbolCount: 5,
+  customSymbolsText: '',
+  source: 'preset',
+  presets: [],
+};
+
 export function getMarketQuotes() {
   return apiOrMock('/data/market-quotes', [] as MarketQuoteRow[]);
 }
 
 export function getMarketSummary() {
   return apiOrMock('/data/market-summary', { quoteCount: 0, symbolCount: 0, upCount: 0, downCount: 0, flatCount: 0, latestTime: '', realMarketData: false, sandboxFallback: true, dataMode: 'UNKNOWN' } as MarketSummary);
+}
+
+export function getMarketUniverseStatus() {
+  return apiOrMock('/data/market-universe/status', universeFallback);
+}
+
+export async function saveMarketUniverse(settings: Pick<MarketUniverseStatus, 'preset' | 'customSymbolsText'>) {
+  const response = await fetch('/api/v1/frontend/data/market-universe/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  });
+  const data = await response.json();
+  if (!response.ok || data.ok === false) throw new Error(data.error || data.message || '保存行情 Universe 失败');
+  return data.data as MarketUniverseStatus;
 }
 
 export function getMarketAutoRefreshStatus() {
