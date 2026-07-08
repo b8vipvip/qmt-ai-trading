@@ -1,206 +1,28 @@
 import { apiOrMock } from './apiClient';
 
-export interface MarketQuoteRow {
-  id: string;
-  symbol: string;
-  name: string;
-  time: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  latest: number;
-  preClose: number;
-  change: number;
-  changePct: number;
-  volume: number;
-  amount: number;
-  status: string;
-  source: string;
-  realMarketData?: boolean;
-  sandboxFallback?: boolean;
-  sourcePath?: string;
-}
+export interface MarketQuoteRow { id: string; symbol: string; name: string; time: string; open: number; high: number; low: number; close: number; latest: number; preClose: number; change: number; changePct: number; volume: number; amount: number; status: string; source: string; realMarketData?: boolean; sandboxFallback?: boolean; sourcePath?: string; }
+export interface MarketSummary { quoteCount: number; symbolCount: number; universeName?: string; universeSymbolCount?: number; upCount: number; downCount: number; flatCount: number; latestTime: string; realMarketData?: boolean; sandboxFallback?: boolean; dataMode?: string; sourcePath?: string; }
+export interface MarketAIAnalysis { status: string; modelName: string; apiName: string; generatedAt: string; report: string; }
+export interface MarketUniversePreset { key: string; name: string; description: string; symbols: string[]; symbolCount: number; }
+export interface MarketUniverseStatus { preset: string; name: string; symbols: string[]; symbolCount: number; customSymbolsText: string; source: string; presets: MarketUniversePreset[]; sourcePath?: string; }
+export interface QmtUniverseGroup { key: string; name: string; description?: string; status: string; syncedAt: string; symbolCount: number; symbols: string[]; sectorResults?: Array<{ sector: string; status: string; count: number; error?: string }>; errors?: string[]; sourcePath?: string; }
+export interface QmtUniverseSyncResult { status: string; syncedAt: string; message: string; importStatus?: string; groups: QmtUniverseGroup[]; groupCount: number; readyGroupCount?: number; totalSymbolCount?: number; sourcePath?: string; }
+export interface DownloadedDatasetRow { key: string; name: string; type: string; status: string; recordCount: number; updatedAt: string; sourcePath: string; note?: string; }
+export interface DownloadedDatasetStatus { rows: DownloadedDatasetRow[]; readyCount: number; totalCount: number; generatedAt: string; }
+export interface MarketAutoRefreshStatus { enabled: boolean; intervalSec: number; onlyMissingCache: boolean; universeName?: string; universePreset?: string; universeSymbolCount?: number; running: boolean; threadAlive: boolean; lastRunAt: string; lastStatus: string; lastMessage: string; lastRealMarketData: boolean; lastSandboxFallback: boolean; lastFailureReason: string; runCount: number; sourcePath?: string; }
 
-export interface MarketSummary {
-  quoteCount: number;
-  symbolCount: number;
-  universeName?: string;
-  universeSymbolCount?: number;
-  upCount: number;
-  downCount: number;
-  flatCount: number;
-  latestTime: string;
-  realMarketData?: boolean;
-  sandboxFallback?: boolean;
-  dataMode?: string;
-  sourcePath?: string;
-}
+const autoFallback: MarketAutoRefreshStatus = { enabled: false, intervalSec: 60, onlyMissingCache: true, running: false, threadAlive: false, lastRunAt: '', lastStatus: 'IDLE', lastMessage: '自动刷新未启动', lastRealMarketData: false, lastSandboxFallback: false, lastFailureReason: '', runCount: 0 };
+const universeFallback: MarketUniverseStatus = { preset: 'broad_etf', name: '宽基ETF池', symbols: ['510300.SH', '510500.SH', '512100.SH', '588000.SH', '159915.SZ'], symbolCount: 5, customSymbolsText: '', source: 'preset', presets: [] };
+const qmtSyncFallback: QmtUniverseSyncResult = { status: 'NOT_SYNCED', syncedAt: '', message: '尚未同步 QMT 真实股票列表', groups: [], groupCount: 0 };
+const downloadedFallback: DownloadedDatasetStatus = { rows: [], readyCount: 0, totalCount: 0, generatedAt: '' };
 
-export interface MarketAIAnalysis {
-  status: string;
-  modelName: string;
-  apiName: string;
-  generatedAt: string;
-  report: string;
-}
-
-export interface MarketUniversePreset {
-  key: string;
-  name: string;
-  description: string;
-  symbols: string[];
-  symbolCount: number;
-}
-
-export interface MarketUniverseStatus {
-  preset: string;
-  name: string;
-  symbols: string[];
-  symbolCount: number;
-  customSymbolsText: string;
-  source: string;
-  presets: MarketUniversePreset[];
-  sourcePath?: string;
-}
-
-export interface QmtUniverseGroup {
-  key: string;
-  name: string;
-  description?: string;
-  status: string;
-  syncedAt: string;
-  symbolCount: number;
-  symbols: string[];
-  sectorResults?: Array<{ sector: string; status: string; count: number; error?: string }>;
-  errors?: string[];
-  sourcePath?: string;
-}
-
-export interface QmtUniverseSyncResult {
-  status: string;
-  syncedAt: string;
-  message: string;
-  importStatus?: string;
-  groups: QmtUniverseGroup[];
-  groupCount: number;
-  readyGroupCount?: number;
-  totalSymbolCount?: number;
-  sourcePath?: string;
-}
-
-export interface MarketAutoRefreshStatus {
-  enabled: boolean;
-  intervalSec: number;
-  onlyMissingCache: boolean;
-  universeName?: string;
-  universePreset?: string;
-  universeSymbolCount?: number;
-  running: boolean;
-  threadAlive: boolean;
-  lastRunAt: string;
-  lastStatus: string;
-  lastMessage: string;
-  lastRealMarketData: boolean;
-  lastSandboxFallback: boolean;
-  lastFailureReason: string;
-  runCount: number;
-  sourcePath?: string;
-}
-
-const autoFallback: MarketAutoRefreshStatus = {
-  enabled: false,
-  intervalSec: 60,
-  onlyMissingCache: true,
-  running: false,
-  threadAlive: false,
-  lastRunAt: '',
-  lastStatus: 'IDLE',
-  lastMessage: '自动刷新未启动',
-  lastRealMarketData: false,
-  lastSandboxFallback: false,
-  lastFailureReason: '',
-  runCount: 0,
-};
-
-const universeFallback: MarketUniverseStatus = {
-  preset: 'broad_etf',
-  name: '宽基ETF池',
-  symbols: ['510300.SH', '510500.SH', '512100.SH', '588000.SH', '159915.SZ'],
-  symbolCount: 5,
-  customSymbolsText: '',
-  source: 'preset',
-  presets: [],
-};
-
-const qmtSyncFallback: QmtUniverseSyncResult = {
-  status: 'NOT_SYNCED',
-  syncedAt: '',
-  message: '尚未同步 QMT 真实股票列表',
-  groups: [],
-  groupCount: 0,
-};
-
-export function getMarketQuotes() {
-  return apiOrMock('/data/market-quotes', [] as MarketQuoteRow[]);
-}
-
-export function getMarketSummary() {
-  return apiOrMock('/data/market-summary', { quoteCount: 0, symbolCount: 0, upCount: 0, downCount: 0, flatCount: 0, latestTime: '', realMarketData: false, sandboxFallback: true, dataMode: 'UNKNOWN' } as MarketSummary);
-}
-
-export function getMarketUniverseStatus() {
-  return apiOrMock('/data/market-universe/status', universeFallback);
-}
-
-export async function saveMarketUniverse(settings: Pick<MarketUniverseStatus, 'preset' | 'customSymbolsText'>) {
-  const response = await fetch('/api/v1/frontend/data/market-universe/save', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(settings),
-  });
-  const data = await response.json();
-  if (!response.ok || data.ok === false) throw new Error(data.error || data.message || '保存行情 Universe 失败');
-  return data.data as MarketUniverseStatus;
-}
-
-export function getQmtUniverseSyncStatus() {
-  return apiOrMock('/data/qmt-universe-sync/status', qmtSyncFallback);
-}
-
-export async function runQmtUniverseSync(groups: string[] = ['all_a', 'etf', 'index']) {
-  const response = await fetch('/api/v1/frontend/data/qmt-universe-sync/run', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ groups }),
-  });
-  const data = await response.json();
-  if (!response.ok || data.ok === false) throw new Error(data.error || data.message || '同步 QMT 真实列表失败');
-  return data.data as QmtUniverseSyncResult;
-}
-
-export function getMarketAutoRefreshStatus() {
-  return apiOrMock('/data/market-auto-refresh/status', autoFallback);
-}
-
-export async function saveMarketAutoRefresh(settings: Partial<Pick<MarketAutoRefreshStatus, 'enabled' | 'intervalSec' | 'onlyMissingCache'>>) {
-  const response = await fetch('/api/v1/frontend/data/market-auto-refresh/save', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(settings),
-  });
-  const data = await response.json();
-  if (!response.ok || data.ok === false) throw new Error(data.error || data.message || '保存自动刷新行情设置失败');
-  return data.data as MarketAutoRefreshStatus;
-}
-
-export async function runMarketAIAnalysis() {
-  const response = await fetch('/api/v1/frontend/data/market-ai-analysis', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
-  });
-  const data = await response.json();
-  if (!response.ok || data.ok === false) throw new Error(data.error || data.message || 'AI 行情分析失败');
-  return data.data as MarketAIAnalysis;
-}
+export function getMarketQuotes() { return apiOrMock('/data/market-quotes', [] as MarketQuoteRow[]); }
+export function getMarketSummary() { return apiOrMock('/data/market-summary', { quoteCount: 0, symbolCount: 0, upCount: 0, downCount: 0, flatCount: 0, latestTime: '', realMarketData: false, sandboxFallback: true, dataMode: 'UNKNOWN' } as MarketSummary); }
+export function getMarketUniverseStatus() { return apiOrMock('/data/market-universe/status', universeFallback); }
+export async function saveMarketUniverse(settings: Pick<MarketUniverseStatus, 'preset' | 'customSymbolsText'>) { const response = await fetch('/api/v1/frontend/data/market-universe/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); const data = await response.json(); if (!response.ok || data.ok === false) throw new Error(data.error || data.message || '保存行情 Universe 失败'); return data.data as MarketUniverseStatus; }
+export function getQmtUniverseSyncStatus() { return apiOrMock('/data/qmt-universe-sync/status', qmtSyncFallback); }
+export async function runQmtUniverseSync(groups: string[] = ['all_a', 'etf', 'index', 'broad_market', 'convertible_bond', 'sector_index']) { const response = await fetch('/api/v1/frontend/data/qmt-universe-sync/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ groups }) }); const data = await response.json(); if (!response.ok || data.ok === false) throw new Error(data.error || data.message || '同步 QMT 真实列表失败'); return data.data as QmtUniverseSyncResult; }
+export function getDownloadedDatasetStatus() { return apiOrMock('/data/downloaded-datasets/status', downloadedFallback); }
+export function getMarketAutoRefreshStatus() { return apiOrMock('/data/market-auto-refresh/status', autoFallback); }
+export async function saveMarketAutoRefresh(settings: Partial<Pick<MarketAutoRefreshStatus, 'enabled' | 'intervalSec' | 'onlyMissingCache'>>) { const response = await fetch('/api/v1/frontend/data/market-auto-refresh/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); const data = await response.json(); if (!response.ok || data.ok === false) throw new Error(data.error || data.message || '保存自动刷新行情设置失败'); return data.data as MarketAutoRefreshStatus; }
+export async function runMarketAIAnalysis() { const response = await fetch('/api/v1/frontend/data/market-ai-analysis', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }); const data = await response.json(); if (!response.ok || data.ok === false) throw new Error(data.error || data.message || 'AI 行情分析失败'); return data.data as MarketAIAnalysis; }
