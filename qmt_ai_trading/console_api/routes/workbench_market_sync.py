@@ -11,6 +11,7 @@ from .common import CONSOLE, payload
 from . import workbench_system, workbench_market
 
 SYNC_FILE = CONSOLE / 'market' / 'qmt_universe_sync_result.json'
+HISTORY_RESULT_FILE = CONSOLE / 'market_history' / 'history_download_result.json'
 
 GROUP_DEFS = {
     'all_a': {'name': 'QMT 全A股票池', 'description': '从 QMT / xtdata 真实同步沪深北 A 股代码，用于构建全A可交易池的基础列表。', 'aliases': ['沪深A股', 'A股', '上证A股', '深证A股', '北证A股']},
@@ -22,7 +23,7 @@ GROUP_DEFS = {
 }
 
 GROUP_FILES = {key: CONSOLE / 'market' / f'qmt_universe_{key}.json' for key in GROUP_DEFS}
-TIME_KEYS = {'time', 'datetime', 'updated_at', 'updatedAt', 'timestamp', 'stime', 'date', 'tradeDate', 'index'}
+TIME_KEYS = {'time', 'datetime', 'updated_at', 'updatedAt', 'timestamp', 'stime', 'date', 'tradeDate', 'index', 'startTime', 'endTime'}
 PREFIX_RE = re.compile(r'^(SH|SZ|BJ)[\.:-]?(\d{6})$', re.I)
 SUFFIX_RE = re.compile(r'^(\d{6})[\.:-]?(SH|SZ|BJ)$', re.I)
 
@@ -164,10 +165,13 @@ def _first_array(obj: Any) -> list[Any]:
 
 def _count_records(data: Any) -> int:
     if isinstance(data, dict):
-        for key in ('symbols', 'groups', 'data', 'rows', 'bars', 'snapshots'):
+        for key in ('symbols', 'groups', 'data', 'rows', 'bars', 'snapshots', 'runs'):
             value = data.get(key)
             if isinstance(value, list):
                 return len(value)
+        latest = data.get('latestRun')
+        if isinstance(latest, dict) and latest.get('recordCount'):
+            return int(latest.get('recordCount') or 0)
     arr = _first_array(data)
     return len(arr)
 
@@ -217,7 +221,7 @@ def _walk_times(obj: Any, out: list[int], depth: int = 0) -> None:
 
 def _time_range(data: Any, data_type: str) -> tuple[str, str, str]:
     if data_type in {'标的列表', '配置', 'QMT列表同步结果', 'QMT真实列表'}:
-        return '', '', '不适用（列表/配置数据）'
+        return '', '', '代码/配置列表，无行情时间区间'
     times: list[int] = []
     _walk_times(data, times)
     if not times:
@@ -239,6 +243,7 @@ def _dataset_row(key: str, name: str, data_type: str, path: Path, note: str = ''
 def downloaded_data_status():
     rows = [
         _dataset_row('market_latest', '当前行情缓存', '行情K线/快照', CONSOLE / 'datahub' / 'market_latest.json', '自动刷新行情写入的本地行情缓存'),
+        _dataset_row('market_history', '分层历史行情库', '历史行情K线', HISTORY_RESULT_FILE, '历史行情下载任务写入的分层K线缓存汇总'),
         _dataset_row('datahub_symbols', '统一标的缓存', '标的列表', CONSOLE / 'datahub' / 'datahub_symbols.json', 'Data Hub 当前可见标的'),
         _dataset_row('universe_settings', '当前Universe配置', '配置', CONSOLE / 'market' / 'universe_settings.private.json', '自动刷新行情使用的股票池配置'),
         _dataset_row('qmt_universe_sync', 'QMT同步汇总', 'QMT列表同步结果', SYNC_FILE, 'get_stock_list_in_sector 同步汇总'),
