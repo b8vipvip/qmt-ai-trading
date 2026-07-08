@@ -64,6 +64,31 @@ export interface MarketUniverseStatus {
   sourcePath?: string;
 }
 
+export interface QmtUniverseGroup {
+  key: string;
+  name: string;
+  description?: string;
+  status: string;
+  syncedAt: string;
+  symbolCount: number;
+  symbols: string[];
+  sectorResults?: Array<{ sector: string; status: string; count: number; error?: string }>;
+  errors?: string[];
+  sourcePath?: string;
+}
+
+export interface QmtUniverseSyncResult {
+  status: string;
+  syncedAt: string;
+  message: string;
+  importStatus?: string;
+  groups: QmtUniverseGroup[];
+  groupCount: number;
+  readyGroupCount?: number;
+  totalSymbolCount?: number;
+  sourcePath?: string;
+}
+
 export interface MarketAutoRefreshStatus {
   enabled: boolean;
   intervalSec: number;
@@ -108,6 +133,14 @@ const universeFallback: MarketUniverseStatus = {
   presets: [],
 };
 
+const qmtSyncFallback: QmtUniverseSyncResult = {
+  status: 'NOT_SYNCED',
+  syncedAt: '',
+  message: '尚未同步 QMT 真实股票列表',
+  groups: [],
+  groupCount: 0,
+};
+
 export function getMarketQuotes() {
   return apiOrMock('/data/market-quotes', [] as MarketQuoteRow[]);
 }
@@ -129,6 +162,21 @@ export async function saveMarketUniverse(settings: Pick<MarketUniverseStatus, 'p
   const data = await response.json();
   if (!response.ok || data.ok === false) throw new Error(data.error || data.message || '保存行情 Universe 失败');
   return data.data as MarketUniverseStatus;
+}
+
+export function getQmtUniverseSyncStatus() {
+  return apiOrMock('/data/qmt-universe-sync/status', qmtSyncFallback);
+}
+
+export async function runQmtUniverseSync(groups: string[] = ['all_a', 'etf', 'index']) {
+  const response = await fetch('/api/v1/frontend/data/qmt-universe-sync/run', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ groups }),
+  });
+  const data = await response.json();
+  if (!response.ok || data.ok === false) throw new Error(data.error || data.message || '同步 QMT 真实列表失败');
+  return data.data as QmtUniverseSyncResult;
 }
 
 export function getMarketAutoRefreshStatus() {
