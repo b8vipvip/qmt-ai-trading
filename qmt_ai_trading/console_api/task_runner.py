@@ -35,6 +35,33 @@ def _latest_trade_intents():
     return []
 
 
+def _run_qmt_market_diagnostics(params):
+    try:
+        from qmt_ai_trading.console_api.routes import workbench_system
+        res = workbench_system.test_qmt_settings({'kind': 'all'})
+        data = res.get('data') if isinstance(res, dict) else {}
+        status = data.get('status') if isinstance(data, dict) else 'FAILED'
+        checks = data.get('checks') if isinstance(data, dict) else []
+        login_check = next((x for x in checks if isinstance(x, dict) and x.get('kind') == 'loginApi'), {}) if isinstance(checks, list) else {}
+        return {
+            'task_id': 'qmt_data_diagnostics_readonly',
+            'status': status or 'FAILED',
+            'diagnostics_type': 'qmt_xtdata_login_api',
+            'checks': checks,
+            'login_api_status': login_check.get('status') or status or 'FAILED',
+            'message': data.get('message') if isinstance(data, dict) else 'QMT/xtdata 检查失败',
+            'read_only': True,
+            'dry_run': True,
+            'no_xttrader': True,
+            'no_account_query': True,
+            'no_order_submitted': True,
+            'allow_order_submit': False,
+            'allow_account_query': False,
+        }
+    except Exception as exc:
+        return {'task_id': 'qmt_data_diagnostics_readonly', 'status': 'FAILED', 'diagnostics_type': 'qmt_xtdata_login_api', 'message': str(exc), 'read_only': True, 'dry_run': True, 'no_order_submitted': True, 'no_account_query': True}
+
+
 def _run_risk_gate_from_latest_intents(params):
     from qmt_ai_trading.risk.factor_strategy_risk_review import review_trade_intents
     intents = _latest_trade_intents()
@@ -76,6 +103,8 @@ def _run_unified_factor_strategy(params, task_id='strategy_dry_run_signals'):
 
 
 def mock_output(task_id, params):
+    if task_id == 'qmt_data_diagnostics_readonly':
+        return _run_qmt_market_diagnostics(params)
     if task_id in {'factor_scan', 'factor_research_dry_run', 'etf_rotation_candidates', 'research_score_etf'}:
         from qmt_ai_trading.research.factor_engine import run_factor_scan
         result = run_factor_scan(params); result['task_id'] = task_id; return result
@@ -136,7 +165,7 @@ def mock_output(task_id, params):
         if _bool_value(params, 'allow_order_cancel', False): warnings.append('allow_order_cancel=true is not accepted; forced to false for account read-only mode')
         if warnings:
             report = {'ok': False, 'status': 'BLOCKED_BY_SAFETY', 'error_message': 'Account readonly task is read-only; order submit/cancel permissions are forbidden'}
-        elif all(_bool_value(params, name, False) for name in ['enable_account_readonly', 'allow_import_xttrader', 'allow_connect_trade_session', 'allow_account_query', 'allow_position_query', 'manual_confirmed']) and _bool_value(params, 'dry_run', True) and _bool_value(params, 'read_only', True):
+        elif all(_bool_value(params, name, False) for name in ['enable_account_readonly', 'allow_import_xttrader', 'allow_connect_trade_session', 'allow_account_query', 'allow_position_query', 'manual_confirmed']):
             from qmt_ai_trading.console_api.account_readonly_runtime import run_account_readonly_subprocess
             report = run_account_readonly_subprocess(params.get('repo_root', '.'), params)
         else:
