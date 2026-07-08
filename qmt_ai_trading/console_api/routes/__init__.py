@@ -14,7 +14,7 @@ ROUTES={
 '/api/v1/portfolio/status': portfolio.status, '/api/v1/portfolio/order-preview/latest': portfolio.preview, '/api/v1/portfolio/budget/latest': portfolio.budget,
 '/api/v1/safety/status': safety.status, '/api/v1/live/status': safety.live, '/api/v1/market/xtdata-live/status': market.xtdata_status,
 '/api/v1/frontend/dashboard/overview': workbench.dashboard_overview, '/api/v1/frontend/dashboard/strategies': workbench.dashboard_strategies, '/api/v1/frontend/dashboard/equity-curve': workbench.dashboard_equity_curve, '/api/v1/frontend/dashboard/events': workbench_task_history.dashboard_events,
-'/api/v1/frontend/data/sources': workbench.data_sources, '/api/v1/frontend/data/quality': workbench.data_quality, '/api/v1/frontend/data/tasks': workbench_task_history.data_tasks, '/api/v1/frontend/data/market-quotes': workbench_market.market_quotes, '/api/v1/frontend/data/market-summary': workbench_market.market_summary, '/api/v1/frontend/data/fundamental-sources': workbench_data_pages.fundamental_sources, '/api/v1/frontend/data/fundamental-records': workbench_data_pages.fundamental_records, '/api/v1/frontend/data/news-items': workbench_data_pages.news_items, '/api/v1/frontend/data/quality-overview': workbench_data_pages.quality_overview, '/api/v1/frontend/data/task-catalog': workbench_data_pages.task_catalog,
+'/api/v1/frontend/data/sources': workbench.data_sources, '/api/v1/frontend/data/quality': workbench.data_quality, '/api/v1/frontend/data/tasks': workbench_task_history.data_tasks, '/api/v1/frontend/data/market-quotes': workbench_market.market_quotes, '/api/v1/frontend/data/market-summary': workbench_market.market_summary, '/api/v1/frontend/data/market-auto-refresh/status': workbench_market.market_auto_refresh_status, '/api/v1/frontend/data/fundamental-sources': workbench_data_pages.fundamental_sources, '/api/v1/frontend/data/fundamental-records': workbench_data_pages.fundamental_records, '/api/v1/frontend/data/news-items': workbench_data_pages.news_items, '/api/v1/frontend/data/quality-overview': workbench_data_pages.quality_overview, '/api/v1/frontend/data/task-catalog': workbench_data_pages.task_catalog,
 '/api/v1/frontend/factors/list': workbench.factor_list, '/api/v1/frontend/strategies/list': workbench.strategy_list,
 '/api/v1/frontend/deployment/stages': workbench.deployment_stages,
 '/api/v1/frontend/execution/holdings': workbench.holdings, '/api/v1/frontend/execution/orders': workbench.order_plan, '/api/v1/frontend/execution/trades': workbench.trades,
@@ -25,6 +25,7 @@ ROUTES={
 }
 POST_ROUTES={
 '/api/v1/frontend/data/market-ai-analysis': workbench_market.market_ai_analysis,
+'/api/v1/frontend/data/market-auto-refresh/save': workbench_market.save_market_auto_refresh,
 '/api/v1/frontend/system/api-configs/save': workbench_api_config.save_config,
 '/api/v1/frontend/system/api-configs/test': workbench_api_config.test_config,
 '/api/v1/frontend/system/api-configs/purposes': workbench_api_config.set_purposes,
