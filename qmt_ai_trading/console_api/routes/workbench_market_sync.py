@@ -22,7 +22,7 @@ GROUP_DEFS = {
 }
 
 GROUP_FILES = {key: CONSOLE / 'market' / f'qmt_universe_{key}.json' for key in GROUP_DEFS}
-
+TIME_KEYS = {'time', 'datetime', 'updated_at', 'updatedAt', 'timestamp', 'stime', 'date', 'tradeDate', 'index'}
 PREFIX_RE = re.compile(r'^(SH|SZ|BJ)[\.:-]?(\d{6})$', re.I)
 SUFFIX_RE = re.compile(r'^(\d{6})[\.:-]?(SH|SZ|BJ)$', re.I)
 
@@ -172,11 +172,68 @@ def _count_records(data: Any) -> int:
     return len(arr)
 
 
+def _parse_time_ms(value: Any) -> int | None:
+    if value in (None, ''):
+        return None
+    raw = str(value).strip()
+    if not raw or '*' in raw:
+        return None
+    digits = re.sub(r'\.0+$', '', raw)
+    try:
+        if re.fullmatch(r'\d{13}', digits):
+            return int(digits)
+        if re.fullmatch(r'\d{10}', digits):
+            return int(digits) * 1000
+        if re.fullmatch(r'\d{14}', digits):
+            dt = datetime(int(digits[0:4]), int(digits[4:6]), int(digits[6:8]), int(digits[8:10]), int(digits[10:12]), int(digits[12:14]))
+            return int(dt.timestamp() * 1000)
+        if re.fullmatch(r'\d{8}', digits):
+            dt = datetime(int(digits[0:4]), int(digits[4:6]), int(digits[6:8]))
+            return int(dt.timestamp() * 1000)
+        return int(datetime.fromisoformat(raw.replace('Z', '+00:00')).timestamp() * 1000)
+    except Exception:
+        return None
+
+
+def _fmt_ms(ms: int | None) -> str:
+    return datetime.fromtimestamp(ms / 1000).isoformat(timespec='seconds') if ms is not None else ''
+
+
+def _walk_times(obj: Any, out: list[int], depth: int = 0) -> None:
+    if depth > 6:
+        return
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            if key in TIME_KEYS:
+                ms = _parse_time_ms(value)
+                if ms is not None:
+                    out.append(ms)
+            if isinstance(value, (dict, list)):
+                _walk_times(value, out, depth + 1)
+    elif isinstance(obj, list):
+        for item in obj[:5000]:
+            _walk_times(item, out, depth + 1)
+
+
+def _time_range(data: Any, data_type: str) -> tuple[str, str, str]:
+    if data_type in {'标的列表', '配置', 'QMT列表同步结果', 'QMT真实列表'}:
+        return '', '', '不适用（列表/配置数据）'
+    times: list[int] = []
+    _walk_times(data, times)
+    if not times:
+        return '', '', '未识别到时间字段'
+    start = min(times)
+    end = max(times)
+    return _fmt_ms(start), _fmt_ms(end), f'{_fmt_ms(start)} 至 {_fmt_ms(end)}'
+
+
 def _dataset_row(key: str, name: str, data_type: str, path: Path, note: str = '') -> dict[str, Any]:
     exists = path.exists()
     data = _read_json(path, {}) if exists else {}
     mtime = datetime.fromtimestamp(path.stat().st_mtime).isoformat(timespec='seconds') if exists else ''
-    return {'key': key, 'name': name, 'type': data_type, 'status': 'READY' if exists else 'MISSING', 'recordCount': _count_records(data), 'updatedAt': data.get('syncedAt') or data.get('generated_at') or data.get('updatedAt') or mtime if isinstance(data, dict) else mtime, 'sourcePath': path.as_posix(), 'note': note}
+    updated_at = data.get('syncedAt') or data.get('generated_at') or data.get('updatedAt') or mtime if isinstance(data, dict) else mtime
+    start_time, end_time, time_range = _time_range(data, data_type) if exists else ('', '', '')
+    return {'key': key, 'name': name, 'type': data_type, 'status': 'READY' if exists else 'MISSING', 'recordCount': _count_records(data), 'startTime': start_time, 'endTime': end_time, 'timeRange': time_range, 'updatedAt': updated_at, 'sourcePath': path.as_posix(), 'note': note}
 
 
 def downloaded_data_status():
